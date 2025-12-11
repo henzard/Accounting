@@ -1,0 +1,166 @@
+---
+globs:
+  - "src/infrastructure/database/**/*"
+  - "src/data/datasources/**/*"
+alwaysApply: false
+---
+
+# SQLite Database Standards
+
+## Scope of This Rule
+
+**This rule covers**: SQLite **implementation** - connection, setup, migrations, library usage.
+
+**For schema design principles** (tables, indexes, queries, performance), see **Rule 23** (database-rules.mdc).
+
+---
+
+## Database Setup
+
+### Library Choice
+Use `expo-sqlite` for Expo projects or `react-native-sqlite-storage` for bare React Native.
+
+### Database Location
+```typescript
+// Database file location
+const DATABASE_NAME = 'your_app_name.db';  // Update with your app name
+const DATABASE_VERSION = 1;
+```
+
+## Schema Management
+
+### Migrations
+```
+src/infrastructure/database/
+├── database-manager.ts      # Database connection and setup
+├── migrations/
+│   ├── index.ts             # Migration runner
+│   ├── 001_initial_schema.ts
+│   ├── 002_add_weight_history.ts
+│   └── ...
+└── schema/
+    └── tables.ts            # Table definitions
+```
+
+### Migration Template
+```typescript
+// Example migration - replace with your app's entities
+export const migration_001_initial_schema = {
+  version: 1,
+  up: async (db: SQLiteDatabase) => {
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+      
+      CREATE TABLE IF NOT EXISTS items (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        description TEXT,
+        created_at INTEGER NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id)
+      );
+      
+      CREATE INDEX idx_items_user 
+        ON items(user_id);
+    `);
+  },
+  down: async (db: SQLiteDatabase) => {
+    await db.execAsync(`
+      DROP TABLE IF EXISTS items;
+      DROP TABLE IF EXISTS users;
+    `);
+  }
+};
+```
+
+## Data Access Patterns
+
+### Repository Implementation
+```typescript
+// Example repository - replace with your domain entities
+export class SQLiteUserRepository implements IUserRepository {
+  constructor(private readonly db: SQLiteDatabase) {}
+
+  async getById(id: string): Promise<User | null> {
+    const result = await this.db.getFirstAsync<UserDTO>(
+      'SELECT * FROM users WHERE id = ?',
+      [id]
+    );
+    return result ? UserMapper.toDomain(result) : null;
+  }
+
+  async save(user: User): Promise<void> {
+    const dto = UserMapper.toDTO(user);
+    await this.db.runAsync(
+      `INSERT OR REPLACE INTO users 
+       (id, name, email, created_at, updated_at) 
+       VALUES (?, ?, ?, ?, ?)`,
+      [dto.id, dto.name, dto.email, dto.created_at, dto.updated_at]
+    );
+  }
+}
+```
+
+### DTO Models
+```typescript
+// Data Transfer Object - matches database schema
+// Replace with your app's entities
+interface UserDTO {
+  id: string;
+  name: string;
+  email: string;
+  created_at: number;  // Unix timestamp
+  updated_at: number;  // Unix timestamp
+}
+```
+
+## Best Practices
+
+### Transactions
+```typescript
+// Use transactions for multiple related operations
+async saveUserWithProfile(user: User, profile: Profile): Promise<void> {
+  await this.db.withTransactionAsync(async () => {
+    await this.userRepo.save(user);
+    await this.profileRepo.save(profile);
+  });
+}
+```
+
+### Parameterized Queries
+```typescript
+// ✅ GOOD: Parameterized query (SQL injection safe)
+await db.runAsync('SELECT * FROM users WHERE id = ?', [id]);
+
+// ❌ BAD: String interpolation (SQL injection risk)
+await db.runAsync(`SELECT * FROM users WHERE id = '${id}'`);
+```
+
+### Timestamps
+- Store as Unix timestamps (INTEGER)
+- Convert to Date objects in mappers
+- Use UTC for consistency
+
+### IDs
+- Use UUIDs as TEXT primary keys
+- Generate with `uuid` package or `crypto.randomUUID()`
+
+## Testing Database Code
+```typescript
+// Use in-memory database for tests
+const testDb = await SQLite.openDatabaseAsync(':memory:');
+
+beforeEach(async () => {
+  await runMigrations(testDb);
+});
+
+afterEach(async () => {
+  await testDb.closeAsync();
+});
+```

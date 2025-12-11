@@ -1,0 +1,65 @@
+---
+globs:
+alwaysApply: true
+---
+
+# React Native Project - Core Rules
+
+## Project Overview
+This is a React Native application following Clean Architecture principles.
+Follow all rules defined in this `.cursor/rules` directory.
+
+**Note**: Project-specific details (app name, domain entities, business logic) should be documented in the `docs/` folder, not in these generic rules.
+
+## Golden Rules
+1. **ALWAYS start with todo.md** when doing large tasks
+2. **Document as you go** to avoid hallucinations
+3. **Test everything** - unit tests and E2E tests
+4. **Verify APK builds** frequently - don't go too far without confirming builds work
+5. **Version, commit, build, test** after significant changes
+
+## Project Structure
+```
+<project-root>/
+├── .cursor/rules/      # Generic project rules (this folder)
+├── docs/               # Project-specific documentation
+│   ├── PROJECT-BRIEF.md          # App purpose, requirements
+│   ├── architecture/             # Data models, decisions
+│   └── setup/                    # Development setup
+├── src/                # Application source code
+│   ├── domain/         # Business logic, entities, use cases
+│   ├── data/           # Data layer, repositories, data sources
+│   ├── presentation/   # UI components, screens, view models
+│   ├── infrastructure/ # External services, database, etc.
+│   └── shared/         # Shared utilities, constants, types
+├── test/               # Test files
+│   ├── unit/           # Unit tests
+│   └── e2e/            # E2E tests (Playwright, Detox, etc.)
+├── android/            # Android native code
+├── ios/                # iOS native code
+├── todo.md             # Task tracking (always update!)
+└── package.json        # Dependencies
+```
+
+## Technology Stack
+- **Framework**: React Native
+- **Database**: Typically SQLite (expo-sqlite, react-native-sqlite-storage) or Firebase/Supabase
+- **Testing**: Jest (unit), Playwright/Detox (E2E)
+- **Architecture**: Clean Architecture with Repository Pattern
+
+## What Goes Where?
+
+### Generic Rules (`.cursor/rules/`)
+- Coding standards, patterns, best practices
+- Architecture principles
+- Testing standards
+- Security guidelines
+- These rules travel between projects
+
+### Project-Specific Docs (`docs/`)
+- Your app's purpose and requirements
+- Domain entities (User, Transaction, Account, etc.)
+- Business logic and workflows
+- API specifications
+- Database schema for THIS app
+- These docs stay with this project

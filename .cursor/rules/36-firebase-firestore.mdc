@@ -1,0 +1,1018 @@
+---
+globs:
+  - "src/infrastructure/firebase/**/*"
+  - "src/data/datasources/**/*"
+alwaysApply: false
+---
+
+# Firebase/Firestore Database Standards
+
+## Scope of This Rule
+
+**This rule covers**: Firebase/Firestore **implementation** - setup, offline persistence, real-time sync, queries, security patterns.
+
+**For generic database design principles** (schema structure, indexes, best practices), see **Rule 23** (database-rules.mdc).
+
+**For local SQLite**, see **Rule 05** (database-sqlite.mdc).
+
+---
+
+## TL;DR - Quick Reference
+
+**Offline-first setup**:
+```typescript
+// Enable offline persistence
+await enableIndexedDbPersistence(firestore);
+```
+
+**UUID-based IDs**:
+```typescript
+// Generate offline-friendly IDs
+const docId = uuid(); // Client-generated
+await setDoc(doc(db, 'users', docId), userData);
+```
+
+**Realtime listeners**:
+```typescript
+// Auto-sync when online
+onSnapshot(query, (snapshot) => {
+  // Handle updates
+});
+```
+
+**Key patterns**:
+- Use UUIDs for document IDs (offline-first)
+- Enable offline persistence
+- Use subcollections for nested data
+- Batch writes for multi-document updates
+- Plan for "last write wins" conflicts
+
+**Read full rule for**: Complete setup, query patterns, security, best practices.
+
+---
+
+## Why Firestore for Offline-First?
+
+### Firestore Strengths
+
+✅ **Built-in offline support** - Local cache handles reads/writes  
+✅ **Automatic sync** - Queues writes, syncs when online  
+✅ **Real-time updates** - Other devices get changes automatically  
+✅ **Managed infrastructure** - No server to maintain  
+✅ **Scalable** - Handles growth without re-architecture
+
+### When to Use Firestore vs SQLite
+
+| Use Case | Recommendation |
+|----------|----------------|
+| **Multi-device sync** | Firestore |
+| **Offline-only, no sync** | SQLite |
+| **Complex relational queries** | SQLite (or use Firestore + local denormalization) |
+| **Real-time collaboration** | Firestore |
+| **Cost-sensitive at scale** | SQLite + custom sync (more work) |
+
+---
+
+## Firebase Setup
+
+### Installation
+
+```bash
+# Install Firebase SDK
+npm install firebase
+
+# For React Native (if using)
+npm install @react-native-firebase/app @react-native-firebase/firestore
+```
+
+### Configuration
+
+```typescript
+// src/infrastructure/firebase/config.ts
+import { initializeApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+import { getStorage } from 'firebase/storage';
+
+// Load from environment variables (see Rule 17)
+const firebaseConfig = {
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.FIREBASE_APP_ID,
+};
+
+// Initialize Firebase
+export const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app);
+export const auth = getAuth(app);
+export const storage = getStorage(app);
+```
+
+### Environment Variables
+
+```bash
+# .env.local (NEVER commit to git!)
+FIREBASE_API_KEY=your-api-key
+FIREBASE_AUTH_DOMAIN=your-app.firebaseapp.com
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_STORAGE_BUCKET=your-app.appspot.com
+FIREBASE_MESSAGING_SENDER_ID=123456789
+FIREBASE_APP_ID=1:123456789:web:abc123
+```
+
+---
+
+## Offline Persistence
+
+### Enable Offline Persistence
+
+```typescript
+// src/infrastructure/firebase/offline-setup.ts
+import { initializeFirestore, persistentLocalCache } from 'firebase/firestore';
+
+// Web
+import { enableIndexedDbPersistence } from 'firebase/firestore';
+
+export async function setupOfflineFirst() {
+  try {
+    await enableIndexedDbPersistence(db);
+    console.log('Offline persistence enabled');
+  } catch (err: any) {
+    if (err.code === 'failed-precondition') {
+      // Multiple tabs open, persistence only enabled in one tab
+      console.warn('Offline persistence failed: Multiple tabs open');
+    } else if (err.code === 'unimplemented') {
+      // Browser doesn't support persistence
+      console.warn('Offline persistence not available in this browser');
+    }
+  }
+}
+
+// React Native
+import { initializeFirestore } from '@react-native-firebase/firestore';
+
+export function setupOfflineFirstRN() {
+  // Offline persistence is enabled by default in React Native
+  // Configure cache size if needed
+  firestore().settings({
+    cacheSizeBytes: 100 * 1024 * 1024, // 100 MB
+  });
+}
+```
+
+### How Offline Persistence Works
+
+```typescript
+/*
+ * Offline Flow:
+ * 
+ * 1. User writes data while offline
+ *    → Write goes to local cache immediately
+ *    → Write added to pending queue
+ *    → UI updates instantly (optimistic)
+ * 
+ * 2. User goes online
+ *    → SDK automatically uploads pending writes
+ *    → Server acknowledges
+ *    → Local cache syncs with server
+ * 
+ * 3. Other devices
+ *    → Receive real-time updates
+ *    → Local cache updates
+ *    → UI updates via listeners
+ */
+```
+
+---
+
+## UUID-Based Document IDs
+
+### Why UUIDs for Offline-First?
+
+```typescript
+// ✅ GOOD: Client-generated UUID
+import { v4 as uuid } from 'uuid';
+
+const userId = uuid(); // Generated offline
+await setDoc(doc(db, 'users', userId), {
+  name: 'John Doe',
+  email: 'john@example.com',
+  created_at: serverTimestamp(),
+});
+
+// ❌ BAD: Server-generated ID
+const docRef = await addDoc(collection(db, 'users'), {
+  name: 'John Doe',
+  // Problem: Requires online connection to get ID
+});
+```
+
+### UUID Pattern
+
+```typescript
+// src/infrastructure/firebase/document-helpers.ts
+import { v4 as uuid } from 'uuid';
+import { doc, setDoc, Timestamp } from 'firebase/firestore';
+
+export async function createDocument<T>(
+  collectionPath: string,
+  data: T,
+  customId?: string
+): Promise<string> {
+  const docId = customId || uuid();
+  
+  await setDoc(doc(db, collectionPath, docId), {
+    ...data,
+    created_at: Timestamp.now(),
+    updated_at: Timestamp.now(),
+  });
+  
+  return docId;
+}
+```
+
+---
+
+## Data Structure Patterns
+
+### Collections vs Subcollections
+
+```typescript
+// Pattern 1: Top-level collections
+// Good for: Independent entities, cross-household queries
+users/{userId}
+households/{householdId}
+transactions/{transactionId}
+
+// Pattern 2: Subcollections
+// Good for: Nested data, scoped queries, automatic cleanup
+households/{householdId}/budgets/{budgetId}
+households/{householdId}/budgets/{budgetId}/categories/{categoryId}
+transactions/{transactionId}/receipts/{receiptId}
+```
+
+### When to Use Each
+
+```typescript
+// ✅ Subcollections: When data belongs to parent
+households/{householdId}/members/{userId}
+households/{householdId}/transactions/{txId}
+
+// ✅ Top-level: When data is referenced across parents
+users/{userId} // Used by multiple households
+categories/{categoryId} // Shared templates
+
+// ❌ Don't deeply nest (>3 levels)
+// Bad: a/b/c/d/e/f - queries become complex
+```
+
+### Document Structure
+
+```typescript
+// src/infrastructure/firebase/models.ts
+
+// ✅ GOOD: Flat structure
+interface UserDocument {
+  id: string;
+  email: string;
+  name: string;
+  household_ids: string[]; // Array of references
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
+// ❌ BAD: Nested objects (hard to query)
+interface UserDocumentBad {
+  id: string;
+  profile: {
+    personal: {
+      name: string;
+      age: number;
+    };
+    contact: {
+      email: string;
+      phone: string;
+    };
+  };
+}
+
+// ✅ Use subcollections for nested data instead
+users/{userId}/preferences/{key}
+```
+
+---
+
+## Repository Pattern with Firestore
+
+### Repository Implementation
+
+```typescript
+// src/data/repositories/user-repository.firestore.ts
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+  Timestamp,
+} from 'firebase/firestore';
+import { IUserRepository } from '@/domain/repositories/i-user-repository';
+import { User } from '@/domain/entities/user';
+import { db } from '@/infrastructure/firebase/config';
+
+export class FirestoreUserRepository implements IUserRepository {
+  private readonly collectionName = 'users';
+
+  async findById(id: string): Promise<User | null> {
+    const docRef = doc(db, this.collectionName, id);
+    const docSnap = await getDoc(docRef);
+    
+    if (!docSnap.exists()) {
+      return null;
+    }
+    
+    return this.mapToEntity(docSnap.id, docSnap.data());
+  }
+
+  async save(user: User): Promise<void> {
+    const docRef = doc(db, this.collectionName, user.id);
+    const data = this.mapToDocument(user);
+    
+    await setDoc(docRef, data, { merge: true });
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    const q = query(
+      collection(db, this.collectionName),
+      where('email', '==', email),
+      limit(1)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      return null;
+    }
+    
+    const doc = querySnapshot.docs[0];
+    return this.mapToEntity(doc.id, doc.data());
+  }
+
+  private mapToEntity(id: string, data: any): User {
+    return new User({
+      id,
+      email: data.email,
+      name: data.name,
+      createdAt: data.created_at?.toDate() || new Date(),
+      updatedAt: data.updated_at?.toDate() || new Date(),
+    });
+  }
+
+  private mapToDocument(user: User): any {
+    return {
+      email: user.email,
+      name: user.name,
+      created_at: Timestamp.fromDate(user.createdAt),
+      updated_at: Timestamp.fromDate(user.updatedAt),
+    };
+  }
+}
+```
+
+---
+
+## Realtime Listeners
+
+### Basic Listener
+
+```typescript
+// src/presentation/viewmodels/user-list.viewmodel.ts
+import { onSnapshot, collection, query, where } from 'firebase/firestore';
+
+export class UserListViewModel {
+  private unsubscribe?: () => void;
+
+  startListening(householdId: string) {
+    const q = query(
+      collection(db, 'users'),
+      where('household_ids', 'array-contains', householdId)
+    );
+
+    this.unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const users = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        
+        // Update UI
+        this.updateUsers(users);
+      },
+      (error) => {
+        console.error('Listener error:', error);
+        this.handleError(error);
+      }
+    );
+  }
+
+  stopListening() {
+    if (this.unsubscribe) {
+      this.unsubscribe();
+    }
+  }
+}
+```
+
+### Detecting Pending Writes
+
+```typescript
+// Show "syncing..." indicator
+import { onSnapshot } from 'firebase/firestore';
+
+onSnapshot(docRef, (doc) => {
+  const hasPendingWrites = doc.metadata.hasPendingWrites;
+  
+  if (hasPendingWrites) {
+    console.log('Document has local changes not yet synced');
+    // Show "Syncing..." indicator
+  } else {
+    console.log('Document is in sync with server');
+    // Hide "Syncing..." indicator
+  }
+});
+```
+
+---
+
+## Batch Writes & Transactions
+
+### Batch Writes
+
+```typescript
+// Use for multiple independent writes
+import { writeBatch, doc } from 'firebase/firestore';
+
+async function createUserWithProfile(user: User, profile: Profile): Promise<void> {
+  const batch = writeBatch(db);
+
+  // Add user
+  const userRef = doc(db, 'users', user.id);
+  batch.set(userRef, { ...user, created_at: Timestamp.now() });
+
+  // Add profile
+  const profileRef = doc(db, 'profiles', profile.id);
+  batch.set(profileRef, { ...profile, user_id: user.id });
+
+  // Commit all or nothing
+  await batch.commit();
+}
+```
+
+### Transactions
+
+```typescript
+// Use when you need to read before write
+import { runTransaction, doc } from 'firebase/firestore';
+
+async function transferMoney(
+  fromAccountId: string,
+  toAccountId: string,
+  amount: number
+): Promise<void> {
+  await runTransaction(db, async (transaction) => {
+    // Read both accounts
+    const fromRef = doc(db, 'accounts', fromAccountId);
+    const toRef = doc(db, 'accounts', toAccountId);
+    
+    const fromDoc = await transaction.get(fromRef);
+    const toDoc = await transaction.get(toRef);
+    
+    if (!fromDoc.exists() || !toDoc.exists()) {
+      throw new Error('Account not found');
+    }
+    
+    const fromBalance = fromDoc.data().balance;
+    
+    if (fromBalance < amount) {
+      throw new Error('Insufficient funds');
+    }
+    
+    // Write updates
+    transaction.update(fromRef, { balance: fromBalance - amount });
+    transaction.update(toRef, { balance: toDoc.data().balance + amount });
+  });
+}
+```
+
+---
+
+## Query Patterns
+
+### Basic Queries
+
+```typescript
+// Simple filter
+const q = query(
+  collection(db, 'transactions'),
+  where('user_id', '==', userId),
+  where('status', '==', 'completed')
+);
+
+// Ordering
+const q = query(
+  collection(db, 'transactions'),
+  orderBy('date', 'desc'),
+  limit(10)
+);
+
+// Range queries
+const q = query(
+  collection(db, 'transactions'),
+  where('amount', '>=', 100),
+  where('amount', '<=', 500)
+);
+```
+
+### Composite Queries
+
+```typescript
+// Requires composite index
+const q = query(
+  collection(db, 'transactions'),
+  where('user_id', '==', userId),
+  where('status', '==', 'completed'),
+  orderBy('date', 'desc')
+);
+
+// Firestore will prompt you to create index
+// Follow the link in console error
+```
+
+### Array Queries
+
+```typescript
+// Check if array contains value
+const q = query(
+  collection(db, 'users'),
+  where('household_ids', 'array-contains', householdId)
+);
+
+// Check if any value in array matches any in list
+const q = query(
+  collection(db, 'users'),
+  where('roles', 'array-contains-any', ['admin', 'editor'])
+);
+```
+
+---
+
+## Pagination
+
+### Cursor-Based Pagination
+
+```typescript
+// src/data/repositories/transaction-repository.firestore.ts
+import { query, orderBy, limit, startAfter, getDocs } from 'firebase/firestore';
+
+export class TransactionRepository {
+  async getTransactions(
+    pageSize: number = 20,
+    lastDoc?: any
+  ): Promise<{ items: Transaction[]; lastDoc: any }> {
+    let q = query(
+      collection(db, 'transactions'),
+      orderBy('date', 'desc'),
+      limit(pageSize)
+    );
+    
+    if (lastDoc) {
+      q = query(q, startAfter(lastDoc));
+    }
+    
+    const snapshot = await getDocs(q);
+    const items = snapshot.docs.map(doc => this.mapToEntity(doc));
+    const lastVisible = snapshot.docs[snapshot.docs.length - 1];
+    
+    return { items, lastDoc: lastVisible };
+  }
+}
+```
+
+---
+
+## Conflict Resolution
+
+### Understanding "Last Write Wins"
+
+```typescript
+/*
+ * Firestore Conflict Resolution:
+ * 
+ * Device A (offline): Updates transaction amount to $100
+ * Device B (offline): Updates same transaction amount to $150
+ * Both go online:
+ *   → Whichever write reaches server LAST wins
+ *   → The other update is lost
+ * 
+ * Solutions:
+ * 1. Append-only pattern (preferred for accounting)
+ * 2. Version fields with manual conflict detection
+ * 3. Use subcollections for history
+ */
+```
+
+### Append-Only Pattern
+
+```typescript
+// ✅ GOOD: Append-only for financial data
+interface Transaction {
+  id: string;
+  original_amount: number;
+  corrections: CorrectionEntry[];
+  effective_amount: number; // Computed
+}
+
+// Never edit in place, add corrections
+async function correctTransaction(txId: string, newAmount: number) {
+  const correction = {
+    id: uuid(),
+    amount: newAmount,
+    corrected_at: Timestamp.now(),
+    corrected_by: currentUserId,
+  };
+  
+  await updateDoc(doc(db, 'transactions', txId), {
+    corrections: arrayUnion(correction),
+  });
+}
+```
+
+### Version-Based Detection
+
+```typescript
+// Add version field to detect conflicts
+interface VersionedDocument {
+  id: string;
+  data: any;
+  version: number;
+  updated_at: Timestamp;
+}
+
+async function updateWithVersionCheck(docId: string, newData: any, expectedVersion: number) {
+  await runTransaction(db, async (transaction) => {
+    const docRef = doc(db, 'documents', docId);
+    const docSnap = await transaction.get(docRef);
+    
+    const currentVersion = docSnap.data()?.version || 0;
+    
+    if (currentVersion !== expectedVersion) {
+      throw new Error('Version conflict - document was modified');
+    }
+    
+    transaction.update(docRef, {
+      ...newData,
+      version: currentVersion + 1,
+      updated_at: Timestamp.now(),
+    });
+  });
+}
+```
+
+---
+
+## Security Rules (Patterns)
+
+### Basic Structure
+
+```javascript
+// firestore.rules (generic patterns)
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+    
+    // Household data
+    match /households/{householdId} {
+      // Check membership
+      function isMember() {
+        return request.auth.uid in resource.data.member_ids;
+      }
+      
+      allow read: if isMember();
+      allow write: if isMember();
+      
+      // Subcollections inherit parent rules
+      match /{document=**} {
+        allow read, write: if isMember();
+      }
+    }
+  }
+}
+```
+
+### Document-Specific Rules
+
+```javascript
+// Your project-specific rules go in docs/security/firestore-rules.md
+// This is just the pattern
+```
+
+---
+
+## Best Practices
+
+### 1. Document Size Limits
+
+```typescript
+// ❌ BAD: Large arrays in document
+interface TransactionBad {
+  id: string;
+  allocations: Allocation[]; // Could grow unbounded
+}
+
+// ✅ GOOD: Use subcollection
+transactions/{txId}/allocations/{allocationId}
+```
+
+### 2. Denormalization for Performance
+
+```typescript
+// ✅ Denormalize frequently accessed data
+interface Transaction {
+  id: string;
+  user_id: string;
+  user_name: string; // Denormalized for display
+  user_email: string; // Denormalized for display
+  amount: number;
+}
+
+// Keep source of truth
+users/{userId}
+```
+
+### 3. Timestamps
+
+```typescript
+// ✅ GOOD: Use server timestamps
+import { serverTimestamp } from 'firebase/firestore';
+
+await setDoc(doc(db, 'users', userId), {
+  name: 'John',
+  created_at: serverTimestamp(), // Set by server
+});
+
+// ❌ BAD: Client timestamps (can be wrong)
+await setDoc(doc(db, 'users', userId), {
+  name: 'John',
+  created_at: new Date(), // Client time might be wrong
+});
+```
+
+### 4. Error Handling
+
+```typescript
+// src/infrastructure/firebase/error-handler.ts
+import { FirebaseError } from 'firebase/app';
+
+export function handleFirebaseError(error: unknown): Error {
+  if (error instanceof FirebaseError) {
+    switch (error.code) {
+      case 'permission-denied':
+        return new Error('You do not have permission to access this data');
+      case 'not-found':
+        return new Error('Document not found');
+      case 'unavailable':
+        return new Error('Service temporarily unavailable. Please try again.');
+      default:
+        return new Error(`Firebase error: ${error.message}`);
+    }
+  }
+  
+  return error instanceof Error ? error : new Error('Unknown error');
+}
+```
+
+### 5. Cleanup on Unmount
+
+```typescript
+// src/presentation/hooks/use-firestore-query.ts
+import { useEffect, useState } from 'react';
+import { onSnapshot } from 'firebase/firestore';
+
+export function useFirestoreQuery<T>(queryRef: Query) {
+  const [data, setData] = useState<T[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      queryRef,
+      (snapshot) => {
+        const items = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        } as T));
+        setData(items);
+        setLoading(false);
+      },
+      (err) => {
+        setError(err);
+        setLoading(false);
+      }
+    );
+
+    // Cleanup listener on unmount
+    return () => unsubscribe();
+  }, [queryRef]);
+
+  return { data, loading, error };
+}
+```
+
+---
+
+## Testing Firestore Code
+
+### Using Firebase Emulator
+
+```bash
+# Install Firebase CLI
+npm install -g firebase-tools
+
+# Initialize emulators
+firebase init emulators
+
+# Start emulators
+firebase emulators:start
+```
+
+### Test Configuration
+
+```typescript
+// src/infrastructure/firebase/config.test.ts
+import { connectFirestoreEmulator } from 'firebase/firestore';
+
+if (process.env.NODE_ENV === 'test') {
+  connectFirestoreEmulator(db, 'localhost', 8080);
+}
+```
+
+### Example Test
+
+```typescript
+// src/data/repositories/user-repository.test.ts
+describe('FirestoreUserRepository', () => {
+  let repository: FirestoreUserRepository;
+
+  beforeEach(async () => {
+    // Clear emulator data
+    await clearFirestoreData({ projectId: 'test-project' });
+    repository = new FirestoreUserRepository();
+  });
+
+  it('should save and retrieve user', async () => {
+    const user = new User({
+      id: uuid(),
+      email: 'test@example.com',
+      name: 'Test User',
+    });
+
+    await repository.save(user);
+    const retrieved = await repository.findById(user.id);
+
+    expect(retrieved).not.toBeNull();
+    expect(retrieved?.email).toBe(user.email);
+  });
+});
+```
+
+---
+
+## Migration from SQLite
+
+If migrating from SQLite to Firestore:
+
+### Data Migration Script
+
+```typescript
+// scripts/migrate-to-firestore.ts
+import { readFromSQLite } from './sqlite-export';
+import { writeBatch } from 'firebase/firestore';
+
+async function migrateData() {
+  const sqliteData = await readFromSQLite();
+  const batch = writeBatch(db);
+  
+  // Batch write in chunks of 500 (Firestore limit)
+  let count = 0;
+  
+  for (const user of sqliteData.users) {
+    const docRef = doc(db, 'users', user.id);
+    batch.set(docRef, user);
+    
+    count++;
+    if (count % 500 === 0) {
+      await batch.commit();
+      console.log(`Migrated ${count} users`);
+    }
+  }
+  
+  await batch.commit();
+  console.log('Migration complete');
+}
+```
+
+---
+
+## Performance Tips
+
+### 1. Use Indexes
+
+```typescript
+// Firebase Console → Firestore → Indexes
+// Create composite indexes for common queries
+```
+
+### 2. Limit Query Results
+
+```typescript
+// ✅ GOOD: Paginate large datasets
+const q = query(collection(db, 'items'), limit(20));
+
+// ❌ BAD: Load everything
+const q = query(collection(db, 'items')); // Could be thousands
+```
+
+### 3. Cache Strategy
+
+```typescript
+// Get from cache first, then server
+import { getDocFromCache, getDocFromServer } from 'firebase/firestore';
+
+async function getCachedDocument(docRef: DocumentReference) {
+  try {
+    const doc = await getDocFromCache(docRef);
+    return doc;
+  } catch (e) {
+    // Not in cache, fetch from server
+    return await getDocFromServer(docRef);
+  }
+}
+```
+
+---
+
+## Common Mistakes to Avoid
+
+| ❌ Don't | ✅ Do |
+|----------|-------|
+| Use auto-generated IDs for offline writes | Use UUIDs (client-generated) |
+| Store large arrays in documents | Use subcollections |
+| Query without indexes | Create composite indexes |
+| Forget to unsubscribe listeners | Always cleanup in unmount |
+| Trust client timestamps | Use serverTimestamp() |
+| Store sensitive data unencrypted | Use security rules + client encryption |
+
+---
+
+## Summary
+
+### Firestore = Offline-First + Real-Time
+
+- **Offline persistence** works out of the box
+- **UUID-based IDs** enable offline writes
+- **Realtime listeners** keep all devices in sync
+- **Batch writes** for multi-document operations
+- **Security rules** protect data server-side
+
+### When Combined with Clean Architecture
+
+- **Domain layer**: Business logic (pure)
+- **Data layer**: Firestore repositories
+- **Presentation**: React hooks with listeners
+
+This creates a powerful offline-first, real-time, syncing mobile app! 🚀
