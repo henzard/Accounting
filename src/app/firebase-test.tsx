@@ -19,10 +19,6 @@ export default function FirebaseTestScreen() {
 
   const testWrite = async () => {
     try {
-      if (!db) {
-        throw new Error('Firebase not initialized. Check src/infrastructure/firebase/config.ts');
-      }
-      
       setStatus('Testing write...');
       addResult('🔵 Starting write test...');
       
@@ -44,10 +40,6 @@ export default function FirebaseTestScreen() {
 
   const testRead = async () => {
     try {
-      if (!db) {
-        throw new Error('Firebase not initialized. Check src/infrastructure/firebase/config.ts');
-      }
-      
       setStatus('Testing read...');
       addResult('🔵 Starting read test...');
       
