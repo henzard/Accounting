@@ -46,6 +46,15 @@ export default function HomeScreen() {
         </ThemedText>
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">🔥 Firebase Test</ThemedText>
+        <Link href="/firebase-test" style={{ marginTop: 10 }}>
+          <ThemedText type="link">Test Firebase Connection →</ThemedText>
+        </Link>
+        <ThemedText style={{ fontSize: 12, marginTop: 5 }}>
+          Verify Firestore read/write and offline persistence
+        </ThemedText>
+      </ThemedView>
+      <ThemedView style={styles.stepContainer}>
         <Link href="/modal">
           <Link.Trigger>
             <ThemedText type="subtitle">Step 2: Explore</ThemedText>
