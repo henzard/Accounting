@@ -429,7 +429,7 @@ Theme system complete with Homebase branding. Core UI components built (Button, 
 
 Building core features: authentication, household management, transactions, budgets, and debt tracking.
 
-**Current**: Phase 5.1 - Authentication Flow
+**Current**: Phase 5.2 - Household Setup
 
 ### 5.1: Authentication Flow (1 hour) ✅ COMPLETE
 
@@ -454,15 +454,24 @@ Building core features: authentication, household management, transactions, budg
 
 ---
 
-### 5.2: Household Setup (1 hour)
+### 5.2: Household Setup (1 hour) ✅ COMPLETE
 
-- [ ] Create Household creation screen
-- [ ] Create Household selection screen
-- [ ] Save household to Firestore
-- [ ] Test creating household
-- [ ] **Test app runs**, can create and select household
+- [x] Create Household creation screen
+- [x] Create Household selection screen
+- [x] Save household to Firestore
+- [x] Test creating household
+- [x] **Test app runs**, can create and select household
 
-**Exit Criteria**: User can create/select household
+**Exit Criteria**: User can create/select household ✅ VERIFIED  
+**Status**: COMPLETE
+
+**What was built**:
+- `household/create.tsx` - Household creation screen with name input
+- `household/select.tsx` - Household selection screen for multi-household users
+- Household guard in tabs layout - redirects to household setup if no household
+- Updated signup flow - directs to household creation after account creation
+- Creates household with default baby step 1
+- Updates user with household_ids and default_household_id
 
 ---
 

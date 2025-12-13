@@ -96,11 +96,11 @@ export default function SignupScreen() {
       
       Alert.alert(
         'Welcome!',
-        'Your account has been created successfully.',
+        'Your account has been created successfully. Let us set up your household!',
         [
           {
-            text: 'Get Started',
-            onPress: () => router.replace('/(tabs)'),
+            text: 'Continue',
+            onPress: () => router.replace('/household/create'),
           },
         ]
       );
@@ -278,7 +278,7 @@ export default function SignupScreen() {
             marginTop: theme.spacing[8],
           }}
         >
-          By creating an account, you agree to follow Dave Ramsey's Baby Steps to financial freedom
+          By creating an account, you agree to follow Dave Ramsey&apos;s Baby Steps to financial freedom
         </Text>
       </ScrollView>
     </KeyboardAvoidingView>

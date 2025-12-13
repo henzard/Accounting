@@ -25,6 +25,8 @@ export default function RootLayout() {
             <Stack.Screen name="components-demo" options={{ presentation: 'modal', title: 'Components' }} />
             <Stack.Screen name="login" options={{ headerShown: false }} />
             <Stack.Screen name="signup" options={{ headerShown: false }} />
+            <Stack.Screen name="household/create" options={{ headerShown: false }} />
+            <Stack.Screen name="household/select" options={{ headerShown: false }} />
           </Stack>
           <StatusBar style="auto" />
         </NavigationThemeProvider>
