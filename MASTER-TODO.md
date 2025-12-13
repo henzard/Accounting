@@ -431,17 +431,26 @@ Building core features: authentication, household management, transactions, budg
 
 **Current**: Phase 5.1 - Authentication Flow
 
-### 5.1: Authentication Flow (1 hour) 🔄 IN PROGRESS
+### 5.1: Authentication Flow (1 hour) ✅ COMPLETE
 
-- [ ] Create Login screen
-- [ ] Create Signup screen
-- [ ] Implement Firebase Auth
-- [ ] Test sign up
-- [ ] Test sign in
-- [ ] Test sign out
-- [ ] **Test app runs**, full auth flow works
+- [x] Create Login screen
+- [x] Create Signup screen
+- [x] Implement Firebase Auth
+- [x] Test sign up
+- [x] Test sign in
+- [x] Test sign out
+- [x] **Test app runs**, full auth flow works
 
-**Exit Criteria**: Can create account, sign in/out
+**Exit Criteria**: Can create account, sign in/out ✅ VERIFIED  
+**Status**: COMPLETE
+
+**What was built**:
+- `AuthContext.tsx` - Authentication state management with Firebase Auth
+- `login.tsx` - Login screen with email/password validation
+- `signup.tsx` - Signup screen with name, email, password, confirm password
+- Auth guard in tabs layout - redirects to login if not authenticated
+- Sign out button on home screen
+- User welcome message displaying name and email
 
 ---
 

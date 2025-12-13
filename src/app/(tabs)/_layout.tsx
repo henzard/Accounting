@@ -1,12 +1,55 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
+import { Tabs, useRouter, useSegments } from 'expo-router';
+import React, { useEffect } from 'react';
+import { View, Text, ActivityIndicator } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useTheme } from '@/infrastructure/theme';
+import { useAuth } from '@/infrastructure/auth';
 
 export default function TabLayout() {
   const { theme } = useTheme();
+  const { user, loading } = useAuth();
+  const router = useRouter();
+  const segments = useSegments();
+
+  // Auth guard: redirect to login if not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      console.log('🔒 User not authenticated, redirecting to login...');
+      router.replace('/login');
+    }
+  }, [user, loading, router, segments]);
+
+  // Show loading screen while checking auth
+  if (loading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: theme.background.primary,
+        }}
+      >
+        <ActivityIndicator size="large" color={theme.interactive.primary} />
+        <Text
+          style={{
+            marginTop: theme.spacing[4],
+            color: theme.text.secondary,
+            fontSize: 16,
+          }}
+        >
+          Loading...
+        </Text>
+      </View>
+    );
+  }
+
+  // Don't render tabs if not authenticated
+  if (!user) {
+    return null;
+  }
 
   return (
     <Tabs

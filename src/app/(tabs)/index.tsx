@@ -1,17 +1,46 @@
 import { Image } from 'expo-image';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Alert } from 'react-native';
 
 import { HelloWave } from '@/components/hello-wave';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { APP_VERSION, PHASE } from '@/shared/types';
-import { Card } from '@/presentation/components';
+import { Card, OutlineButton } from '@/presentation/components';
 import { useTheme } from '@/infrastructure/theme';
+import { useAuth } from '@/infrastructure/auth';
 
 export default function HomeScreen() {
   const { theme } = useTheme();
+  const { user, signOut } = useAuth();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut();
+              router.replace('/login');
+            } catch (err: any) {
+              Alert.alert('Error', 'Failed to sign out');
+              console.error('Sign out error:', err);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <ParallaxScrollView
@@ -25,6 +54,14 @@ export default function HomeScreen() {
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Homebase Budget</ThemedText>
         <HelloWave />
+      </ThemedView>
+      
+      {/* Welcome Message */}
+      <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">Welcome back, {user?.name}! 👋</ThemedText>
+        <ThemedText style={{ fontSize: 14, opacity: 0.7 }}>
+          {user?.email}
+        </ThemedText>
       </ThemedView>
       
       {/* Version Info */}
@@ -112,6 +149,15 @@ export default function HomeScreen() {
         <ThemedText style={{ fontSize: 12, marginTop: 5 }}>
           Verify Firestore read/write and offline persistence
         </ThemedText>
+      </ThemedView>
+
+      {/* Sign Out */}
+      <ThemedView style={styles.stepContainer}>
+        <OutlineButton
+          title="Sign Out"
+          onPress={handleSignOut}
+          testID="sign-out-button"
+        />
       </ThemedView>
     </ParallaxScrollView>
   );
