@@ -6,11 +6,13 @@ import { View, Text, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'r
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
-import { Input, PrimaryButton, Card } from '@/presentation/components';
+import { Input, PrimaryButton, Card, SearchableSelect } from '@/presentation/components';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
 import { createHousehold } from '@/domain/entities';
 import { v4 as uuid } from 'uuid';
+import { CURRENCY_OPTIONS } from '@/shared/constants/currencies';
+import { TIMEZONE_OPTIONS } from '@/shared/constants/timezones';
 
 export default function CreateHouseholdScreen() {
   const { theme } = useTheme();
@@ -55,12 +57,9 @@ export default function CreateHouseholdScreen() {
         id: uuid(),
         name: householdName.trim(),
         owner_id: user.id,
-        member_ids: [user.id], // Owner is first member
         timezone: timezone,
         currency: currency,
         current_baby_step: 1, // Start at Baby Step 1
-        baby_step_started_at: new Date(),
-        created_by: user.id,
       });
 
       // Save to Firestore
@@ -74,7 +73,7 @@ export default function CreateHouseholdScreen() {
         baby_step_started_at: serverTimestamp(),
         created_at: serverTimestamp(),
         updated_at: serverTimestamp(),
-        created_by: household.created_by,
+        created_by: user.id,
       });
 
       console.log('✅ Household created:', household.id);
@@ -158,7 +157,7 @@ export default function CreateHouseholdScreen() {
               textAlign: 'center',
             }}
           >
-            Your household is your financial homebase. This is where you'll track your budget, transactions, and Baby Steps progress.
+            Your household is your financial homebase. This is where you&apos;ll track your budget, transactions, and Baby Steps progress.
           </Text>
         </View>
 
@@ -205,27 +204,28 @@ export default function CreateHouseholdScreen() {
 
           <View style={{ height: theme.spacing[4] }} />
 
-          <Input
+          <SearchableSelect
             label="Currency"
             value={currency}
-            onChangeText={setCurrency}
-            placeholder="USD, ZAR, EUR, GBP, etc."
-            autoCapitalize="characters"
-            maxLength={3}
-            testID="household-currency-input"
-            helperText="3-letter currency code (e.g., USD, ZAR)"
+            onSelect={setCurrency}
+            options={CURRENCY_OPTIONS}
+            placeholder="Select currency"
+            helperText="Your household's currency for all transactions"
+            testID="household-currency-select"
+            required
           />
 
           <View style={{ height: theme.spacing[4] }} />
 
-          <Input
+          <SearchableSelect
             label="Timezone"
             value={timezone}
-            onChangeText={setTimezone}
-            placeholder="e.g., Africa/Johannesburg"
-            autoCapitalize="none"
-            testID="household-timezone-input"
-            helperText="Your timezone for date/time display"
+            onSelect={setTimezone}
+            options={TIMEZONE_OPTIONS}
+            placeholder="Select timezone"
+            helperText="Your timezone for accurate date/time display"
+            testID="household-timezone-select"
+            required
           />
         </View>
 
@@ -255,7 +255,7 @@ export default function CreateHouseholdScreen() {
               marginBottom: theme.spacing[2],
             }}
           >
-            📈 You'll start at Baby Step 1
+            📈 You&apos;ll start at Baby Step 1
           </Text>
           <Text style={{ fontSize: 13, color: theme.text.secondary }}>
             Save $1,000 for your starter emergency fund. This is your first step toward financial freedom!
