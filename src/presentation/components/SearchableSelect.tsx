@@ -12,7 +12,8 @@ import {
   TextInput,
 } from 'react-native';
 import { useTheme } from '@/infrastructure/theme';
-import { Input, PrimaryButton, OutlineButton } from './index';
+import { Input } from './Input';
+import { OutlineButton } from './Button';
 
 export interface SelectOption {
   label: string;
@@ -77,7 +78,9 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
             required={required}
             editable={false}
             rightIcon={
-              <Text style={{ color: theme.text.secondary, fontSize: 18 }}>▼</Text>
+              <View style={{ justifyContent: 'center', alignItems: 'center' }}>
+                <Text style={{ color: theme.text.secondary, fontSize: 18 }}>▼</Text>
+              </View>
             }
           />
         </View>
