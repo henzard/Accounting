@@ -16,27 +16,29 @@ export default function TabLayout() {
   // Auth guard: redirect to login if not authenticated
   // Household guard: redirect to household setup if no household
   useEffect(() => {
-    if (!loading && !user) {
+    // Only act when loading is complete
+    if (loading) return;
+
+    // Check authentication first
+    if (!user) {
       console.log('🔒 User not authenticated, redirecting to login...');
       router.replace('/login');
       return;
     }
 
-    if (!loading && user) {
-      // Check if user has a household
-      if (!user.default_household_id) {
-        console.log('🏠 No default household, redirecting to household setup...');
-        
-        // If user has households, let them select one
-        if (user.household_ids && user.household_ids.length > 0) {
-          router.replace('/household/select');
-        } else {
-          // Otherwise, create first household
-          router.replace('/household/create');
-        }
+    // User is authenticated, check household
+    if (!user.default_household_id) {
+      console.log('🏠 No default household, redirecting to household setup...');
+      
+      // If user has households, let them select one
+      if (user.household_ids && user.household_ids.length > 0) {
+        router.replace('/household/select');
+      } else {
+        // Otherwise, create first household
+        router.replace('/household/create');
       }
     }
-  }, [user, loading, router, segments]);
+  }, [user, loading]);
 
   // Show loading screen while checking auth
   if (loading) {

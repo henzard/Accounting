@@ -16,7 +16,7 @@ import { TIMEZONE_OPTIONS } from '@/shared/constants/timezones';
 
 export default function CreateHouseholdScreen() {
   const { theme } = useTheme();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const router = useRouter();
 
   const [householdName, setHouseholdName] = useState('');
@@ -92,6 +92,10 @@ export default function CreateHouseholdScreen() {
       );
 
       console.log('✅ User updated with household');
+
+      // Refresh user data in AuthContext
+      await refreshUser();
+      console.log('✅ User data refreshed in AuthContext');
 
       Alert.alert(
         'Success! 🎉',

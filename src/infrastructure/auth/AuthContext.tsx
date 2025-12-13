@@ -20,6 +20,7 @@ interface AuthContextValue {
   signUp: (email: string, password: string, name: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -178,6 +179,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Refresh user data from Firestore
+  const refreshUser = async (): Promise<void> => {
+    if (!auth.currentUser) {
+      console.warn('⚠️ Cannot refresh user: not authenticated');
+      return;
+    }
+
+    try {
+      console.log('🔄 Refreshing user data...');
+      const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        const appUser = createUser({
+          id: auth.currentUser.uid,
+          email: auth.currentUser.email || '',
+          name: userData.name,
+          phone: userData.phone,
+          household_ids: userData.household_ids || [],
+          default_household_id: userData.default_household_id,
+          timezone: userData.timezone || 'UTC',
+          currency: userData.currency || 'USD',
+          locale: userData.locale || 'en-US',
+          created_at: userData.created_at?.toDate() || new Date(),
+          updated_at: userData.updated_at?.toDate() || new Date(),
+          last_login_at: new Date(),
+        });
+        
+        setUser(appUser);
+        console.log('✅ User data refreshed');
+      }
+    } catch (error) {
+      console.error('❌ Error refreshing user data:', error);
+    }
+  };
+
   const value: AuthContextValue = {
     user,
     firebaseUser,
@@ -185,6 +222,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signUp,
     signIn,
     signOut,
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
