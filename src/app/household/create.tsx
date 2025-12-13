@@ -18,6 +18,8 @@ export default function CreateHouseholdScreen() {
   const router = useRouter();
 
   const [householdName, setHouseholdName] = useState('');
+  const [timezone, setTimezone] = useState(user?.timezone || 'UTC');
+  const [currency, setCurrency] = useState(user?.currency || 'USD');
   const [loading, setLoading] = useState(false);
   const [nameError, setNameError] = useState('');
 
@@ -54,8 +56,8 @@ export default function CreateHouseholdScreen() {
         name: householdName.trim(),
         owner_id: user.id,
         member_ids: [user.id], // Owner is first member
-        timezone: user.timezone,
-        currency: user.currency,
+        timezone: timezone,
+        currency: currency,
         current_baby_step: 1, // Start at Baby Step 1
         baby_step_started_at: new Date(),
         created_by: user.id,
@@ -201,21 +203,30 @@ export default function CreateHouseholdScreen() {
             required
           />
 
-          <View
-            style={{
-              marginTop: theme.spacing[3],
-              padding: theme.spacing[3],
-              backgroundColor: theme.background.tertiary,
-              borderRadius: theme.borderRadius.md,
-            }}
-          >
-            <Text style={{ fontSize: 12, color: theme.text.tertiary }}>
-              <Text style={{ fontWeight: '600' }}>Timezone:</Text> {user?.timezone}
-            </Text>
-            <Text style={{ fontSize: 12, color: theme.text.tertiary, marginTop: 4 }}>
-              <Text style={{ fontWeight: '600' }}>Currency:</Text> {user?.currency}
-            </Text>
-          </View>
+          <View style={{ height: theme.spacing[4] }} />
+
+          <Input
+            label="Currency"
+            value={currency}
+            onChangeText={setCurrency}
+            placeholder="USD, ZAR, EUR, GBP, etc."
+            autoCapitalize="characters"
+            maxLength={3}
+            testID="household-currency-input"
+            helperText="3-letter currency code (e.g., USD, ZAR)"
+          />
+
+          <View style={{ height: theme.spacing[4] }} />
+
+          <Input
+            label="Timezone"
+            value={timezone}
+            onChangeText={setTimezone}
+            placeholder="e.g., Africa/Johannesburg"
+            autoCapitalize="none"
+            testID="household-timezone-input"
+            helperText="Your timezone for date/time display"
+          />
         </View>
 
         {/* Create Button */}
