@@ -1,0 +1,343 @@
+# Expo Setup & Development
+
+## Project Stack
+
+This is an **Expo** project, not a bare React Native project.
+
+### Why Expo?
+- ✅ Easier offline-first with expo-sqlite
+- ✅ Simpler build process (no Gradle/Xcode headaches)
+- ✅ Better developer experience
+- ✅ Works perfectly with Firebase/Firestore
+- ✅ Expo Router for navigation
+
+---
+
+## Initial Setup
+
+### Create New Project
+
+```powershell
+# Start fresh with Expo
+npx create-expo-app@latest
+
+# Choose app name (e.g., "Accounting")
+# This creates: C:\Project\Accounting\Accounting\
+# Then rename to src: Rename-Item "Accounting" "src"
+```
+
+### First Run
+
+```powershell
+cd src               # Navigate to Expo project
+npm run android      # Opens Android emulator
+npm run web          # Opens in browser
+npm start            # Shows QR for Expo Go app
+```
+
+---
+
+## Project Structure
+
+```
+C:\Project\Accounting\
+├── .cursor/                # Project rules
+├── docs/                   # Documentation
+├── src/                    # Expo project (mobile app)
+│   ├── app/                # Expo Router (file-based routing)
+│   │   ├── (tabs)/         # Tab navigation
+│   │   ├── _layout.tsx     # Root layout
+│   │   └── index.tsx       # Home screen
+│   ├── domain/             # Clean Architecture: Business logic
+│   ├── data/               # Clean Architecture: Data layer
+│   ├── presentation/       # Clean Architecture: UI components
+│   ├── infrastructure/     # Clean Architecture: External services
+│   ├── assets/             # Images, fonts
+│   ├── node_modules/
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── app.json            # Expo config
+│   └── metro.config.js
+├── todo.md                 # Task tracking
+└── .gitignore
+```
+
+---
+
+## Key Expo Commands
+
+**All commands run from src/ directory:**
+
+```powershell
+cd C:\Project\Accounting\src
+
+# Development
+npm start                    # Start Metro bundler
+npm run android              # Run on Android emulator
+npm run web                  # Run in web browser
+
+# Install packages
+npx expo install <package>   # Expo-compatible version
+npm install <package>        # Standard npm package
+
+# Build
+npx expo prebuild            # Generate native folders (android/ios)
+eas build --platform android # Build APK/AAB with EAS
+```
+
+---
+
+## Adding Dependencies
+
+### Expo Packages (Recommended)
+```powershell
+# Always use expo install for Expo packages
+npx expo install expo-sqlite
+npx expo install expo-router
+npx expo install expo-secure-store
+npx expo install expo-file-system
+```
+
+### Firebase (Standard npm)
+```powershell
+npm install firebase
+npm install @react-native-firebase/app
+npm install @react-native-firebase/firestore
+```
+
+### TypeScript Types
+```powershell
+npm install --save-dev @types/react @types/react-native
+```
+
+---
+
+## Configuration Files
+
+### app.json (Expo Config)
+```json
+{
+  "expo": {
+    "name": "Accounting",
+    "slug": "accounting",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourdomain.accounting"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.yourdomain.accounting"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "scheme": "accounting"
+  }
+}
+```
+
+### tsconfig.json (TypeScript Config)
+```json
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/domain/*": ["./src/domain/*"],
+      "@/data/*": ["./src/data/*"],
+      "@/presentation/*": ["./src/presentation/*"],
+      "@/infrastructure/*": ["./src/infrastructure/*"],
+      "@/shared/*": ["./src/shared/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", ".expo/types/**/*.ts", "expo-env.d.ts"]
+}
+```
+
+### babel.config.js (Babel Config)
+```javascript
+module.exports = function(api) {
+  api.cache(true);
+  return {
+    presets: ['babel-preset-expo'],
+    plugins: [
+      [
+        'module-resolver',
+        {
+          root: ['./'],
+          alias: {
+            '@': './src',
+            '@/domain': './src/domain',
+            '@/data': './src/data',
+            '@/presentation': './src/presentation',
+            '@/infrastructure': './src/infrastructure',
+            '@/shared': './src/shared',
+          },
+          extensions: ['.js', '.jsx', '.ts', '.tsx'],
+        },
+      ],
+    ],
+  };
+};
+```
+
+---
+
+## Development Workflow
+
+### 1. Start Development Server
+```powershell
+npm start
+# Opens Metro bundler with QR code
+# Press 'a' to open Android
+# Press 'w' to open web
+```
+
+### 2. Hot Reload
+- Expo has **fast refresh** enabled by default
+- Save file → see changes instantly
+- No need to rebuild
+
+### 3. Clear Cache (if needed)
+```powershell
+npx expo start --clear
+```
+
+---
+
+## Expo vs Bare React Native
+
+| Feature | Expo | Bare RN |
+|---------|------|---------|
+| **Setup** | `npx create-expo-app` | `npx react-native init` |
+| **Native code** | Managed by Expo | You manage android/ios |
+| **Build** | `eas build` | `cd android && ./gradlew` |
+| **Updates** | OTA updates | Full rebuild |
+| **SQLite** | `expo-sqlite` (easy) | `react-native-sqlite-storage` |
+| **Offline-first** | ✅ Great | ⚠️ More setup |
+
+**For this accounting app**: Expo is the right choice.
+
+---
+
+## Building for Production
+
+### 1. Install EAS CLI
+```powershell
+npm install -g eas-cli
+eas login
+```
+
+### 2. Configure EAS
+```powershell
+eas build:configure
+```
+
+### 3. Build APK
+```powershell
+# Development build
+eas build --profile development --platform android
+
+# Production build
+eas build --profile production --platform android
+```
+
+---
+
+## Troubleshooting
+
+### Emulator Won't Open
+```powershell
+# Check emulator is listed
+emulator -list-avds
+
+# Start manually
+emulator -avd pixel_5_-_api_34
+
+# Then run
+npm run android
+```
+
+### Port Already in Use
+```powershell
+# Kill process on port 8081
+npx react-native start --reset-cache
+# or
+Get-Process -Id (Get-NetTCPConnection -LocalPort 8081).OwningProcess | Stop-Process -Force
+```
+
+### Clear Everything
+```powershell
+# Nuclear option
+Remove-Item -Recurse -Force node_modules
+Remove-Item package-lock.json
+npm install
+npx expo start --clear
+```
+
+---
+
+## When to Use Bare React Native
+
+You **don't need** bare React Native for this project. Expo handles:
+- ✅ Firebase/Firestore
+- ✅ Offline SQLite
+- ✅ Secure storage
+- ✅ File system (receipts)
+- ✅ Navigation
+
+Use bare RN only if you need:
+- ❌ Custom native modules not in Expo
+- ❌ Brownfield (existing native app)
+- ❌ Very specific native tweaks
+
+---
+
+## Current Status
+
+✅ **Project created**: `C:\Project\Accounting\Accounting\`  
+✅ **App runs**: `npm run android` works  
+⏳ **Next**: Add Clean Architecture folders to `src/`  
+⏳ **Then**: Install Firebase & dependencies
+
+---
+
+## Quick Reference
+
+```powershell
+# Start dev server
+npm start
+
+# Run on Android
+npm run android
+
+# Install Expo package
+npx expo install <package>
+
+# Install npm package
+npm install <package>
+
+# Clear cache
+npx expo start --clear
+
+# Update Expo
+npm install expo@latest
+```
+
+---
+
+**Remember**: This is an Expo project. Always use `npx expo install` for Expo-managed packages!

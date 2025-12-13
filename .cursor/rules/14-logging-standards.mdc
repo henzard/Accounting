@@ -6,10 +6,43 @@ alwaysApply: false
 
 # Logging Standards
 
+## ⚠️ CRITICAL: PUBLIC REPOSITORY WARNING
+
+**This is a PUBLIC repository. NEVER commit log files.**
+
+### Why Log Files Are Dangerous
+- 🔴 May contain user data (emails, names, account numbers)
+- 🔴 May contain API keys or tokens from runtime
+- 🔴 May contain error messages revealing architecture
+- 🔴 May contain database queries with sensitive data
+- 🔴 May contain request/response data with credentials
+
+### What NEVER to Commit
+- ❌ `*.log` files
+- ❌ `logs/` directory
+- ❌ `debug.log`, `error.log`, `combined.log`
+- ❌ Firebase debug logs
+- ❌ Crash reports with user data
+
+**Rule**: ALL log files MUST be in `.gitignore`. No exceptions.
+
+```gitignore
+# Logs - NEVER COMMIT
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+firebase-debug.log
+firestore-debug.log
+```
+
+---
+
 ## Logging Philosophy
 - Logs are for **debugging and monitoring**, not for users
 - Log **enough to diagnose issues**, not everything
-- **Never log sensitive data** (passwords, tokens, PII)
+- **NEVER log sensitive data** (passwords, tokens, PII, account numbers)
+- **NEVER commit log files** (public repo risk)
 - Different log levels for different purposes
 
 ## Logger Implementation

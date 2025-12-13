@@ -6,11 +6,109 @@ alwaysApply: true
 
 # Security Rules
 
+## ⚠️ CRITICAL: This is a PUBLIC REPOSITORY
+
+**THIS REPOSITORY IS PUBLIC.** Everything committed can be seen by anyone on the internet.
+
+### NEVER COMMIT THESE TO THE REPOSITORY
+
+❌ **API Keys & Secrets**
+- Firebase API keys
+- Service account credentials
+- OAuth client secrets
+- Encryption keys
+- JWT secrets
+
+❌ **Credentials**
+- Usernames
+- Passwords
+- Authentication tokens
+- Session tokens
+- Refresh tokens
+
+❌ **Personal Information**
+- Email addresses (in code/config)
+- Phone numbers
+- Account numbers
+- Bank details
+- User data
+
+❌ **Logs & Debug Output**
+- Application logs with user data
+- Debug logs with credentials
+- Error logs with sensitive info
+- Console outputs with secrets
+
+❌ **Configuration Files with Secrets**
+- `.env` files
+- `google-services.json`
+- `GoogleService-Info.plist`
+- Firebase config with secrets
+- Database connection strings with passwords
+
+❌ **Development Files**
+- Test data with real user info
+- Database dumps
+- Keystores (`.keystore`, `.jks`)
+- SSL certificates
+- Private keys
+
+### If You Accidentally Commit Secrets
+
+**DON'T PANIC - ACT IMMEDIATELY:**
+
+1. **DO NOT just delete and recommit** - Git history preserves it!
+2. **Rotate the secret immediately** - Change passwords, regenerate keys
+3. **Use BFG Repo-Cleaner or git filter-branch** to remove from history
+4. **Force push** (but warn team first)
+5. **Report the incident** if it's production credentials
+
+**Option A: BFG Repo-Cleaner (Recommended)**
+
+```powershell
+# 1. Install BFG Repo-Cleaner (Windows - using Chocolatey)
+choco install bfg-repo-cleaner
+# Or download JAR from: https://rtyley.github.io/bfg-repo-cleaner/
+
+# 2. Remove the sensitive file from all history
+java -jar bfg.jar --delete-files .env
+
+# 3. Clean up
+git reflog expire --expire=now --all
+git gc --prune=now --aggressive
+
+# 4. Force push (DANGEROUS - coordinate with team first)
+git push origin --force --all
+git push origin --force --tags
+```
+
+**Option B: git filter-branch (Built-in, No Installation)**
+
+```powershell
+# Remove file from all git history (PowerShell)
+git filter-branch --force --index-filter `
+  "git rm --cached --ignore-unmatch path/to/.env" `
+  --prune-empty --tag-name-filter cat -- --all
+
+# Clean up
+git reflog expire --expire=now --all
+git gc --prune=now --aggressive
+
+# Force push (DANGEROUS - coordinate with team first)
+git push origin --force --all
+git push origin --force --tags
+```
+
+**Better**: Prevent it in the first place! See checklist below.
+
+---
+
 ## Golden Security Principles
 1. **Never trust user input** - Always validate and sanitize
 2. **Never hardcode secrets** - Use environment variables
 3. **Principle of least privilege** - Only request permissions you need
 4. **Defense in depth** - Multiple layers of security
+5. **PUBLIC REPO AWARENESS** - Treat every commit as public forever
 
 ## Sensitive Data Storage
 
@@ -128,20 +226,135 @@ await db.runAsync(
 const API_KEY = process.env.API_KEY;
 
 // ❌ BAD: Hardcoded secrets
-const API_KEY = 'sk_live_abc123xyz789'; // NEVER DO THIS!
+const API_KEY = 'YOUR_ACTUAL_API_KEY_HERE'; // NEVER hardcode like this!
 ```
 
 ### .gitignore Requirements
+
+**CRITICAL: Your `.gitignore` MUST include:**
+
 ```gitignore
-# Always ignore these
+# ============================================
+# SECRETS & CREDENTIALS (NEVER COMMIT!)
+# ============================================
+
+# Environment variables
 .env
+.env.*
+!.env.example
+!.env.sample
 .env.local
+.env.development
+.env.staging
 .env.production
-*.keystore
-*.jks
+.envrc
+
+# Firebase
 google-services.json
 GoogleService-Info.plist
+firebase-config.json
+.firebaserc
+firebase-debug.log
+firestore-debug.log
+
+# Keystores & Certificates
+*.keystore
+*.jks
+*.p12
+*.key
+*.pem
+*.crt
+*.cer
+
+# ============================================
+# LOGS (MAY CONTAIN SENSITIVE DATA)
+# ============================================
+
+# Application logs
+*.log
+logs/
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Debug output
+debug/
+.expo/
+.expo-shared/
+
+# ============================================
+# DEVELOPMENT FILES
+# ============================================
+
+# Database files
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Backups
+*.backup
+*.bak
+*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# ============================================
+# BUILD & DEPENDENCIES
+# ============================================
+
+node_modules/
+.gradle/
+build/
+dist/
+*.apk
+*.aab
+*.ipa
+
+# Test coverage
+coverage/
+.nyc_output/
 ```
+
+### Pre-Commit Security Checklist
+
+**BEFORE EVERY COMMIT, verify:**
+
+```powershell
+# 1. Search for potential secrets (PowerShell)
+git diff --cached | Select-String -Pattern "(password|secret|key|token|credential)" -CaseSensitive:$false
+
+# 2. Check for sensitive files (PowerShell)
+git diff --cached --name-only | Select-String -Pattern "(.env|.keystore|.jks|.log)"
+
+# 3. Review what you're committing
+git diff --cached
+
+# 4. Ensure .gitignore is working
+git status --ignored
+```
+
+**Manual checks:**
+- [ ] No hardcoded passwords in code
+- [ ] No API keys in source files
+- [ ] No real email addresses in examples
+- [ ] No account numbers or bank details
+- [ ] No authentication tokens
+- [ ] No log files being committed
+- [ ] No test data with real user information
+- [ ] .env files not tracked
+- [ ] Firebase config files ignored
+- [ ] Keystores not included
 
 ## Permission Handling
 
@@ -211,14 +424,217 @@ if (__DEV__) {
 }
 ```
 
+## Safe Examples & Test Data
+
+### Use Fake Data in Examples
+
+```typescript
+// ✅ GOOD: Fake example data
+const exampleUser = {
+  email: 'user@example.com',
+  phone: '+1-555-0100',
+  accountNumber: 'XXXX-XXXX-XXXX-1234',
+  apiKey: 'sk_test_fake_key_for_example',
+};
+
+// ❌ BAD: Real data in examples
+const exampleUser = {
+  email: 'john.doe@gmail.com',      // Real email
+  phone: '+1-555-1234',              // Potentially real
+  accountNumber: '4532-1234-5678',   // Looks real
+  apiKey: process.env.REAL_API_KEY, // Real key
+};
+```
+
+### Placeholder Values for Documentation
+
+```typescript
+// ✅ GOOD: Clear placeholders
+const config = {
+  firebaseApiKey: 'YOUR_FIREBASE_API_KEY_HERE',
+  databaseUrl: 'YOUR_DATABASE_URL',
+  projectId: 'your-project-id',
+};
+
+// Documentation should say: "Replace YOUR_FIREBASE_API_KEY_HERE with your actual key"
+```
+
+### Test Data Guidelines
+
+```typescript
+// ✅ GOOD: Clearly fake test data
+const testUsers = [
+  { name: 'Test User 1', email: 'test1@example.com' },
+  { name: 'Test User 2', email: 'test2@example.com' },
+];
+
+// ❌ BAD: Looks like real data
+const testUsers = [
+  { name: 'John Smith', email: 'jsmith@company.com' },
+  { name: 'Jane Doe', email: 'jane.doe@email.com' },
+];
+```
+
+## Logging Best Practices (Public Repo)
+
+### NEVER Log Sensitive Data
+
+```typescript
+// ❌ BAD: Logging sensitive info
+logger.info('User login', { 
+  email: user.email,           // Personal info
+  password: password,          // NEVER log passwords
+  token: authToken,            // Sensitive
+  accountNumber: user.account, // Personal info
+});
+
+// ✅ GOOD: Safe logging
+logger.info('User login', { 
+  userId: user.id,             // Non-sensitive ID
+  timestamp: Date.now(),
+  success: true,
+});
+
+// ✅ GOOD: Redacted logging
+logger.debug('Request', {
+  email: maskEmail(user.email), // user@example.com → u***@example.com
+  accountNumber: maskAccount(account), // 1234567890 → ******7890
+});
+```
+
+### Helper Functions for Safe Logging
+
+```typescript
+// src/shared/utils/masking.ts
+
+export function maskEmail(email: string): string {
+  const [local, domain] = email.split('@');
+  return `${local[0]}***@${domain}`;
+}
+
+export function maskAccountNumber(account: string): string {
+  if (account.length <= 4) return '****';
+  return '******' + account.slice(-4);
+}
+
+export function maskPhoneNumber(phone: string): string {
+  // Mask all digits except the last 4, preserving formatting
+  const digits = phone.match(/\d/g);
+  if (!digits || digits.length <= 4) return phone;
+  
+  let maskedCount = 0;
+  const digitsToMask = digits.length - 4;
+  
+  return phone.replace(/\d/g, () => {
+    maskedCount++;
+    return maskedCount <= digitsToMask ? '*' : digits[maskedCount - 1];
+  });
+}
+
+export function redactSensitiveData(obj: any): any {
+  const redacted = { ...obj };
+  const sensitiveKeys = ['password', 'token', 'secret', 'key', 'credential'];
+  
+  for (const key in redacted) {
+    if (sensitiveKeys.some(k => key.toLowerCase().includes(k))) {
+      redacted[key] = '[REDACTED]';
+    }
+  }
+  
+  return redacted;
+}
+```
+
+## Code Review Checklist (Public Repo Focus)
+
+Before approving any PR:
+
+### Secrets Check
+- [ ] No hardcoded API keys
+- [ ] No passwords in code
+- [ ] No auth tokens
+- [ ] No database credentials
+- [ ] No encryption keys
+
+### Personal Information
+- [ ] No real email addresses
+- [ ] No phone numbers
+- [ ] No account numbers
+- [ ] No names (except obvious fake ones)
+- [ ] No addresses or location data
+
+### Files Check
+- [ ] No `.env` files
+- [ ] No log files
+- [ ] No database dumps
+- [ ] No keystores
+- [ ] No Firebase config files with secrets
+
+### Logging Check
+- [ ] No sensitive data in log statements
+- [ ] Debug logs properly guarded with `__DEV__`
+- [ ] Passwords never logged (even in dev)
+- [ ] Personal data masked or redacted
+
+### Documentation Check
+- [ ] Examples use fake/placeholder data
+- [ ] No real credentials in README
+- [ ] Setup instructions don't expose secrets
+- [ ] Comments don't contain sensitive info
+
 ## Security Checklist
 
-Before each release:
+### Before Each Commit
+- [ ] Run pre-commit security check (grep for secrets)
 - [ ] No hardcoded secrets in code
+- [ ] No sensitive files being committed
+- [ ] No logs with user data
+- [ ] Test data is clearly fake
+
+### Before Each Release
 - [ ] All user input validated
-- [ ] Parameterized SQL queries only
+- [ ] Parameterized queries only (no SQL injection)
 - [ ] Sensitive data in SecureStore
 - [ ] Debug logs disabled in production
 - [ ] HTTPS for all network calls
 - [ ] Permissions requested appropriately
-- [ ] .gitignore includes sensitive files
+- [ ] .gitignore includes all sensitive files
+- [ ] No secrets in source code
+- [ ] Firebase security rules are restrictive
+- [ ] Environment variables documented (but not included)
+
+### Monthly Security Audit
+- [ ] Review all .env.example files (ensure no real secrets)
+- [ ] Check git history for accidentally committed secrets
+- [ ] Rotate any credentials that may have been exposed
+- [ ] Review Firebase security rules
+- [ ] Update dependencies (security patches)
+- [ ] Scan code for vulnerabilities (npm audit)
+
+## AI Assistant Reminders
+
+**When AI helps with code:**
+
+1. ⚠️ **NEVER generate real-looking credentials**
+   - Use obvious placeholders like `YOUR_API_KEY_HERE`
+   - Use clearly fake emails like `user@example.com`
+   - Use test account numbers like `XXXX-XXXX-1234`
+
+2. ⚠️ **ALWAYS remind about .gitignore**
+   - When creating config files
+   - When adding credentials to code
+   - When creating log files
+
+3. ⚠️ **ALWAYS use environment variables**
+   - When API keys are needed
+   - When database URLs are needed
+   - When any secrets are required
+
+4. ⚠️ **NEVER commit logs**
+   - Logs may contain sensitive runtime data
+   - Even "safe" logs can reveal architecture
+   - Use .gitignore for all log files
+
+---
+
+**REMEMBER: This is a PUBLIC repository. Every commit is permanent and visible to the world. When in doubt, DON'T commit it!**

@@ -1,0 +1,130 @@
+# ============================================
+# SECRETS & CREDENTIALS (NEVER COMMIT!)
+# ============================================
+
+# Environment variables
+.env
+.env.*
+!.env.example
+!.env.sample
+.env.local
+.env.development
+.env.staging
+.env.production
+.envrc
+
+# Firebase
+google-services.json
+GoogleService-Info.plist
+firebase-config.json
+.firebaserc
+firebase-debug.log
+firestore-debug.log
+
+# Keystores & Certificates
+*.keystore
+*.jks
+*.p12
+*.key
+*.pem
+*.crt
+*.cer
+
+# ============================================
+# LOGS (MAY CONTAIN SENSITIVE DATA)
+# ============================================
+
+# Application logs
+*.log
+logs/
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Debug output
+debug/
+.expo/
+.expo-shared/
+
+# ============================================
+# DEVELOPMENT FILES
+# ============================================
+
+# Database files
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Backups
+*.backup
+*.bak
+*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# ============================================
+# BUILD & DEPENDENCIES
+# ============================================
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+.nyc_output/
+
+# Production
+build/
+dist/
+
+# React Native
+.gradle/
+local.properties
+
+# Android
+android/app/build/
+android/build/
+android/.gradle/
+*.apk
+*.aab
+
+# NOTE: Gradle wrapper files (gradlew, gradlew.bat, gradle/) are TRACKED
+# They allow developers to build without pre-installing Gradle
+
+# iOS
+ios/Pods/
+ios/build/
+*.ipa
+*.dSYM.zip
+*.dSYM
+DerivedData/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.xccheckout
+*.moved-aside
+*.xcuserstate
+*.xcscmblueprint
+
