@@ -8,6 +8,25 @@ alwaysApply: false
 
 # Environment Configuration Rules
 
+## ⚠️ CRITICAL: PUBLIC REPOSITORY WARNING
+
+**This is a PUBLIC repository. NEVER commit actual credentials or secrets.**
+
+### What to Commit
+- ✅ `.env.example` - Template with placeholder values
+- ✅ `.env.sample` - Another template format
+- ✅ Documentation about what variables are needed
+
+### What to NEVER Commit
+- ❌ `.env` - Contains real secrets
+- ❌ `.env.local` - Contains local secrets
+- ❌ `.env.production` - Contains production secrets
+- ❌ Any file with actual API keys, passwords, or tokens
+
+**Rule**: If a file contains a real password, API key, or secret, it should be in `.gitignore`.
+
+---
+
 ## Environment Types
 
 ### Standard Environments
@@ -20,23 +39,68 @@ production   - Live production
 ## Environment Variables
 
 ### Structure
-```bash
-# .env.example (commit this - template without values)
-# Database
-DATABASE_NAME=weighsoft.db
 
-# API (if applicable)
+**SAFE .env.example** (commit this - template with PLACEHOLDERS):
+```bash
+# .env.example - Template file (SAFE TO COMMIT)
+# Copy to .env and fill in real values (DON'T COMMIT .env!)
+
+# ============================================
+# Firebase Configuration
+# ============================================
+FIREBASE_API_KEY=YOUR_FIREBASE_API_KEY_HERE
+FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
+FIREBASE_MESSAGING_SENDER_ID=YOUR_SENDER_ID
+FIREBASE_APP_ID=YOUR_APP_ID
+
+# ============================================
+# Database
+# ============================================
+DATABASE_NAME=app.db
+
+# ============================================
+# API Configuration (if applicable)
+# ============================================
 API_BASE_URL=https://api.example.com
 API_TIMEOUT=30000
+API_KEY=YOUR_API_KEY_HERE
 
-# Feature Flags
+# ============================================
+# Feature Flags (safe to have real values)
+# ============================================
 FEATURE_EXPORT_PDF=true
 FEATURE_CLOUD_SYNC=false
 
-# Build
+# ============================================
+# Build Configuration (safe to have real values)
+# ============================================
 APP_VERSION=1.0.0
 BUILD_NUMBER=1
 ```
+
+**UNSAFE .env** (NEVER COMMIT):
+```bash
+# .env - Real values (ADD TO .gitignore!)
+# ⚠️ WARNING: This example shows WHAT NOT TO COMMIT
+# Use obvious placeholders below to indicate where real values go
+
+# Firebase - Your actual Firebase credentials (from Firebase Console)
+FIREBASE_API_KEY=YOUR_ACTUAL_FIREBASE_API_KEY_FROM_CONSOLE
+FIREBASE_AUTH_DOMAIN=your-actual-project-id.firebaseapp.com
+FIREBASE_PROJECT_ID=your-actual-project-id
+FIREBASE_STORAGE_BUCKET=your-actual-project-id.appspot.com
+FIREBASE_MESSAGING_SENDER_ID=YOUR_ACTUAL_SENDER_ID
+FIREBASE_APP_ID=YOUR_ACTUAL_APP_ID
+
+# API - Your actual API key (from your service provider)
+API_KEY=YOUR_ACTUAL_API_KEY_HERE
+```
+
+**The difference**:
+- `.env.example`: Placeholders like `YOUR_API_KEY_HERE` → Safe to commit
+- `.env`: Real values like `AIzaSyD...` → NEVER commit
 
 ### Environment-Specific Files
 ```
@@ -308,7 +372,7 @@ export default function WeighingScreen() {
 ### DO NOT Commit Secrets
 ```typescript
 // ❌ NEVER hardcode secrets
-const API_KEY = 'sk_live_abc123';
+const API_KEY = 'YOUR_API_KEY_HERE'; // Don't hardcode!
 
 // ✅ Use environment variables
 const API_KEY = process.env.API_KEY;

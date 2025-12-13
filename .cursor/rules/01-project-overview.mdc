@@ -26,26 +26,29 @@ Follow all rules defined in this `.cursor/rules` directory.
 │   ├── PROJECT-BRIEF.md          # App purpose, requirements
 │   ├── architecture/             # Data models, decisions
 │   └── setup/                    # Development setup
-├── src/                # Application source code
+├── src/                # Expo project (mobile app)
+│   ├── app/            # Expo Router (file-based navigation)
 │   ├── domain/         # Business logic, entities, use cases
 │   ├── data/           # Data layer, repositories, data sources
 │   ├── presentation/   # UI components, screens, view models
 │   ├── infrastructure/ # External services, database, etc.
-│   └── shared/         # Shared utilities, constants, types
-├── test/               # Test files
-│   ├── unit/           # Unit tests
-│   └── e2e/            # E2E tests (Playwright, Detox, etc.)
-├── android/            # Android native code
-├── ios/                # iOS native code
+│   ├── shared/         # Shared utilities, constants, types
+│   ├── assets/         # Images, fonts, icons
+│   ├── test/           # Test files (unit & e2e)
+│   ├── node_modules/   # Dependencies
+│   ├── package.json    # npm configuration
+│   └── tsconfig.json   # TypeScript configuration
 ├── todo.md             # Task tracking (always update!)
-└── package.json        # Dependencies
+└── .gitignore          # Git ignore rules
 ```
 
 ## Technology Stack
-- **Framework**: React Native
-- **Database**: Typically SQLite (expo-sqlite, react-native-sqlite-storage) or Firebase/Supabase
-- **Testing**: Jest (unit), Playwright/Detox (E2E)
+- **Framework**: Expo (React Native)
+- **Backend**: Firebase/Firestore (offline-first)
+- **Local Database**: expo-sqlite (for offline caching)
+- **Testing**: Jest (unit), Expo testing tools (E2E)
 - **Architecture**: Clean Architecture with Repository Pattern
+- **Navigation**: Expo Router (file-based)
 
 ## What Goes Where?
 
