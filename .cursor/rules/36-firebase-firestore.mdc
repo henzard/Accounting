@@ -600,6 +600,12 @@ export class TransactionRepository {
     }
     
     const snapshot = await getDocs(q);
+    
+    // Check if we have any results
+    if (snapshot.docs.length === 0) {
+      return { items: [], lastDoc: null };
+    }
+    
     const items = snapshot.docs.map(doc => this.mapToEntity(doc));
     const lastVisible = snapshot.docs[snapshot.docs.length - 1];
     

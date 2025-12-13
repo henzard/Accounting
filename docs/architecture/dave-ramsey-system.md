@@ -77,13 +77,25 @@ function calculateDebtSnowball(debts: Debt[]): DebtPayoffPlan {
     0
   );
   
-  // All extra money goes to focus debt
+  // Check if there are any debts to pay
+  if (sortedDebts.length === 0) {
+    return {
+      debts: [],
+      focus_debt_id: undefined,
+      focus_debt_payment: 0,
+      total_minimum: 0,
+      extra_toward_debt: 0,
+    };
+  }
+  
+  // All extra money goes to focus debt (first in sorted list)
   const extraMoney = calculateExtraMoney(household);
-  const focusDebtPayment = sortedDebts[0].minimum_payment + extraMoney;
+  const focusDebt = sortedDebts[0];
+  const focusDebtPayment = focusDebt.minimum_payment + extraMoney;
   
   return {
     debts: sortedDebts,
-    focus_debt_id: sortedDebts[0].id,
+    focus_debt_id: focusDebt.id,
     focus_debt_payment: focusDebtPayment,
     total_minimum: totalMinimumPayments,
     extra_toward_debt: extraMoney,

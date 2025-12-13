@@ -1,5 +1,5 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { HelloWave } from '@/components/hello-wave';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
@@ -7,8 +7,12 @@ import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Link } from 'expo-router';
 import { APP_VERSION, PHASE } from '@/shared/types';
+import { Card } from '@/presentation/components';
+import { useTheme } from '@/infrastructure/theme';
 
 export default function HomeScreen() {
+  const { theme } = useTheme();
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
@@ -19,32 +23,87 @@ export default function HomeScreen() {
         />
       }>
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Dave Ramsey Budget</ThemedText>
+        <ThemedText type="title">Homebase Budget</ThemedText>
         <HelloWave />
       </ThemedView>
+      
+      {/* Version Info */}
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle" style={{ color: '#00897B', fontWeight: 'bold' }}>
           ✅ v{APP_VERSION} - {PHASE}
         </ThemedText>
         <ThemedText style={{ fontSize: 12, opacity: 0.7 }}>
-          {new Date().toLocaleTimeString()} - Path aliases working! Imported from @/shared/types
+          {new Date().toLocaleTimeString()} - Theme system ready!
         </ThemedText>
       </ThemedView>
+
+      {/* Baby Steps Progress */}
       <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
+        <ThemedText type="subtitle">Your Journey</ThemedText>
+        <View style={{ marginTop: theme.spacing[3] }}>
+          <Card>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: theme.spacing[2] }}>
+              <View
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: theme.status.successBackground,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginRight: theme.spacing[3],
+                }}
+              >
+                <ThemedText style={{ fontSize: 18, fontWeight: 'bold', color: theme.status.success }}>
+                  1
+                </ThemedText>
+              </View>
+              <View style={{ flex: 1 }}>
+                <ThemedText style={{ fontSize: 16, fontWeight: '600' }}>
+                  Baby Step 1
+                </ThemedText>
+                <ThemedText style={{ fontSize: 14, color: theme.text.secondary }}>
+                  $1,000 Emergency Fund
+                </ThemedText>
+              </View>
+              <ThemedText style={{ fontSize: 16, fontWeight: 'bold', color: theme.status.success }}>
+                $750
+              </ThemedText>
+            </View>
+            <View
+              style={{
+                height: 8,
+                backgroundColor: theme.background.tertiary,
+                borderRadius: theme.borderRadius.full,
+                overflow: 'hidden',
+              }}
+            >
+              <View
+                style={{
+                  height: '100%',
+                  width: '75%',
+                  backgroundColor: theme.status.success,
+                }}
+              />
+            </View>
+            <ThemedText style={{ fontSize: 12, color: theme.text.tertiary, marginTop: theme.spacing[2] }}>
+              75% complete - $250 to go!
+            </ThemedText>
+          </Card>
+        </View>
+      </ThemedView>
+
+      {/* Quick Links */}
+      <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">🎨 UI Components</ThemedText>
+        <Link href="/components-demo" style={{ marginTop: 10 }}>
+          <ThemedText type="link">View Component Library →</ThemedText>
+        </Link>
+        <ThemedText style={{ fontSize: 12, marginTop: 5 }}>
+          Buttons, Cards, Inputs with Homebase theme
         </ThemedText>
       </ThemedView>
+      
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">🔥 Firebase Test</ThemedText>
         <Link href="/firebase-test" style={{ marginTop: 10 }}>
@@ -52,44 +111,6 @@ export default function HomeScreen() {
         </Link>
         <ThemedText style={{ fontSize: 12, marginTop: 5 }}>
           Verify Firestore read/write and offline persistence
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
-
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
         </ThemedText>
       </ThemedView>
     </ParallaxScrollView>
