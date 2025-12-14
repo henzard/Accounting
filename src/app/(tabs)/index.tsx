@@ -13,6 +13,7 @@ import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
+import { CurrencyCode } from '@/shared/utils/currency';
 
 export default function HomeScreen() {
   const { theme } = useTheme();
@@ -20,11 +21,12 @@ export default function HomeScreen() {
   const router = useRouter();
   
   const [currentBabyStep, setCurrentBabyStep] = useState<number>(1);
+  const [householdCurrency, setHouseholdCurrency] = useState<CurrencyCode>('USD');
 
-  // Load current baby step from household when screen comes into focus
+  // Load current baby step and currency from household when screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      const loadBabyStep = async () => {
+      const loadHouseholdData = async () => {
         if (!user?.default_household_id) return;
 
         try {
@@ -35,13 +37,14 @@ export default function HomeScreen() {
           if (householdDoc.exists()) {
             const data = householdDoc.data();
             setCurrentBabyStep(data.current_baby_step || 1);
+            setHouseholdCurrency((data.currency as CurrencyCode) || 'USD');
           }
         } catch (error) {
-          console.error('Error loading baby step:', error);
+          console.error('Error loading household data:', error);
         }
       };
 
-      loadBabyStep();
+      loadHouseholdData();
     }, [user?.default_household_id])
   );
 
@@ -120,6 +123,7 @@ export default function HomeScreen() {
         <View style={{ marginTop: theme.spacing[3] }}>
           <BabyStepsDisplay
             currentStep={currentBabyStep}
+            currency={householdCurrency}
             onPress={() => router.push('/baby-steps/select')}
             testID="baby-steps-display"
           />

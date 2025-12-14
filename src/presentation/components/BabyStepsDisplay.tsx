@@ -5,16 +5,19 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '@/infrastructure/theme';
 import { BABY_STEPS, getBabyStep } from '@/shared/constants/baby-steps';
+import { formatCurrency, CurrencyCode } from '@/shared/utils/currency';
 import { Card } from './Card';
 
 interface BabyStepsDisplayProps {
   currentStep: number;
+  currency?: CurrencyCode;
   onPress?: () => void;
   testID?: string;
 }
 
 export const BabyStepsDisplay: React.FC<BabyStepsDisplayProps> = ({
   currentStep,
+  currency = 'USD',
   onPress,
   testID,
 }) => {
@@ -110,7 +113,7 @@ export const BabyStepsDisplay: React.FC<BabyStepsDisplayProps> = ({
       </Text>
 
       {/* Goal if available */}
-      {step.goal && (
+      {step.goalAmount && (
         <View
           style={[
             styles.goalContainer,
@@ -118,7 +121,7 @@ export const BabyStepsDisplay: React.FC<BabyStepsDisplayProps> = ({
           ]}
         >
           <Text style={[styles.goalLabel, { color: theme.status.success }]}>
-            Goal: {step.goal}
+            Goal: {formatCurrency(step.goalAmount, currency)}
           </Text>
         </View>
       )}
