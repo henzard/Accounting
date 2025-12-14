@@ -8,42 +8,43 @@ interface CurrencyConfig {
   code: string;
   decimals: number;
   position: 'before' | 'after';
+  exchangeRateToUSD: number; // Approximate rate (1 unit of this currency = X USD)
 }
 
 const CURRENCY_CONFIGS: Record<CurrencyCode, CurrencyConfig> = {
-  USD: { symbol: '$', code: 'USD', decimals: 2, position: 'before' },
-  EUR: { symbol: '€', code: 'EUR', decimals: 2, position: 'before' },
-  GBP: { symbol: '£', code: 'GBP', decimals: 2, position: 'before' },
-  ZAR: { symbol: 'R', code: 'ZAR', decimals: 2, position: 'before' },
-  JPY: { symbol: '¥', code: 'JPY', decimals: 0, position: 'before' },
-  CNY: { symbol: '¥', code: 'CNY', decimals: 2, position: 'before' },
-  AUD: { symbol: 'A$', code: 'AUD', decimals: 2, position: 'before' },
-  CAD: { symbol: 'C$', code: 'CAD', decimals: 2, position: 'before' },
-  CHF: { symbol: 'CHF', code: 'CHF', decimals: 2, position: 'before' },
-  INR: { symbol: '₹', code: 'INR', decimals: 2, position: 'before' },
-  MXN: { symbol: 'MX$', code: 'MXN', decimals: 2, position: 'before' },
-  BRL: { symbol: 'R$', code: 'BRL', decimals: 2, position: 'before' },
-  KRW: { symbol: '₩', code: 'KRW', decimals: 0, position: 'before' },
-  SEK: { symbol: 'kr', code: 'SEK', decimals: 2, position: 'after' },
-  NOK: { symbol: 'kr', code: 'NOK', decimals: 2, position: 'after' },
-  DKK: { symbol: 'kr', code: 'DKK', decimals: 2, position: 'after' },
-  PLN: { symbol: 'zł', code: 'PLN', decimals: 2, position: 'after' },
-  THB: { symbol: '฿', code: 'THB', decimals: 2, position: 'before' },
-  IDR: { symbol: 'Rp', code: 'IDR', decimals: 0, position: 'before' },
-  HUF: { symbol: 'Ft', code: 'HUF', decimals: 0, position: 'after' },
-  CZK: { symbol: 'Kč', code: 'CZK', decimals: 2, position: 'after' },
-  ILS: { symbol: '₪', code: 'ILS', decimals: 2, position: 'before' },
-  CLP: { symbol: 'CLP$', code: 'CLP', decimals: 0, position: 'before' },
-  PHP: { symbol: '₱', code: 'PHP', decimals: 2, position: 'before' },
-  AED: { symbol: 'د.إ', code: 'AED', decimals: 2, position: 'before' },
-  SAR: { symbol: '﷼', code: 'SAR', decimals: 2, position: 'before' },
-  MYR: { symbol: 'RM', code: 'MYR', decimals: 2, position: 'before' },
-  RON: { symbol: 'lei', code: 'RON', decimals: 2, position: 'after' },
-  HKD: { symbol: 'HK$', code: 'HKD', decimals: 2, position: 'before' },
-  SGD: { symbol: 'S$', code: 'SGD', decimals: 2, position: 'before' },
-  NZD: { symbol: 'NZ$', code: 'NZD', decimals: 2, position: 'before' },
-  TRY: { symbol: '₺', code: 'TRY', decimals: 2, position: 'before' },
-  RUB: { symbol: '₽', code: 'RUB', decimals: 2, position: 'before' },
+  USD: { symbol: '$', code: 'USD', decimals: 2, position: 'before', exchangeRateToUSD: 1.0 },
+  EUR: { symbol: '€', code: 'EUR', decimals: 2, position: 'before', exchangeRateToUSD: 1.08 },
+  GBP: { symbol: '£', code: 'GBP', decimals: 2, position: 'before', exchangeRateToUSD: 1.27 },
+  ZAR: { symbol: 'R', code: 'ZAR', decimals: 2, position: 'before', exchangeRateToUSD: 0.055 }, // ~18 ZAR = 1 USD
+  JPY: { symbol: '¥', code: 'JPY', decimals: 0, position: 'before', exchangeRateToUSD: 0.0067 },
+  CNY: { symbol: '¥', code: 'CNY', decimals: 2, position: 'before', exchangeRateToUSD: 0.14 },
+  AUD: { symbol: 'A$', code: 'AUD', decimals: 2, position: 'before', exchangeRateToUSD: 0.64 },
+  CAD: { symbol: 'C$', code: 'CAD', decimals: 2, position: 'before', exchangeRateToUSD: 0.72 },
+  CHF: { symbol: 'CHF', code: 'CHF', decimals: 2, position: 'before', exchangeRateToUSD: 1.13 },
+  INR: { symbol: '₹', code: 'INR', decimals: 2, position: 'before', exchangeRateToUSD: 0.012 },
+  MXN: { symbol: 'MX$', code: 'MXN', decimals: 2, position: 'before', exchangeRateToUSD: 0.05 },
+  BRL: { symbol: 'R$', code: 'BRL', decimals: 2, position: 'before', exchangeRateToUSD: 0.20 },
+  KRW: { symbol: '₩', code: 'KRW', decimals: 0, position: 'before', exchangeRateToUSD: 0.00075 },
+  SEK: { symbol: 'kr', code: 'SEK', decimals: 2, position: 'after', exchangeRateToUSD: 0.095 },
+  NOK: { symbol: 'kr', code: 'NOK', decimals: 2, position: 'after', exchangeRateToUSD: 0.093 },
+  DKK: { symbol: 'kr', code: 'DKK', decimals: 2, position: 'after', exchangeRateToUSD: 0.145 },
+  PLN: { symbol: 'zł', code: 'PLN', decimals: 2, position: 'after', exchangeRateToUSD: 0.25 },
+  THB: { symbol: '฿', code: 'THB', decimals: 2, position: 'before', exchangeRateToUSD: 0.029 },
+  IDR: { symbol: 'Rp', code: 'IDR', decimals: 0, position: 'before', exchangeRateToUSD: 0.000063 },
+  HUF: { symbol: 'Ft', code: 'HUF', decimals: 0, position: 'after', exchangeRateToUSD: 0.0027 },
+  CZK: { symbol: 'Kč', code: 'CZK', decimals: 2, position: 'after', exchangeRateToUSD: 0.043 },
+  ILS: { symbol: '₪', code: 'ILS', decimals: 2, position: 'before', exchangeRateToUSD: 0.27 },
+  CLP: { symbol: 'CLP$', code: 'CLP', decimals: 0, position: 'before', exchangeRateToUSD: 0.0010 },
+  PHP: { symbol: '₱', code: 'PHP', decimals: 2, position: 'before', exchangeRateToUSD: 0.018 },
+  AED: { symbol: 'د.إ', code: 'AED', decimals: 2, position: 'before', exchangeRateToUSD: 0.27 },
+  SAR: { symbol: '﷼', code: 'SAR', decimals: 2, position: 'before', exchangeRateToUSD: 0.27 },
+  MYR: { symbol: 'RM', code: 'MYR', decimals: 2, position: 'before', exchangeRateToUSD: 0.22 },
+  RON: { symbol: 'lei', code: 'RON', decimals: 2, position: 'after', exchangeRateToUSD: 0.22 },
+  HKD: { symbol: 'HK$', code: 'HKD', decimals: 2, position: 'before', exchangeRateToUSD: 0.13 },
+  SGD: { symbol: 'S$', code: 'SGD', decimals: 2, position: 'before', exchangeRateToUSD: 0.74 },
+  NZD: { symbol: 'NZ$', code: 'NZD', decimals: 2, position: 'before', exchangeRateToUSD: 0.59 },
+  TRY: { symbol: '₺', code: 'TRY', decimals: 2, position: 'before', exchangeRateToUSD: 0.029 },
+  RUB: { symbol: '₽', code: 'RUB', decimals: 2, position: 'before', exchangeRateToUSD: 0.010 },
 };
 
 /**
@@ -89,5 +90,28 @@ export function parseCurrency(value: string): number {
   const cleaned = value.replace(/[^\d.]/g, '');
   const amount = parseFloat(cleaned) || 0;
   return Math.round(amount * 100); // Convert to cents
+}
+
+/**
+ * Convert USD amount to target currency
+ * @param usdAmount - Amount in USD (e.g., 1000)
+ * @param targetCurrency - Target currency code
+ * @returns Equivalent amount in target currency (e.g., 18000 for ZAR)
+ */
+export function convertFromUSD(usdAmount: number, targetCurrency: CurrencyCode): number {
+  const targetConfig = CURRENCY_CONFIGS[targetCurrency] || CURRENCY_CONFIGS.USD;
+  
+  // If target is USD, no conversion needed
+  if (targetCurrency === 'USD') {
+    return usdAmount;
+  }
+  
+  // Convert: USD amount / exchange rate to USD = target amount
+  // Example: $1000 / 0.055 (ZAR rate) = R18,181.82
+  const convertedAmount = usdAmount / targetConfig.exchangeRateToUSD;
+  
+  // Round to currency's decimal places
+  const multiplier = Math.pow(10, targetConfig.decimals);
+  return Math.round(convertedAmount * multiplier) / multiplier;
 }
 

@@ -5,7 +5,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '@/infrastructure/theme';
 import { BABY_STEPS, getBabyStep } from '@/shared/constants/baby-steps';
-import { formatCurrency, CurrencyCode } from '@/shared/utils/currency';
+import { formatCurrency, CurrencyCode, convertFromUSD } from '@/shared/utils/currency';
 import { Card } from './Card';
 
 interface BabyStepsDisplayProps {
@@ -113,7 +113,7 @@ export const BabyStepsDisplay: React.FC<BabyStepsDisplayProps> = ({
       </Text>
 
       {/* Goal if available */}
-      {step.goalAmount && (
+      {step.goalAmountUSD && (
         <View
           style={[
             styles.goalContainer,
@@ -121,7 +121,7 @@ export const BabyStepsDisplay: React.FC<BabyStepsDisplayProps> = ({
           ]}
         >
           <Text style={[styles.goalLabel, { color: theme.status.success }]}>
-            Goal: {formatCurrency(step.goalAmount, currency)}
+            Goal: {formatCurrency(convertFromUSD(step.goalAmountUSD, currency), currency)}
           </Text>
         </View>
       )}

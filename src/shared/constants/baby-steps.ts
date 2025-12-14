@@ -6,7 +6,7 @@ export interface BabyStep {
   title: string;
   shortTitle: string;
   description: string;
-  goalAmount?: number; // Numeric amount (e.g., 1000)
+  goalAmountUSD?: number; // Goal amount in USD (will be converted to household currency)
   icon: string;
 }
 
@@ -15,8 +15,8 @@ export const BABY_STEPS: BabyStep[] = [
     step: 1,
     title: 'Save $1,000 for Your Starter Emergency Fund',
     shortTitle: 'Starter Emergency Fund',
-    description: 'Save $1,000 as fast as you can! This starter emergency fund will cover small, unexpected expenses.',
-    goalAmount: 1000,
+    description: 'Save $1,000 (or equivalent in your currency) as fast as you can! This starter emergency fund will cover small, unexpected expenses.',
+    goalAmountUSD: 1000, // Dave Ramsey's recommendation: $1,000 USD
     icon: '🏦',
   },
   {
