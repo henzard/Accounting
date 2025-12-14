@@ -429,7 +429,7 @@ Theme system complete with Homebase branding. Core UI components built (Button, 
 
 Building core features: authentication, household management, transactions, budgets, and debt tracking.
 
-**Current**: Phase 5.2 - Household Setup
+**Current**: Phase 5.4 - Account Management
 
 ### 5.1: Authentication Flow (1 hour) ✅ COMPLETE
 
@@ -475,16 +475,24 @@ Building core features: authentication, household management, transactions, budg
 
 ---
 
-### 5.3: Baby Steps Tracker (1.5 hours)
+### 5.3: Baby Steps Tracker (1.5 hours) ✅ COMPLETE
 
-- [ ] Create Baby Steps display component
-- [ ] Show current step (1-7)
-- [ ] Show progress bar
-- [ ] Create step selection screen
-- [ ] Save to household
-- [ ] **Test app runs**, Baby Steps visible
+- [x] Create Baby Steps display component
+- [x] Show current step (1-7)
+- [x] Show progress bar
+- [x] Create step selection screen
+- [x] Save to household
+- [x] **Test app runs**, Baby Steps visible
 
-**Exit Criteria**: Baby Steps tracker functional
+**Exit Criteria**: Baby Steps tracker functional ✅ VERIFIED  
+**Status**: COMPLETE
+
+**What was built**:
+- `shared/constants/baby-steps.ts` - All 7 Dave Ramsey Baby Steps with descriptions
+- `BabyStepsDisplay.tsx` - Component showing current step with progress bar
+- `baby-steps/select.tsx` - Screen to select/change current baby step
+- Home screen integration - Loads current step from household Firestore doc
+- Tappable card navigates to step selection
 
 ---
 

@@ -28,6 +28,7 @@ export default function RootLayout() {
             <Stack.Screen name="signup" options={{ headerShown: false }} />
             <Stack.Screen name="household/create" options={{ headerShown: false }} />
             <Stack.Screen name="household/select" options={{ headerShown: false }} />
+            <Stack.Screen name="baby-steps/select" options={{ headerShown: false }} />
           </Stack>
           <StatusBar style="auto" />
         </NavigationThemeProvider>
