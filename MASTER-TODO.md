@@ -619,6 +619,22 @@ Building core features: authentication, household management, transactions, budg
 
 ## Phase 6: Polish & Testing
 
+### 6.0: Household Management (2 hours) **NEW**
+
+- [ ] Add "Manage Households" to More/Settings tab
+- [ ] Create household management screen
+  - List all user's households
+  - Show which is default
+  - Delete household (with confirmation)
+  - Switch default household
+  - Edit household name/settings
+- [ ] Test deleting test households
+- [ ] **Test app runs**, household management works
+
+**Exit Criteria**: Can view, delete, and manage households
+
+---
+
 ### 6.1: Business Expense Tracking (3 hours)
 
 - [ ] Add "Business Expense" toggle to transaction

@@ -62,6 +62,17 @@ export default function HomeScreen() {
         <ThemedText style={{ fontSize: 14, opacity: 0.7 }}>
           {user?.email}
         </ThemedText>
+        {/* Debug: Show user data */}
+        {__DEV__ && (
+          <Card style={{ marginTop: theme.spacing[2], backgroundColor: theme.status.warningBackground }}>
+            <ThemedText style={{ fontSize: 12, fontFamily: 'monospace' }}>
+              🐛 DEBUG:{'\n'}
+              User ID: {user?.id}{'\n'}
+              Household IDs: {JSON.stringify(user?.household_ids)}{'\n'}
+              Default Household: {user?.default_household_id || 'NONE'}
+            </ThemedText>
+          </Card>
+        )}
       </ThemedView>
       
       {/* Version Info */}

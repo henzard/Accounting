@@ -10,7 +10,7 @@ import {
   User as FirebaseUser,
 } from 'firebase/auth';
 import { auth, db } from '@/infrastructure/firebase';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDocFromServer } from 'firebase/firestore';
 import { User, createUser } from '@/domain/entities';
 
 interface AuthContextValue {
@@ -21,6 +21,7 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  updateUserLocally: (updates: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -39,13 +40,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       console.log('🔐 Auth state changed:', firebaseUser?.email || 'Not logged in');
       
+      // IMPORTANT: Set loading true at start of EVERY auth state change
+      // This prevents race conditions where tabs layout checks user before fetch completes
+      setLoading(true);
+      
       if (firebaseUser) {
         // User is signed in, fetch their data from Firestore
+        // Use getDocFromServer to bypass potentially stale cache
         try {
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          console.log('📡 Fetching user data from Firestore server...');
+          const userDoc = await getDocFromServer(doc(db, 'users', firebaseUser.uid));
           
           if (userDoc.exists()) {
             const userData = userDoc.data();
+            
             const appUser = createUser({
               id: firebaseUser.uid,
               email: firebaseUser.email || '',
@@ -62,6 +70,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             });
             
             setUser(appUser);
+            console.log('✅ User loaded:', appUser.email, '| Household:', appUser.default_household_id ? 'Yes' : 'No');
             setFirebaseUser(firebaseUser);
           } else {
             console.warn('⚠️ User document not found in Firestore');
@@ -141,16 +150,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       console.log('✅ Signed in successfully');
       
-      // Update last login time
-      if (auth.currentUser) {
-        await setDoc(
-          doc(db, 'users', auth.currentUser.uid),
-          { last_login_at: serverTimestamp() },
-          { merge: true }
-        );
-      }
-      
-      // Auth state listener will update the user state
+      // NOTE: Removed last_login_at update here - it was racing with onAuthStateChanged
+      // and corrupting the Firestore memory cache on React Native.
+      // The auth state listener will handle loading user data.
+      // last_login_at can be updated later if needed.
     } catch (error: any) {
       console.error('❌ Sign in error:', error);
       
@@ -187,8 +190,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     try {
-      console.log('🔄 Refreshing user data...');
-      const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+      console.log('🔄 Refreshing user data from server...');
+      const userDoc = await getDocFromServer(doc(db, 'users', auth.currentUser.uid));
       
       if (userDoc.exists()) {
         const userData = userDoc.data();
@@ -215,6 +218,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Update user state locally (KISS: don't wait for Firestore)
+  const updateUserLocally = (updates: Partial<User>): void => {
+    if (!user) {
+      console.warn('⚠️ Cannot update user: not authenticated');
+      return;
+    }
+
+    const updatedUser = {
+      ...user,
+      ...updates,
+      updated_at: new Date(),
+    };
+
+    console.log('🔄 Updating user locally:', updates);
+    setUser(updatedUser);
+  };
+
   const value: AuthContextValue = {
     user,
     firebaseUser,
@@ -223,6 +243,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signIn,
     signOut,
     refreshUser,
+    updateUserLocally,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

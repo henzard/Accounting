@@ -16,7 +16,7 @@ import { TIMEZONE_OPTIONS } from '@/shared/constants/timezones';
 
 export default function CreateHouseholdScreen() {
   const { theme } = useTheme();
-  const { user, refreshUser } = useAuth();
+  const { user, updateUserLocally } = useAuth();
   const router = useRouter();
 
   const [householdName, setHouseholdName] = useState('');
@@ -93,9 +93,13 @@ export default function CreateHouseholdScreen() {
 
       console.log('✅ User updated with household');
 
-      // Refresh user data in AuthContext
-      await refreshUser();
-      console.log('✅ User data refreshed in AuthContext');
+      // KISS: Update local user state immediately (don't wait for Firestore sync)
+      updateUserLocally({
+        household_ids: updatedHouseholdIds,
+        default_household_id: household.id,
+      });
+
+      console.log('✅ User updated locally');
 
       Alert.alert(
         'Success! 🎉',

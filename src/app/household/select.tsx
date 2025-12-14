@@ -13,7 +13,7 @@ import { Household, createHousehold } from '@/domain/entities';
 
 export default function SelectHouseholdScreen() {
   const { theme } = useTheme();
-  const { user } = useAuth();
+  const { user, updateUserLocally } = useAuth();
   const router = useRouter();
 
   const [households, setHouseholds] = useState<Household[]>([]);
@@ -42,11 +42,13 @@ export default function SelectHouseholdScreen() {
       const snapshot = await getDocs(householdsQuery);
       const loadedHouseholds = snapshot.docs.map((doc) => {
         const data = doc.data();
-        return createHousehold({
+        // Don't use createHousehold factory - it's for NEW households only
+        // Instead, manually construct from Firestore data
+        return {
           id: doc.id,
           name: data.name,
           owner_id: data.owner_id,
-          member_ids: data.member_ids || [],
+          member_ids: data.member_ids || [data.owner_id],
           timezone: data.timezone,
           currency: data.currency,
           current_baby_step: data.current_baby_step,
@@ -54,7 +56,7 @@ export default function SelectHouseholdScreen() {
           created_at: data.created_at?.toDate() || new Date(),
           updated_at: data.updated_at?.toDate() || new Date(),
           created_by: data.created_by,
-        });
+        } as Household;
       });
 
       setHouseholds(loadedHouseholds);
@@ -96,6 +98,13 @@ export default function SelectHouseholdScreen() {
       );
 
       console.log('✅ Default household updated');
+
+      // KISS: Update local user state immediately (don't wait for Firestore sync)
+      updateUserLocally({
+        default_household_id: selectedHouseholdId,
+      });
+
+      console.log('✅ User updated locally');
 
       // Navigate to home
       router.replace('/(tabs)');
