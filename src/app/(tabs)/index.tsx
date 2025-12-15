@@ -165,6 +165,17 @@ export default function HomeScreen() {
         </ThemedText>
       </ThemedView>
 
+      {/* Household Settings */}
+      <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">⚙️ Household Settings</ThemedText>
+        <Link href="/household/settings" style={{ marginTop: 10 }}>
+          <ThemedText type="link">Configure Budget Period & More →</ThemedText>
+        </Link>
+        <ThemedText style={{ fontSize: 12, marginTop: 5 }}>
+          Set custom pay periods, manage household preferences
+        </ThemedText>
+      </ThemedView>
+
       {/* Sign Out */}
       <ThemedView style={styles.stepContainer}>
         <OutlineButton

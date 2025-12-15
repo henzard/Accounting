@@ -28,6 +28,7 @@ export default function RootLayout() {
             <Stack.Screen name="signup" options={{ headerShown: false }} />
             <Stack.Screen name="household/create" options={{ headerShown: false }} />
             <Stack.Screen name="household/select" options={{ headerShown: false }} />
+            <Stack.Screen name="household/settings" options={{ headerShown: false }} />
             <Stack.Screen name="baby-steps/select" options={{ headerShown: false }} />
             <Stack.Screen name="accounts/index" options={{ headerShown: false }} />
             <Stack.Screen name="accounts/add" options={{ headerShown: false }} />
