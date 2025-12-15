@@ -7,8 +7,10 @@ export interface Budget {
   household_id: string;
   
   // Time period
-  month: number; // 1-12
+  month: number; // 1-12 (for reference/display, actual period may differ)
   year: number;
+  period_start: Date; // Actual start date of budget period
+  period_end: Date; // Actual end date of budget period
   
   // Income
   planned_income: number; // In cents
@@ -59,14 +61,22 @@ export function createBudget(params: {
   household_id: string;
   month: number;
   year: number;
+  period_start?: Date;
+  period_end?: Date;
   planned_income?: number;
   categories?: BudgetCategory[];
 }): Budget {
+  // Default to calendar month if not specified
+  const defaultPeriodStart = new Date(params.year, params.month - 1, 1);
+  const defaultPeriodEnd = new Date(params.year, params.month, 0, 23, 59, 59, 999);
+
   return {
     id: params.id,
     household_id: params.household_id,
     month: params.month,
     year: params.year,
+    period_start: params.period_start || defaultPeriodStart,
+    period_end: params.period_end || defaultPeriodEnd,
     planned_income: params.planned_income || 0,
     categories: params.categories || [],
     created_at: new Date(),
@@ -128,4 +138,41 @@ export function isZeroBasedBudget(budget: Budget): boolean {
 export function getBudgetMonthName(month: number, year: number): string {
   const date = new Date(year, month - 1, 1);
   return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
+/**
+ * Calculate budget period dates based on custom start day
+ * 
+ * @param month - Month (1-12) for reference
+ * @param year - Year for reference
+ * @param budgetPeriodStartDay - Day of month when budget starts (1-31, default 1)
+ * @returns { period_start, period_end } - Date range for this budget period
+ * 
+ * Examples:
+ * - budgetPeriodStartDay = 1 → Calendar month (Jan 1 - Jan 31)
+ * - budgetPeriodStartDay = 15 → Mid-month (Jan 15 - Feb 14)
+ * - budgetPeriodStartDay = 20 → Custom (Jan 20 - Feb 19)
+ */
+export function calculateBudgetPeriod(
+  month: number,
+  year: number,
+  budgetPeriodStartDay: number = 1
+): { period_start: Date; period_end: Date } {
+  // Default: Calendar month (1st to last day)
+  if (budgetPeriodStartDay === 1) {
+    const period_start = new Date(year, month - 1, 1, 0, 0, 0, 0);
+    const period_end = new Date(year, month, 0, 23, 59, 59, 999); // Last day of month
+    return { period_start, period_end };
+  }
+
+  // Custom period: Start on specific day of this month, end day before that in next month
+  const period_start = new Date(year, month - 1, budgetPeriodStartDay, 0, 0, 0, 0);
+  
+  // End date is day before start day in next month
+  // Example: Start = Jan 20 → End = Feb 19
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
+  const period_end = new Date(nextYear, nextMonth - 1, budgetPeriodStartDay - 1, 23, 59, 59, 999);
+  
+  return { period_start, period_end };
 }
