@@ -17,7 +17,7 @@ import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
 import { ScreenHeader, Card, PrimaryButton, OutlineButton, SearchableSelect } from '@/presentation/components';
 import { CategoryGroup } from '@/domain/entities/Budget';
-import { CATEGORY_GROUP_INFO, MasterCategory, getDefaultCategories } from '@/shared/constants/budget-categories';
+import { CATEGORY_GROUP_INFO, MasterCategory, getDefaultCategories, DEFAULT_BUDGET_CATEGORIES } from '@/shared/constants/budget-categories';
 import { collection, getDocs, addDoc, deleteDoc, updateDoc, doc, query, where } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
 import { SelectOption } from '@/shared/types';
@@ -216,8 +216,8 @@ export default function ManageCategoriesScreen() {
               const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
               await Promise.all(deletePromises);
 
-              // Step 2: Add all Dave Ramsey defaults as editable categories
-              const defaults = getDefaultCategories();
+              // Step 2: Add ALL Dave Ramsey defaults as editable categories
+              const defaults = DEFAULT_BUDGET_CATEGORIES; // Use ALL categories, not just is_default: true
               const addPromises = defaults.map(category => {
                 const { id, is_default, ...categoryData } = category;
                 return addDoc(collection(db, 'master_categories'), {
@@ -228,7 +228,7 @@ export default function ManageCategoriesScreen() {
               });
               await Promise.all(addPromises);
 
-              Alert.alert('Success! 🎉', `Reset complete. Added ${defaults.length} Dave Ramsey categories. You can now edit or delete them.`);
+              Alert.alert('Success! 🎉', `Reset complete. Added all ${defaults.length} Dave Ramsey categories (including debt payments, car payment, life insurance). You can now edit or delete them.`);
               loadCategories();
             } catch (error) {
               console.error('Error resetting categories:', error);
