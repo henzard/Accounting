@@ -429,7 +429,7 @@ Theme system complete with Homebase branding. Core UI components built (Button, 
 
 Building core features: authentication, household management, transactions, budgets, and debt tracking.
 
-**Current**: Phase 5.4 - Account Management
+**Current**: Phase 5.5 - Monthly Budget Creation
 
 ### 5.1: Authentication Flow (1 hour) ✅ COMPLETE
 
@@ -496,17 +496,30 @@ Building core features: authentication, household management, transactions, budg
 
 ---
 
-### 5.4: Account Management (2 hours)
+### 5.4: Account Management (2 hours) ✅ COMPLETE
 
-- [ ] Create Account List screen
-- [ ] Create Add Account screen
-- [ ] Create Edit Account screen
-- [ ] Implement save/update to Firestore
-- [ ] Test adding account
-- [ ] Test editing account
-- [ ] **Test app runs**, accounts work
+- [x] Create Account List screen
+- [x] Create Add Account screen
+- [x] Create Edit Account screen
+- [x] Implement save/update to Firestore
+- [x] Test adding account
+- [x] Test editing account
+- [x] **Test app runs**, accounts work
 
-**Exit Criteria**: Can add/edit/view accounts
+**Exit Criteria**: Can add/edit/view accounts ✅ VERIFIED  
+**Status**: COMPLETE
+
+**What was built**:
+- `accounts/index.tsx` - Account list screen with total balance summary
+- `accounts/add.tsx` - Add new account (6 types: Bank, Savings, Credit Card, Cash, Loan, Investment)
+- `accounts/edit.tsx` - Edit existing account with archive functionality
+- Fixed Account entity to include `household_id` field
+- Implemented `getActiveAccounts` in FirestoreAccountRepository
+- Added account type icons (🏦💰💳💵🏠📈)
+- Include in budget toggle
+- Active/inactive status toggle
+- Linked from home screen "Manage Your Accounts"
+- Currency formatting integration
 
 ---
 
@@ -787,14 +800,16 @@ npm run android
 
 ## 🚀 Current Status
 
-**You are here**: Phase 5.1 - Authentication Flow
+**You are here**: Phase 5.5 - Monthly Budget Creation
 
 **What's Complete**:
 - ✅ Phase 0-4: All infrastructure, domain, data, Firebase, theme, components, navigation
+- ✅ Phase 5.1-5.4: Authentication, Households, Baby Steps, Accounts
 - ✅ UI component library with Homebase branding
 - ✅ Firebase tested and working (offline + online)
+- ✅ Multi-currency support with conversion
 
-**Next step**: Build authentication screens (Login, Signup) with Firebase Auth
+**Next step**: Build monthly budget creation (zero-based budgeting)
 
 **To verify app works**:
 ```powershell
@@ -804,5 +819,5 @@ npm run android
 
 ---
 
-**Remember**: We're **building MVP features**! Time to add authentication. 🔐
+**Remember**: We're **building MVP features**! Account management complete. Next: Budget creation. 💰
 
