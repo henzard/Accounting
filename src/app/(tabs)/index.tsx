@@ -14,6 +14,7 @@ import { useAuth } from '@/infrastructure/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
 import { CurrencyCode } from '@/shared/utils/currency';
+import { sanitizeBabyStep } from '@/shared/constants/baby-steps';
 
 export default function HomeScreen() {
   const { theme } = useTheme();
@@ -36,7 +37,9 @@ export default function HomeScreen() {
 
           if (householdDoc.exists()) {
             const data = householdDoc.data();
-            setCurrentBabyStep(data.current_baby_step || 1);
+            // Sanitize baby step to ensure it's valid (1-7)
+            const rawStep = data.current_baby_step;
+            setCurrentBabyStep(sanitizeBabyStep(rawStep));
             setHouseholdCurrency((data.currency as CurrencyCode) || 'USD');
           }
         } catch (error) {

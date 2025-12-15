@@ -13,7 +13,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
-import { BABY_STEPS } from '@/shared/constants/baby-steps';
+import { BABY_STEPS, sanitizeBabyStep, isValidBabyStep } from '@/shared/constants/baby-steps';
 import { PrimaryButton, OutlineButton, Card, ScreenHeader } from '@/presentation/components';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
@@ -46,7 +46,11 @@ export default function BabyStepsSelectScreen() {
 
       if (householdDoc.exists()) {
         const data = householdDoc.data();
-        const step = data.current_baby_step || 1;
+        const rawStep = data.current_baby_step;
+        
+        // Sanitize the step to ensure it's valid (1-7)
+        const step = sanitizeBabyStep(rawStep);
+        
         setCurrentStep(step);
         setSelectedStep(step);
       }
@@ -68,6 +72,13 @@ export default function BabyStepsSelectScreen() {
       return;
     }
 
+    // Validate selectedStep is within valid range (1-7)
+    if (!isValidBabyStep(selectedStep)) {
+      console.error(`❌ Invalid baby step: ${selectedStep}`);
+      Alert.alert('Error', 'Please select a valid Baby Step (1-7)');
+      return;
+    }
+
     setSaving(true);
     try {
       await setDoc(
@@ -82,9 +93,12 @@ export default function BabyStepsSelectScreen() {
 
       console.log('✅ Baby step updated to:', selectedStep);
       
+      // Safe array access - validated above with isValidBabyStep
+      const stepInfo = BABY_STEPS[selectedStep - 1];
+      
       Alert.alert(
         'Baby Step Updated! 🎉',
-        `You're now on Baby Step ${selectedStep}: ${BABY_STEPS[selectedStep - 1].shortTitle}`,
+        `You're now on Baby Step ${selectedStep}: ${stepInfo.shortTitle}`,
         [{ text: 'OK', onPress: () => router.back() }]
       );
     } catch (error) {

@@ -74,3 +74,22 @@ export function getBabyStepTitle(stepNumber: number): string {
   return step?.shortTitle || `Baby Step ${stepNumber}`;
 }
 
+// Validate that a step number is within the valid range (1-7)
+export function isValidBabyStep(stepNumber: number): boolean {
+  return Number.isInteger(stepNumber) && stepNumber >= 1 && stepNumber <= 7;
+}
+
+// Sanitize a potentially invalid step number to a valid one (defaults to 1)
+export function sanitizeBabyStep(stepNumber: number | undefined | null): number {
+  if (stepNumber === undefined || stepNumber === null) {
+    return 1;
+  }
+  
+  if (!isValidBabyStep(stepNumber)) {
+    console.warn(`⚠️ Invalid baby step ${stepNumber}, defaulting to 1`);
+    return 1;
+  }
+  
+  return stepNumber;
+}
+
