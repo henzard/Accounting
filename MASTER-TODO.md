@@ -429,7 +429,7 @@ Theme system complete with Homebase branding. Core UI components built (Button, 
 
 Building core features: authentication, household management, transactions, budgets, and debt tracking.
 
-**Current**: Phase 5.5 - Monthly Budget Creation (after navigation foundation)
+**Current**: Phase 5.6 - Transaction Entry (next up!)
 
 ### 5.1: Authentication Flow (1 hour) ✅ COMPLETE
 
@@ -558,37 +558,55 @@ Building core features: authentication, household management, transactions, budg
 
 ---
 
-### 5.5: Monthly Budget Creation (3 hours)
+### 5.5: Monthly Budget Creation (3 hours) ✅ COMPLETE
 
 **This is complex - break into sub-tasks:**
 
-- [ ] Create Budget screen skeleton
-- [ ] **Test app runs**
+- [x] Create Budget screen skeleton
+- [x] **Test app runs** ✅
 
-- [ ] Add income section
+- [x] Add income section
   - Input for planned income
-  - **Test app runs**, can enter income
+  - **Test app runs**, can enter income ✅
 
-- [ ] Add expense categories section
+- [x] Add expense categories section
   - List of categories
-  - **Test app runs**, see categories
+  - **Test app runs**, see categories ✅
 
-- [ ] Add category amounts
+- [x] Add category amounts
   - Input per category
-  - **Test app runs**, can enter amounts
+  - **Test app runs**, can enter amounts ✅
 
-- [ ] Calculate zero-based status
+- [x] Calculate zero-based status
   - Income - Expenses calculation
   - Show difference
-  - **Test app runs**, see calculation
+  - **Test app runs**, see calculation ✅
 
-- [ ] Save budget to Firestore
-  - **Test app runs**, budget persists
+- [x] Save budget to Firestore
+  - **Test app runs**, budget persists ✅
 
-- [ ] Copy previous month feature
+- [ ] Copy previous month feature (DEFERRED to Phase 5.5.1)
   - **Test app runs**, can copy budget
 
-**Exit Criteria**: Can create monthly budget
+**Exit Criteria**: Can create monthly budget ✅ VERIFIED  
+**Status**: COMPLETE
+
+**What was built**:
+- **Budget Entity** (Budget.ts): Monthly budget with planned_income, categories, helpers
+- **BudgetCategory**: Individual line items with planned/actual amounts
+- **10 CategoryGroups**: INCOME, GIVING, SAVING, HOUSING, TRANSPORTATION, FOOD, PERSONAL, INSURANCE, DEBT, LIFESTYLE
+- **20+ Default Categories** (budget-categories.ts): Dave Ramsey recommended categories
+- **FirestoreBudgetRepository**: Full CRUD + getBudgetByMonth, copyBudgetToNextMonth
+- **Budget Screen** (budget/index.tsx):
+  - Zero-based budget status indicator (green = complete, yellow = incomplete)
+  - Income section with currency-aware amount input
+  - Category list with individual amount inputs
+  - Real-time remaining-to-budget calculation
+  - Auto-creates budget with default categories
+  - Saves to Firestore
+  - Month/year display
+  - Navigation from home screen
+- **Helper Functions**: calculateTotalExpenses, isZeroBasedBudget, getBudgetMonthName
 
 ---
 
