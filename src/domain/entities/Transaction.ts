@@ -26,6 +26,9 @@ export interface Transaction {
   payee?: string;
   payer?: string;
   
+  // Budget Category Allocation
+  category_id?: string; // Link to budget category for budget tracking
+  
   // Transfer (if type === 'TRANSFER')
   to_account_id?: string;
   
@@ -73,6 +76,7 @@ export function createTransaction(params: {
   created_by_device: string;
   payee?: string;
   notes?: string;
+  category_id?: string;
 }): Transaction {
   const now = new Date();
   const captureDelay = Math.floor(
@@ -88,6 +92,7 @@ export function createTransaction(params: {
     currency: 'USD',
     account_id: params.account_id,
     payee: params.payee,
+    category_id: params.category_id,
     notes: params.notes,
     status: 'pending',
     is_business: false,

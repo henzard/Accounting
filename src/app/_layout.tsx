@@ -35,6 +35,8 @@ export default function RootLayout() {
             <Stack.Screen name="accounts/edit" options={{ headerShown: false }} />
             <Stack.Screen name="budget/index" options={{ headerShown: false }} />
             <Stack.Screen name="budget/manage-categories" options={{ headerShown: false }} />
+            <Stack.Screen name="transactions/add" options={{ headerShown: false }} />
+            <Stack.Screen name="transactions/[id]" options={{ headerShown: false }} />
           </Stack>
           <StatusBar style="auto" />
         </NavigationThemeProvider>

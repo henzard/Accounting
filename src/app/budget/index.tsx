@@ -511,7 +511,7 @@ export default function BudgetScreen() {
                       No Results Found
                     </Text>
                     <Text style={[styles.emptyDescription, { color: theme.text.secondary }]}>
-                      No categories match "{searchQuery}". Try a different search term.
+                      No categories match &quot;{searchQuery}&quot;. Try a different search term.
                     </Text>
                   </View>
                 )}

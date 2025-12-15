@@ -613,7 +613,7 @@ export default function ManageCategoriesScreen() {
               No Categories Yet
             </Text>
             <Text style={[styles.emptyDescription, { color: theme.text.secondary }]}>
-              Get started by clicking "Reset" to load Dave Ramsey's recommended budget categories, or add your own custom categories.
+              Get started by clicking &rdquo;Reset&rdquo; to load Dave Ramsey&apos;s recommended budget categories, or add your own custom categories.
             </Text>
             <View style={{ marginTop: 24, width: '100%', gap: 12 }}>
               <PrimaryButton
@@ -638,7 +638,7 @@ export default function ManageCategoriesScreen() {
               No Results Found
             </Text>
             <Text style={[styles.emptyDescription, { color: theme.text.secondary }]}>
-              No categories match "{searchQuery}". Try a different search term.
+              No categories match &quot;{searchQuery}&quot;. Try a different search term.
             </Text>
           </View>
         )}

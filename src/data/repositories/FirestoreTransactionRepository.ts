@@ -18,7 +18,7 @@ import {
 } from 'firebase/firestore';
 import { Transaction } from '@/domain/entities';
 import { ITransactionRepository } from '@/domain/repositories';
-import { getFirestoreDb } from '@/infrastructure/firebase';
+import { db } from '@/infrastructure/firebase';
 
 /**
  * Firestore Transaction Repository
@@ -34,7 +34,6 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
    * Get a single transaction by ID
    */
   async getTransaction(transactionId: string): Promise<Transaction | null> {
-    const db = getFirestoreDb();
     
     try {
       // Note: We need householdId to construct the path
@@ -61,7 +60,6 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
     householdId: string,
     limitCount: number = 100
   ): Promise<Transaction[]> {
-    const db = getFirestoreDb();
 
     try {
       const q = query(
@@ -87,7 +85,6 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
    * Works offline - queues for sync when online
    */
   async createTransaction(transaction: Transaction): Promise<void> {
-    const db = getFirestoreDb();
 
     try {
       const docRef = doc(db, this.COLLECTION, transaction.id);
@@ -108,7 +105,6 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
    * Works offline - queues for sync when online
    */
   async updateTransaction(transaction: Transaction): Promise<void> {
-    const db = getFirestoreDb();
 
     try {
       const docRef = doc(db, this.COLLECTION, transaction.id);
@@ -131,7 +127,6 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
     householdId: string,
     callback: (transactions: Transaction[]) => void
   ): Unsubscribe {
-    const db = getFirestoreDb();
 
     const q = query(
       collection(db, this.COLLECTION),
@@ -167,6 +162,7 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
       account_id: data.account_id,
       payee: data.payee,
       payer: data.payer,
+      category_id: data.category_id,
       to_account_id: data.to_account_id,
       notes: data.notes,
       reference: data.reference,
@@ -204,6 +200,7 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
       account_id: transaction.account_id,
       payee: transaction.payee || null,
       payer: transaction.payer || null,
+      category_id: transaction.category_id || null,
       to_account_id: transaction.to_account_id || null,
       notes: transaction.notes || null,
       reference: transaction.reference || null,
