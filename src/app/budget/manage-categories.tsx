@@ -362,12 +362,17 @@ export default function ManageCategoriesScreen() {
     label: `${info.icon} ${info.name}`,
   }));
 
-  // Group categories by CategoryGroup
-  const groupedCategories = categories.reduce((acc, cat) => {
+  // Filter and group categories
+  const filteredCategories = filterCategories(categories);
+  const groupedCategories = filteredCategories.reduce((acc, cat) => {
     if (!acc[cat.group]) acc[cat.group] = [];
     acc[cat.group].push(cat);
     return acc;
   }, {} as Record<CategoryGroup, MasterCategory[]>);
+  
+  // Check if we have any categories
+  const hasCategories = categories.length > 0;
+  const hasFilteredCategories = filteredCategories.length > 0;
 
   if (loading) {
     return (
@@ -389,23 +394,80 @@ export default function ManageCategoriesScreen() {
         title="Manage Categories"
         showBack={true}
         rightAction={
-          <TouchableOpacity onPress={handleResetToDefaults}>
-            <Text style={[styles.resetButton, { color: theme.status.error }]}>
-              Reset
-            </Text>
-          </TouchableOpacity>
+          selectionMode ? (
+            <TouchableOpacity onPress={() => {
+              setSelectionMode(false);
+              setSelectedCategories(new Set());
+            }}>
+              <Text style={[styles.resetButton, { color: theme.interactive.primary }]}>
+                Done
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity onPress={handleResetToDefaults}>
+              <Text style={[styles.resetButton, { color: theme.status.error }]}>
+                Reset
+              </Text>
+            </TouchableOpacity>
+          )
         }
       />
 
+      {/* 2. SEARCH BAR */}
+      <View style={[styles.searchContainer, { backgroundColor: theme.background.secondary, borderBottomColor: theme.border.default }]}>
+        <TextInput
+          style={[styles.searchInput, { color: theme.text.primary }]}
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder="🔍 Search categories..."
+          placeholderTextColor={theme.text.tertiary}
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+            <Text style={{ color: theme.text.secondary, fontSize: 18 }}>✕</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* 9. BULK ACTIONS BAR (when in selection mode) */}
+      {selectionMode && (
+        <View style={[styles.bulkActionsBar, { backgroundColor: theme.background.secondary, borderBottomColor: theme.border.default }]}>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <TouchableOpacity onPress={selectAll}>
+              <Text style={{ color: theme.interactive.primary, fontWeight: '600' }}>Select All</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={deselectAll}>
+              <Text style={{ color: theme.text.secondary, fontWeight: '600' }}>Deselect All</Text>
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity 
+            onPress={handleBulkDelete} 
+            disabled={selectedCategories.size === 0}
+            style={{ opacity: selectedCategories.size === 0 ? 0.5 : 1 }}
+          >
+            <Text style={{ color: theme.status.error, fontWeight: '600' }}>
+              Delete ({selectedCategories.size})
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       <ScrollView style={styles.scrollView}>
-        {/* Add Category Button */}
-        {!showAddForm && !editingCategory && (
+        {/* ACTION BUTTONS */}
+        {!showAddForm && !editingCategory && !selectionMode && hasCategories && (
           <View style={styles.section}>
-            <PrimaryButton
-              title="+ Add Category"
-              onPress={() => setShowAddForm(true)}
-              fullWidth
-            />
+            <View style={{ flexDirection: 'row', gap: 12 }}>
+              <PrimaryButton
+                title="+ Add Category"
+                onPress={() => setShowAddForm(true)}
+                style={{ flex: 1 }}
+              />
+              <OutlineButton
+                title="Select"
+                onPress={() => setSelectionMode(true)}
+                style={{ flex: 1 }}
+              />
+            </View>
           </View>
         )}
 
@@ -543,58 +605,139 @@ export default function ManageCategoriesScreen() {
           </Card>
         )}
 
-        {/* Categories List (grouped) */}
+        {/* 4. EMPTY STATE */}
+        {!hasCategories && (
+          <View style={styles.emptyState}>
+            <Text style={[styles.emptyIcon, { color: theme.text.tertiary }]}>📋</Text>
+            <Text style={[styles.emptyTitle, { color: theme.text.primary }]}>
+              No Categories Yet
+            </Text>
+            <Text style={[styles.emptyDescription, { color: theme.text.secondary }]}>
+              Get started by clicking "Reset" to load Dave Ramsey's recommended budget categories, or add your own custom categories.
+            </Text>
+            <View style={{ marginTop: 24, width: '100%', gap: 12 }}>
+              <PrimaryButton
+                title="Load Dave Ramsey Categories"
+                onPress={handleResetToDefaults}
+                fullWidth
+              />
+              <OutlineButton
+                title="+ Add Custom Category"
+                onPress={() => setShowAddForm(true)}
+                fullWidth
+              />
+            </View>
+          </View>
+        )}
+
+        {/* SEARCH NO RESULTS */}
+        {hasCategories && !hasFilteredCategories && (
+          <View style={styles.emptyState}>
+            <Text style={[styles.emptyIcon, { color: theme.text.tertiary }]}>🔍</Text>
+            <Text style={[styles.emptyTitle, { color: theme.text.primary }]}>
+              No Results Found
+            </Text>
+            <Text style={[styles.emptyDescription, { color: theme.text.secondary }]}>
+              No categories match "{searchQuery}". Try a different search term.
+            </Text>
+          </View>
+        )}
+
+        {/* 1, 3, 5, 8, 9: CATEGORIES LIST (COLLAPSIBLE, ICONS, COUNT, USAGE, SELECTION) */}
         {Object.entries(groupedCategories).map(([groupKey, groupCategories]) => {
           const groupInfo = CATEGORY_GROUP_INFO[groupKey as CategoryGroup];
+          const group = groupKey as CategoryGroup;
+          const isCollapsed = collapsedGroups.has(group);
+          
           return (
             <View key={groupKey} style={styles.section}>
-              <View style={styles.groupHeader}>
+              {/* 1. COLLAPSIBLE GROUP HEADER */}
+              <TouchableOpacity 
+                onPress={() => toggleGroupCollapse(group)}
+                style={styles.groupHeader}
+                activeOpacity={0.7}
+              >
                 <Text style={styles.groupIcon}>{groupInfo.icon}</Text>
                 <Text style={[styles.groupName, { color: theme.text.primary }]}>
                   {groupInfo.name}
                 </Text>
+                {/* 5. COUNT BADGE */}
                 <Text style={[styles.groupCount, { color: theme.text.tertiary }]}>
                   ({groupCategories.length})
                 </Text>
-              </View>
+                {/* Collapse indicator */}
+                <Text style={[styles.collapseIcon, { color: theme.text.tertiary }]}>
+                  {isCollapsed ? '▶' : '▼'}
+                </Text>
+              </TouchableOpacity>
 
-              {groupCategories.map((category) => (
-                <Card key={category.id} style={styles.categoryCard}>
-                  <View style={styles.categoryRow}>
-                    <Text style={styles.categoryIcon}>{category.icon}</Text>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.categoryName, { color: theme.text.primary }]}>
-                        {category.name}
-                      </Text>
-                      {category.is_default && (
-                        <Text style={[styles.defaultBadge, { color: theme.text.tertiary }]}>
-                          Dave Ramsey Default
-                        </Text>
+              {/* Categories (only show if not collapsed) */}
+              {!isCollapsed && groupCategories.map((category) => {
+                const isUsed = categoryUsage.get(category.id) || false;
+                const isSelected = selectedCategories.has(category.id);
+                
+                return (
+                  <Card key={category.id} style={[
+                    styles.categoryCard,
+                    isSelected && { backgroundColor: theme.interactive.primary + '15', borderColor: theme.interactive.primary }
+                  ]}>
+                    <View style={styles.categoryRow}>
+                      {/* 9. SELECTION CHECKBOX */}
+                      {selectionMode && !category.is_default && (
+                        <TouchableOpacity
+                          onPress={() => toggleSelection(category.id)}
+                          style={[styles.checkbox, {
+                            backgroundColor: isSelected ? theme.interactive.primary : 'transparent',
+                            borderColor: isSelected ? theme.interactive.primary : theme.border.default,
+                          }]}
+                        >
+                          {isSelected && <Text style={{ color: 'white', fontSize: 12 }}>✓</Text>}
+                        </TouchableOpacity>
+                      )}
+                      
+                      <Text style={styles.categoryIcon}>{category.icon}</Text>
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                          <Text style={[styles.categoryName, { color: theme.text.primary }]}>
+                            {category.name}
+                          </Text>
+                          {/* 8. USAGE INDICATOR */}
+                          {isUsed && (
+                            <View style={[styles.usageBadge, { backgroundColor: theme.status.success + '20' }]}>
+                              <Text style={[styles.usageText, { color: theme.status.success }]}>
+                                ● Active
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                        {category.is_default && (
+                          <Text style={[styles.defaultBadge, { color: theme.text.tertiary }]}>
+                            Dave Ramsey Default
+                          </Text>
+                        )}
+                      </View>
+                      
+                      {/* 3. ICON BUTTONS */}
+                      {!category.is_default && !selectionMode && (
+                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                          <TouchableOpacity
+                            onPress={() => handleStartEdit(category)}
+                            style={styles.iconButton}
+                          >
+                            <Text style={{ fontSize: 20 }}>✏️</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() => handleDeleteCategory(category.id, category.name)}
+                            style={styles.iconButton}
+                          >
+                            <Text style={{ fontSize: 20 }}>🗑️</Text>
+                          </TouchableOpacity>
+                        </View>
                       )}
                     </View>
-                    {!category.is_default && (
-                      <View style={{ flexDirection: 'row', gap: 8 }}>
-                        <TouchableOpacity
-                          onPress={() => handleStartEdit(category)}
-                          style={styles.editButton}
-                        >
-                          <Text style={[styles.editButtonText, { color: theme.interactive.primary }]}>
-                            Edit
-                          </Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          onPress={() => handleDeleteCategory(category.id, category.name)}
-                          style={styles.deleteButton}
-                        >
-                          <Text style={[styles.deleteButtonText, { color: theme.status.error }]}>
-                            Delete
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                  </View>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </View>
           );
         })}
@@ -705,6 +848,77 @@ const styles = StyleSheet.create({
   },
   deleteButtonText: {
     fontSize: 14,
+    fontWeight: '600',
+  },
+  // NEW UX ENHANCEMENT STYLES
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 8,
+  },
+  clearButton: {
+    padding: 8,
+  },
+  bulkActionsBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 64,
+  },
+  emptyIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyDescription: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  collapseIcon: {
+    fontSize: 12,
+    marginLeft: 'auto',
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 4,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  iconButton: {
+    padding: 8,
+  },
+  usageBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  usageText: {
+    fontSize: 11,
     fontWeight: '600',
   },
 });
