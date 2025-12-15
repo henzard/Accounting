@@ -1,7 +1,7 @@
 // Budget Screen - Homebase Budget
 // Zero-based budgeting (Dave Ramsey style) - Every dollar has a job!
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
 import { ScreenHeader, Card, AmountInput, PrimaryButton } from '@/presentation/components';
@@ -25,7 +25,6 @@ import { db } from '@/infrastructure/firebase';
 export default function BudgetScreen() {
   const { theme } = useTheme();
   const { user } = useAuth();
-  const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -33,21 +32,14 @@ export default function BudgetScreen() {
   const [plannedIncomeInCents, setPlannedIncomeInCents] = useState(0); // Store income in cents
   const [householdCurrency, setHouseholdCurrency] = useState<CurrencyCode>('USD');
 
+  // Selected month/year (default to current)
+  const now = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1); // 1-12
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+
   const budgetRepository = new FirestoreBudgetRepository();
 
-  // Get current month/year
-  const now = new Date();
-  const currentMonth = now.getMonth() + 1; // 1-12
-  const currentYear = now.getFullYear();
-
-  useFocusEffect(
-    useCallback(() => {
-      loadBudget();
-      loadHouseholdCurrency();
-    }, [user?.default_household_id])
-  );
-
-  async function loadHouseholdCurrency() {
+  const loadHouseholdCurrency = useCallback(async () => {
     if (!user?.default_household_id) return;
 
     try {
@@ -62,20 +54,20 @@ export default function BudgetScreen() {
     } catch (error) {
       console.error('Error loading household currency:', error);
     }
-  }
+  }, [user?.default_household_id]);
 
-  async function loadBudget() {
+  const loadBudget = useCallback(async () => {
     if (!user?.default_household_id) {
       setLoading(false);
       return;
     }
 
     try {
-      // Try to load existing budget for current month
+      // Try to load existing budget for selected month
       let existingBudget = await budgetRepository.getBudgetByMonth(
         user.default_household_id,
-        currentMonth,
-        currentYear
+        selectedMonth,
+        selectedYear
       );
 
       if (existingBudget) {
@@ -93,14 +85,22 @@ export default function BudgetScreen() {
     } finally {
       setLoading(false);
     }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.default_household_id, selectedMonth, selectedYear]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadBudget();
+      loadHouseholdCurrency();
+    }, [loadBudget, loadHouseholdCurrency])
+  );
 
   async function createNewBudget(): Promise<Budget> {
     if (!user?.default_household_id) {
       throw new Error('No household selected');
     }
 
-    const budgetId = `${user.default_household_id}_${currentYear}_${currentMonth}`;
+    const budgetId = `${user.default_household_id}_${selectedYear}_${selectedMonth}`;
     
     // Get default categories and convert to budget categories
     const defaultCategories = getDefaultCategories();
@@ -118,8 +118,8 @@ export default function BudgetScreen() {
     return createBudget({
       id: budgetId,
       household_id: user.default_household_id,
-      month: currentMonth,
-      year: currentYear,
+      month: selectedMonth,
+      year: selectedYear,
       planned_income: 0,
       categories: budgetCategories,
     });
@@ -168,6 +168,31 @@ export default function BudgetScreen() {
     setBudget({ ...budget, categories: updatedCategories });
   }
 
+  // Month navigation functions
+  function goToPreviousMonth() {
+    if (selectedMonth === 1) {
+      setSelectedMonth(12);
+      setSelectedYear(selectedYear - 1);
+    } else {
+      setSelectedMonth(selectedMonth - 1);
+    }
+  }
+
+  function goToNextMonth() {
+    if (selectedMonth === 12) {
+      setSelectedMonth(1);
+      setSelectedYear(selectedYear + 1);
+    } else {
+      setSelectedMonth(selectedMonth + 1);
+    }
+  }
+
+  function goToCurrentMonth() {
+    const now = new Date();
+    setSelectedMonth(now.getMonth() + 1);
+    setSelectedYear(now.getFullYear());
+  }
+
   // Calculate remaining to budget using domain helper (correctly excludes INCOME categories)
   const remaining = budget ? calculateRemainingToBudget(budget) : 0;
   const isZeroBased = remaining === 0;
@@ -190,7 +215,7 @@ export default function BudgetScreen() {
     <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
       {/* Header */}
       <ScreenHeader
-        title={getBudgetMonthName(currentMonth, currentYear)}
+        title="Budget"
         showBack={true}
         rightAction={
           <PrimaryButton
@@ -203,6 +228,51 @@ export default function BudgetScreen() {
       />
 
       <ScrollView style={styles.scrollView}>
+        {/* Month Navigation */}
+        <View style={[styles.monthNav, { borderBottomColor: theme.border.default }]}>
+          <TouchableOpacity
+            onPress={goToPreviousMonth}
+            style={styles.navButton}
+            testID="prev-month-button"
+          >
+            <Text style={[styles.navButtonText, { color: theme.interactive.primary }]}>
+              ← Prev
+            </Text>
+          </TouchableOpacity>
+
+          <View style={styles.monthDisplay}>
+            <Text style={[styles.monthText, { color: theme.text.primary }]}>
+              {getBudgetMonthName(selectedMonth, selectedYear)}
+            </Text>
+            {/* Show "Today" badge if current month */}
+            {selectedMonth === new Date().getMonth() + 1 && selectedYear === new Date().getFullYear() && (
+              <View style={[styles.todayBadge, { backgroundColor: theme.status.infoBackground }]}>
+                <Text style={[styles.todayBadgeText, { color: theme.status.info }]}>
+                  Today
+                </Text>
+              </View>
+            )}
+            {/* Quick jump to current month */}
+            {(selectedMonth !== new Date().getMonth() + 1 || selectedYear !== new Date().getFullYear()) && (
+              <TouchableOpacity onPress={goToCurrentMonth} style={styles.todayButton}>
+                <Text style={[styles.todayButtonText, { color: theme.interactive.primary }]}>
+                  Go to Today
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <TouchableOpacity
+            onPress={goToNextMonth}
+            style={styles.navButton}
+            testID="next-month-button"
+          >
+            <Text style={[styles.navButtonText, { color: theme.interactive.primary }]}>
+              Next →
+            </Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Zero-Based Budget Status */}
         <Card style={{
           ...styles.statusCard,
@@ -293,6 +363,50 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
   },
+  // Month navigation
+  monthNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+  },
+  navButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  navButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  monthDisplay: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  monthText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  todayBadge: {
+    marginTop: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  todayBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  todayButton: {
+    marginTop: 4,
+    paddingVertical: 4,
+  },
+  todayButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  // Status card
   statusCard: {
     margin: 16,
     padding: 20,
