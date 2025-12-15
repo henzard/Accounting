@@ -144,6 +144,17 @@ export default function HomeScreen() {
         </ThemedText>
       </ThemedView>
 
+      {/* Budget Quick Link */}
+      <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">📊 Budget</ThemedText>
+        <Link href="/budget" style={{ marginTop: 10 }}>
+          <ThemedText type="link">Create This Month's Budget →</ThemedText>
+        </Link>
+        <ThemedText style={{ fontSize: 12, marginTop: 5 }}>
+          Zero-based budgeting - every dollar has a job!
+        </ThemedText>
+      </ThemedView>
+
       {/* Quick Links */}
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">🎨 UI Components</ThemedText>

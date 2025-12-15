@@ -32,6 +32,7 @@ export default function RootLayout() {
             <Stack.Screen name="accounts/index" options={{ headerShown: false }} />
             <Stack.Screen name="accounts/add" options={{ headerShown: false }} />
             <Stack.Screen name="accounts/edit" options={{ headerShown: false }} />
+            <Stack.Screen name="budget/index" options={{ headerShown: false }} />
           </Stack>
           <StatusBar style="auto" />
         </NavigationThemeProvider>
