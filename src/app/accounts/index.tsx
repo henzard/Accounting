@@ -18,6 +18,8 @@ import { Card } from '@/presentation/components';
 import { Account, AccountType } from '@/domain/entities/Account';
 import { FirestoreAccountRepository } from '@/data/repositories/FirestoreAccountRepository';
 import { formatCurrency, CurrencyCode } from '@/shared/utils/currency';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/infrastructure/firebase';
 
 export default function AccountsScreen() {
   const { theme } = useTheme();
@@ -31,7 +33,27 @@ export default function AccountsScreen() {
 
   useEffect(() => {
     loadAccounts();
+    loadHouseholdCurrency();
   }, [user?.default_household_id]);
+
+  async function loadHouseholdCurrency() {
+    if (!user?.default_household_id) return;
+
+    try {
+      const householdDoc = await getDoc(
+        doc(db, 'households', user.default_household_id)
+      );
+      
+      if (householdDoc.exists()) {
+        const currency = householdDoc.data()?.currency as CurrencyCode;
+        if (currency) {
+          setHouseholdCurrency(currency);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error loading household currency:', error);
+    }
+  }
 
   async function loadAccounts() {
     if (!user?.default_household_id) {
@@ -122,7 +144,7 @@ export default function AccountsScreen() {
                   },
                 ]}
               >
-                {formatCurrency(Math.abs(balanceAmount), item.currency as CurrencyCode)}
+                {formatCurrency(Math.abs(balanceAmount), householdCurrency)}
               </Text>
               {item.type === 'CREDIT_CARD' && (
                 <Text style={[styles.creditLabel, { color: theme.text.tertiary }]}>

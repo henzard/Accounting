@@ -19,6 +19,9 @@ import { useAuth } from '@/infrastructure/auth';
 import { Input, Button, Card } from '@/presentation/components';
 import { Account, AccountType } from '@/domain/entities/Account';
 import { FirestoreAccountRepository } from '@/data/repositories/FirestoreAccountRepository';
+import { formatCurrency, CurrencyCode } from '@/shared/utils/currency';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/infrastructure/firebase';
 
 const ACCOUNT_TYPES: { value: AccountType; label: string; icon: string }[] = [
   { value: 'BANK', label: 'Checking', icon: '🏦' },
@@ -42,12 +45,33 @@ export default function EditAccountScreen() {
   const [isInBudget, setIsInBudget] = useState(true);
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [householdCurrency, setHouseholdCurrency] = useState<CurrencyCode>('USD');
 
   const accountRepository = new FirestoreAccountRepository();
 
   useEffect(() => {
     loadAccount();
+    loadHouseholdCurrency();
   }, [id]);
+
+  async function loadHouseholdCurrency() {
+    if (!user?.default_household_id) return;
+
+    try {
+      const householdDoc = await getDoc(
+        doc(db, 'households', user.default_household_id)
+      );
+      
+      if (householdDoc.exists()) {
+        const currency = householdDoc.data()?.currency as CurrencyCode;
+        if (currency) {
+          setHouseholdCurrency(currency);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error loading household currency:', error);
+    }
+  }
 
   async function loadAccount() {
     if (!id) {
@@ -183,7 +207,7 @@ export default function EditAccountScreen() {
               Current Balance
             </Text>
             <Text style={[styles.balanceText, { color: theme.text.primary }]}>
-              {account.currency} {(account.balance / 100).toFixed(2)}
+              {formatCurrency(account.balance / 100, householdCurrency)}
             </Text>
             <Text style={[styles.helperText, { color: theme.text.tertiary }]}>
               Balance is updated automatically by transactions
