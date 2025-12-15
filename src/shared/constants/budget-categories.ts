@@ -208,7 +208,7 @@ export const DEFAULT_BUDGET_CATEGORIES: MasterCategory[] = [
     icon: '💸',
     sort_order: 44,
     is_default: true,
-    description: 'Small expenses that don't fit elsewhere',
+    description: 'Small expenses that do not fit elsewhere',
   },
 
   // ============================================
