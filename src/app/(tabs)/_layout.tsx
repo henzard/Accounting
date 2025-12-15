@@ -33,9 +33,11 @@ export default function TabLayout() {
       // If user has households, let them select one
       if (user.household_ids && user.household_ids.length > 0) {
         router.replace('/household/select');
+        return; // Prevent further rendering
       } else {
         // Otherwise, create first household
         router.replace('/household/create');
+        return; // Prevent further rendering
       }
     }
   }, [user, loading]);

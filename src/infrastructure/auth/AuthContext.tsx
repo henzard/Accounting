@@ -113,7 +113,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         household_ids: [],
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
         currency: 'USD',
-        locale: navigator.language || 'en-US',
+        locale: Intl.DateTimeFormat().resolvedOptions().locale || 'en-US',
         created_at: new Date(),
         updated_at: new Date(),
       });
