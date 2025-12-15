@@ -14,7 +14,7 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
 import { BABY_STEPS } from '@/shared/constants/baby-steps';
-import { PrimaryButton, OutlineButton, Card } from '@/presentation/components';
+import { PrimaryButton, OutlineButton, Card, ScreenHeader } from '@/presentation/components';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
 
@@ -113,25 +113,15 @@ export default function BabyStepsSelectScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.background.primary }}>
       {/* Header */}
+      <ScreenHeader title="Select Baby Step" showBack={true} />
+
+      {/* Subtitle */}
       <View
         style={{
-          padding: theme.spacing[4],
-          paddingTop: theme.spacing[8],
-          borderBottomWidth: 1,
-          borderBottomColor: theme.border.default,
-          backgroundColor: theme.surface.default,
+          paddingHorizontal: theme.spacing[4],
+          paddingVertical: theme.spacing[3],
         }}
       >
-        <Text
-          style={{
-            fontSize: 24,
-            fontWeight: 'bold',
-            color: theme.text.primary,
-            marginBottom: theme.spacing[2],
-          }}
-        >
-          Select Your Baby Step
-        </Text>
         <Text
           style={{
             fontSize: 14,

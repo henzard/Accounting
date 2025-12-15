@@ -1,112 +1,270 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+// More/Settings Screen - Homebase Budget
+// User settings, preferences, and navigation to other features
 
-import { Collapsible } from '@/components/ui/collapsible';
-import { ExternalLink } from '@/components/external-link';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import React from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { Link, useRouter } from 'expo-router';
+import { useTheme } from '@/infrastructure/theme';
+import { useAuth } from '@/infrastructure/auth';
+import { Card } from '@/presentation/components';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Fonts } from '@/constants/theme';
 
-export default function TabTwoScreen() {
+interface MenuItemProps {
+  icon: string;
+  label: string;
+  subtitle?: string;
+  onPress: () => void;
+  color?: string;
+}
+
+function MenuItem({ icon, label, subtitle, onPress, color }: MenuItemProps) {
+  const { theme } = useTheme();
+  
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText
-          type="title"
-          style={{
-            fontFamily: Fonts.rounded,
-          }}>
-          Explore
-        </ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image
-          source={require('@/assets/images/react-logo.png')}
-          style={{ width: 100, height: 100, alignSelf: 'center' }}
-        />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful{' '}
-          <ThemedText type="defaultSemiBold" style={{ fontFamily: Fonts.mono }}>
-            react-native-reanimated
-          </ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <TouchableOpacity
+      onPress={onPress}
+      style={styles.menuItem}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.iconContainer, { backgroundColor: color || theme.interactive.primary + '20' }]}>
+        <IconSymbol name={icon} size={24} color={color || theme.interactive.primary} />
+      </View>
+      <View style={styles.menuContent}>
+        <Text style={[styles.menuLabel, { color: theme.text.primary }]}>
+          {label}
+        </Text>
+        {subtitle && (
+          <Text style={[styles.menuSubtitle, { color: theme.text.secondary }]}>
+            {subtitle}
+          </Text>
+        )}
+      </View>
+      <IconSymbol name="chevron.right" size={20} color={theme.text.tertiary} />
+    </TouchableOpacity>
+  );
+}
+
+export default function MoreScreen() {
+  const { theme } = useTheme();
+  const { user, signOut } = useAuth();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut();
+              router.replace('/login');
+            } catch (error) {
+              console.error('❌ Sign out failed:', error);
+              Alert.alert('Error', 'Failed to sign out');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  return (
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.background.primary }]}
+      contentContainerStyle={styles.content}
+    >
+      {/* User Info Card */}
+      <Card style={styles.userCard}>
+        <View style={[styles.avatarContainer, { backgroundColor: theme.interactive.primary }]}>
+          <Text style={[styles.avatarText, { color: theme.text.inverse }]}>
+            {user?.name?.charAt(0).toUpperCase() || 'U'}
+          </Text>
+        </View>
+        <View style={styles.userInfo}>
+          <Text style={[styles.userName, { color: theme.text.primary }]}>
+            {user?.name || 'User'}
+          </Text>
+          <Text style={[styles.userEmail, { color: theme.text.secondary }]}>
+            {user?.email}
+          </Text>
+        </View>
+      </Card>
+
+      {/* Financial Section */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: theme.text.secondary }]}>
+          FINANCIAL
+        </Text>
+        
+        <Card>
+          <MenuItem
+            icon="house.fill"
+            label="Accounts"
+            subtitle="Manage your accounts"
+            onPress={() => router.push('/accounts')}
+          />
+          
+          <View style={[styles.divider, { backgroundColor: theme.border.default }]} />
+          
+          <MenuItem
+            icon="chart.pie.fill"
+            label="Baby Steps"
+            subtitle="Track your financial journey"
+            onPress={() => router.push('/baby-steps/select')}
+          />
+        </Card>
+      </View>
+
+      {/* Settings Section */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: theme.text.secondary }]}>
+          SETTINGS
+        </Text>
+        
+        <Card>
+          <MenuItem
+            icon="building.2.fill"
+            label="Household"
+            subtitle="Manage household settings"
+            onPress={() => {
+              Alert.alert('Coming Soon', 'Household management will be available in Phase 6.0');
+            }}
+          />
+          
+          <View style={[styles.divider, { backgroundColor: theme.border.default }]} />
+          
+          <MenuItem
+            icon="dollarsign.circle.fill"
+            label="Currency & Timezone"
+            subtitle={`${user?.currency || 'USD'} · ${user?.timezone || 'UTC'}`}
+            onPress={() => {
+              Alert.alert('Coming Soon', 'Settings will be available soon');
+            }}
+          />
+        </Card>
+      </View>
+
+      {/* About Section */}
+      <View style={styles.section}>
+        <Text style={[styles.sectionTitle, { color: theme.text.secondary }]}>
+          ABOUT
+        </Text>
+        
+        <Card>
+          <MenuItem
+            icon="info.circle.fill"
+            label="App Version"
+            subtitle="1.0.0 (Phase 5.4)"
+            onPress={() => {
+              Alert.alert('Homebase Budget', 'Version 1.0.0\nDave Ramsey Budget Tracker');
+            }}
+            color={theme.status.info}
+          />
+        </Card>
+      </View>
+
+      {/* Sign Out Button */}
+      <TouchableOpacity
+        onPress={handleSignOut}
+        style={[styles.signOutButton, { backgroundColor: theme.status.errorBackground }]}
+      >
+        <Text style={[styles.signOutText, { color: theme.status.error }]}>
+          Sign Out
+        </Text>
+      </TouchableOpacity>
+
+      {/* Spacer for bottom tab */}
+      <View style={{ height: 40 }} />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
   },
-  titleContainer: {
+  content: {
+    padding: 20,
+    paddingTop: 60,
+  },
+  userCard: {
     flexDirection: 'row',
-    gap: 8,
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  avatarContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  avatarText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  userInfo: {
+    flex: 1,
+  },
+  userName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  userEmail: {
+    fontSize: 14,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginBottom: 8,
+    marginLeft: 4,
+    letterSpacing: 0.5,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  menuContent: {
+    flex: 1,
+  },
+  menuLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 2,
+  },
+  menuSubtitle: {
+    fontSize: 13,
+  },
+  divider: {
+    height: 1,
+    marginVertical: 4,
+  },
+  signOutButton: {
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  signOutText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

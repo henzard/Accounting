@@ -14,7 +14,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
-import { Card } from '@/presentation/components';
+import { Card, ScreenHeader } from '@/presentation/components';
 import { Account, AccountType } from '@/domain/entities/Account';
 import { FirestoreAccountRepository } from '@/data/repositories/FirestoreAccountRepository';
 import { formatCurrency, CurrencyCode } from '@/shared/utils/currency';
@@ -187,20 +187,18 @@ export default function AccountsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: theme.text.primary }]}>Accounts</Text>
-        <TouchableOpacity
-          onPress={() => router.push('/accounts/add')}
-          style={[
-            styles.addButton,
-            { backgroundColor: theme.interactive.primary },
-          ]}
-        >
-          <Text style={[styles.addButtonText, { color: theme.text.inverse }]}>
-            + Add Account
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <ScreenHeader
+        title="Accounts"
+        showBack={true}
+        rightAction={
+          <TouchableOpacity
+            onPress={() => router.push('/accounts/add')}
+            style={[styles.addButton, { backgroundColor: theme.interactive.primary }]}
+          >
+            <Text style={[styles.addButtonText, { color: theme.text.inverse }]}>+</Text>
+          </TouchableOpacity>
+        }
+      />
 
       {/* Total Balance Summary */}
       {accounts.length > 0 && (
@@ -268,26 +266,17 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-  },
   addButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   addButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 24,
+    fontWeight: 'bold',
+    lineHeight: 28,
   },
   summaryCard: {
     marginHorizontal: 20,
