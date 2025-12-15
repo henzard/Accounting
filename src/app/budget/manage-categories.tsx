@@ -215,6 +215,16 @@ export default function ManageCategoriesScreen() {
   async function handleLoadDefaults() {
     if (!user?.default_household_id) return;
 
+    // Check if defaults are already loaded
+    if (categories.length > 0) {
+      Alert.alert(
+        'Categories Already Exist',
+        'You already have categories loaded. Loading defaults would create duplicates. Use "Reset" to replace all categories with defaults, or add individual categories manually.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     Alert.alert(
       'Load Default Categories?',
       'This will add all Dave Ramsey recommended categories to your household. You can edit or delete them after.',
@@ -226,16 +236,17 @@ export default function ManageCategoriesScreen() {
             try {
               const defaults = getDefaultCategories();
               const addPromises = defaults.map(category => {
-                const { id, ...categoryData } = category; // Remove client-generated ID
+                const { id, is_default, ...categoryData } = category; // Remove client ID and is_default flag
                 return addDoc(collection(db, 'master_categories'), {
                   ...categoryData,
                   household_id: user.default_household_id,
+                  is_default: false, // Make them editable/deletable
                 });
               });
 
               await Promise.all(addPromises);
 
-              Alert.alert('Success! 🎉', `Added ${defaults.length} default categories`);
+              Alert.alert('Success! 🎉', `Added ${defaults.length} default categories. You can now edit or delete them.`);
               loadCategories();
             } catch (error) {
               console.error('Error loading defaults:', error);
