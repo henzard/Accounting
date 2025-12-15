@@ -519,7 +519,9 @@ Building core features: authentication, household management, transactions, budg
 - Include in budget toggle
 - Active/inactive status toggle
 - Linked from home screen "Manage Your Accounts"
-- Currency formatting integration
+- **Currency formatting integration** - All account screens now respect household currency
+- Fixed currency display bug where accounts showed $ even when household was set to ZAR
+- All balances now display in correct currency symbol (R, $, €, etc.)
 
 ---
 
