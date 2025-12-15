@@ -113,7 +113,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder={`Search ${label.toLowerCase()}...`}
+              placeholder={`Search ${label?.toLowerCase() || 'options'}...`}
               placeholderTextColor={theme.text.tertiary}
               style={{
                 backgroundColor: theme.background.secondary,

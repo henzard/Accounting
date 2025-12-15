@@ -139,7 +139,7 @@ export default function SignupScreen() {
         {/* Logo */}
         <View style={{ alignItems: 'center', marginBottom: theme.spacing[6] }}>
           <Image
-            source={require('@/assets/images/Gemini_Generated_Image_k7j3ztk7j3ztk7j3.png')}
+            source={require('@/assets/images/logo.png')}
             style={{
               width: 100,
               height: 100,

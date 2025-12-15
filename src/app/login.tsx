@@ -91,7 +91,7 @@ export default function LoginScreen() {
         {/* Logo */}
         <View style={{ alignItems: 'center', marginBottom: theme.spacing[8] }}>
           <Image
-            source={require('@/assets/images/Gemini_Generated_Image_k7j3ztk7j3ztk7j3.png')}
+            source={require('@/assets/images/logo.png')}
             style={{
               width: 120,
               height: 120,
@@ -178,7 +178,7 @@ export default function LoginScreen() {
           }}
         >
           <Text style={{ color: theme.text.secondary, fontSize: 16 }}>
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
           </Text>
           <GhostButton
             title="Sign Up"

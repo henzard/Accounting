@@ -245,6 +245,7 @@ export default function ManageCategoriesScreen() {
               Group
             </Text>
             <SearchableSelect
+              label="Category Group"
               options={categoryGroupOptions}
               value={newCategoryGroup}
               onSelect={(value) => setNewCategoryGroup(value as CategoryGroup)}
