@@ -11,7 +11,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
 import { ScreenHeader, Card, AmountInput, PrimaryButton } from '@/presentation/components';
@@ -19,12 +19,13 @@ import { Budget, BudgetCategory, createBudget, createBudgetCategory, calculateRe
 import { FirestoreBudgetRepository } from '@/data/repositories/FirestoreBudgetRepository';
 import { getDefaultCategories, CATEGORY_GROUP_INFO } from '@/shared/constants/budget-categories';
 import { CurrencyCode, formatCurrency } from '@/shared/utils/currency';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
 
 export default function BudgetScreen() {
   const { theme } = useTheme();
   const { user } = useAuth();
+  const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -102,9 +103,9 @@ export default function BudgetScreen() {
 
     const budgetId = `${user.default_household_id}_${selectedYear}_${selectedMonth}`;
     
-    // Get default categories and convert to budget categories
-    const defaultCategories = getDefaultCategories();
-    const budgetCategories: BudgetCategory[] = defaultCategories.map((cat, index) =>
+    // Load custom categories or use defaults
+    const masterCategories = await loadMasterCategories();
+    const budgetCategories: BudgetCategory[] = masterCategories.map((cat, index) =>
       createBudgetCategory({
         id: `${budgetId}_cat_${index}`,
         category_id: cat.id,
@@ -123,6 +124,36 @@ export default function BudgetScreen() {
       planned_income: 0,
       categories: budgetCategories,
     });
+  }
+
+  async function loadMasterCategories() {
+    if (!user?.default_household_id) {
+      return getDefaultCategories();
+    }
+
+    try {
+      // Try to load custom categories
+      const categoriesQuery = query(
+        collection(db, 'master_categories'),
+        where('household_id', '==', user.default_household_id)
+      );
+      const snapshot = await getDocs(categoriesQuery);
+
+      if (snapshot.empty) {
+        // No custom categories - use defaults
+        return getDefaultCategories();
+      }
+
+      // Return custom categories
+      return snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data() as Omit<import('@/shared/constants/budget-categories').MasterCategory, 'id'>,
+      }));
+    } catch (error) {
+      console.error('Error loading master categories:', error);
+      // Fall back to defaults on error
+      return getDefaultCategories();
+    }
   }
 
   async function handleSaveBudget() {
@@ -338,6 +369,19 @@ export default function BudgetScreen() {
               </Card>
             );
           })}
+
+          {/* Manage Categories Button */}
+          <TouchableOpacity
+            onPress={() => router.push('/budget/manage-categories')}
+            style={[styles.manageCategoriesButton, {
+              backgroundColor: theme.background.secondary,
+              borderColor: theme.border.default,
+            }]}
+          >
+            <Text style={[styles.manageCategoriesText, { color: theme.interactive.primary }]}>
+              ⚙️ Manage Categories
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Bottom spacer */}
@@ -452,6 +496,17 @@ const styles = StyleSheet.create({
   categoryGroup: {
     fontSize: 12,
     marginTop: 2,
+  },
+  manageCategoriesButton: {
+    marginTop: 16,
+    padding: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: 'center',
+  },
+  manageCategoriesText: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

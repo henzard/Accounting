@@ -10,6 +10,7 @@ export interface MasterCategory {
   icon: string;
   sort_order: number;
   is_default: boolean; // Created automatically for new budgets
+  household_id?: string; // For custom categories (null for defaults)
   description?: string;
 }
 
