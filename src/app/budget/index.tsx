@@ -165,14 +165,8 @@ export default function BudgetScreen() {
     setBudget({ ...budget, categories: updatedCategories });
   }
 
-  function getRemainingToBudget(): number {
-    if (!budget) return 0;
-    const incomeInCents = Math.round(parseFloat(plannedIncome || '0') * 100);
-    const totalPlanned = budget.categories.reduce((sum, cat) => sum + cat.planned_amount, 0);
-    return incomeInCents - totalPlanned;
-  }
-
-  const remaining = getRemainingToBudget();
+  // Calculate remaining to budget using domain helper (correctly excludes INCOME categories)
+  const remaining = budget ? calculateRemainingToBudget(budget) : 0;
   const isZeroBased = remaining === 0;
 
   if (loading) {
