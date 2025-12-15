@@ -12,6 +12,7 @@ export type AccountType =
 export interface Account {
   // Identity
   id: string;
+  household_id: string;
   name: string;
   type: AccountType;
   
@@ -36,6 +37,7 @@ export interface Account {
 // Factory function to create a new Account
 export function createAccount(params: {
   id: string;
+  household_id: string;
   name: string;
   type: AccountType;
   balance?: number;
@@ -44,6 +46,7 @@ export function createAccount(params: {
 }): Account {
   return {
     id: params.id,
+    household_id: params.household_id,
     name: params.name,
     type: params.type,
     balance: params.balance || 0,

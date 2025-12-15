@@ -1,17 +1,78 @@
+import React, { useState, useCallback } from 'react';
 import { Image } from 'expo-image';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, Alert } from 'react-native';
 
 import { HelloWave } from '@/components/hello-wave';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { Link, useRouter, useFocusEffect } from 'expo-router';
 import { APP_VERSION, PHASE } from '@/shared/types';
-import { Card } from '@/presentation/components';
+import { Card, OutlineButton, BabyStepsDisplay } from '@/presentation/components';
 import { useTheme } from '@/infrastructure/theme';
+import { useAuth } from '@/infrastructure/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/infrastructure/firebase';
+import { CurrencyCode } from '@/shared/utils/currency';
 
 export default function HomeScreen() {
   const { theme } = useTheme();
+  const { user, signOut } = useAuth();
+  const router = useRouter();
+  
+  const [currentBabyStep, setCurrentBabyStep] = useState<number>(1);
+  const [householdCurrency, setHouseholdCurrency] = useState<CurrencyCode>('USD');
+
+  // Load current baby step and currency from household when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      const loadHouseholdData = async () => {
+        if (!user?.default_household_id) return;
+
+        try {
+          const householdDoc = await getDoc(
+            doc(db, 'households', user.default_household_id)
+          );
+
+          if (householdDoc.exists()) {
+            const data = householdDoc.data();
+            setCurrentBabyStep(data.current_baby_step || 1);
+            setHouseholdCurrency((data.currency as CurrencyCode) || 'USD');
+          }
+        } catch (error) {
+          console.error('Error loading household data:', error);
+        }
+      };
+
+      loadHouseholdData();
+    }, [user?.default_household_id])
+  );
+
+  const handleSignOut = async () => {
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut();
+              router.replace('/login');
+            } catch (err: any) {
+              Alert.alert('Error', 'Failed to sign out');
+              console.error('Sign out error:', err);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <ParallaxScrollView
@@ -25,6 +86,25 @@ export default function HomeScreen() {
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">Homebase Budget</ThemedText>
         <HelloWave />
+      </ThemedView>
+      
+      {/* Welcome Message */}
+      <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">Welcome back, {user?.name}! 👋</ThemedText>
+        <ThemedText style={{ fontSize: 14, opacity: 0.7 }}>
+          {user?.email}
+        </ThemedText>
+        {/* Debug: Show user data */}
+        {__DEV__ && (
+          <Card style={{ marginTop: theme.spacing[2], backgroundColor: theme.status.warningBackground }}>
+            <ThemedText style={{ fontSize: 12, fontFamily: 'monospace' }}>
+              🐛 DEBUG:{'\n'}
+              User ID: {user?.id}{'\n'}
+              Household IDs: {JSON.stringify(user?.household_ids)}{'\n'}
+              Default Household: {user?.default_household_id || 'NONE'}
+            </ThemedText>
+          </Card>
+        )}
       </ThemedView>
       
       {/* Version Info */}
@@ -41,56 +121,24 @@ export default function HomeScreen() {
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">Your Journey</ThemedText>
         <View style={{ marginTop: theme.spacing[3] }}>
-          <Card>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: theme.spacing[2] }}>
-              <View
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 20,
-                  backgroundColor: theme.status.successBackground,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  marginRight: theme.spacing[3],
-                }}
-              >
-                <ThemedText style={{ fontSize: 18, fontWeight: 'bold', color: theme.status.success }}>
-                  1
-                </ThemedText>
-              </View>
-              <View style={{ flex: 1 }}>
-                <ThemedText style={{ fontSize: 16, fontWeight: '600' }}>
-                  Baby Step 1
-                </ThemedText>
-                <ThemedText style={{ fontSize: 14, color: theme.text.secondary }}>
-                  $1,000 Emergency Fund
-                </ThemedText>
-              </View>
-              <ThemedText style={{ fontSize: 16, fontWeight: 'bold', color: theme.status.success }}>
-                $750
-              </ThemedText>
-            </View>
-            <View
-              style={{
-                height: 8,
-                backgroundColor: theme.background.tertiary,
-                borderRadius: theme.borderRadius.full,
-                overflow: 'hidden',
-              }}
-            >
-              <View
-                style={{
-                  height: '100%',
-                  width: '75%',
-                  backgroundColor: theme.status.success,
-                }}
-              />
-            </View>
-            <ThemedText style={{ fontSize: 12, color: theme.text.tertiary, marginTop: theme.spacing[2] }}>
-              75% complete - $250 to go!
-            </ThemedText>
-          </Card>
+          <BabyStepsDisplay
+            currentStep={currentBabyStep}
+            currency={householdCurrency}
+            onPress={() => router.push('/baby-steps/select')}
+            testID="baby-steps-display"
+          />
         </View>
+      </ThemedView>
+
+      {/* Accounts Quick Link */}
+      <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">💰 Accounts</ThemedText>
+        <Link href="/accounts" style={{ marginTop: 10 }}>
+          <ThemedText type="link">Manage Your Accounts →</ThemedText>
+        </Link>
+        <ThemedText style={{ fontSize: 12, marginTop: 5 }}>
+          View balances, add accounts, track spending
+        </ThemedText>
       </ThemedView>
 
       {/* Quick Links */}
@@ -112,6 +160,15 @@ export default function HomeScreen() {
         <ThemedText style={{ fontSize: 12, marginTop: 5 }}>
           Verify Firestore read/write and offline persistence
         </ThemedText>
+      </ThemedView>
+
+      {/* Sign Out */}
+      <ThemedView style={styles.stepContainer}>
+        <OutlineButton
+          title="Sign Out"
+          onPress={handleSignOut}
+          testID="sign-out-button"
+        />
       </ThemedView>
     </ParallaxScrollView>
   );

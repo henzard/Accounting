@@ -12,8 +12,8 @@
 - **Phase 1**: Foundation & Infrastructure ✅ (Complete)
 - **Phase 2**: Domain Layer (Business Logic) ✅ (Complete)
 - **Phase 3**: Data Layer (Firebase Integration) ✅ (Complete)
-- **Phase 4**: Presentation Layer (Basic UI) 🔄 (Current - Phase 4.1)
-- **Phase 5**: MVP Features (Core Functionality)
+- **Phase 4**: Presentation Layer (Basic UI) ✅ (Complete)
+- **Phase 5**: MVP Features (Core Functionality) 🔄 (Current - Phase 5.1)
 - **Phase 6**: Polish & Production Ready
 
 ---
@@ -341,11 +341,12 @@ Firebase connection tested and verified working offline and online.
 
 ---
 
-## Phase 4: Presentation Layer (Basic UI) 🔄 IN PROGRESS
+## Phase 4: Presentation Layer (Basic UI) ✅ COMPLETE
 
-Theme system complete with Homebase branding. Core UI components built (Button, Card, Input, AmountInput).
+Theme system complete with Homebase branding. Core UI components built (Button, Card, Input, AmountInput). Navigation implemented with 4 tabs (Home, Transactions, Budget, More).
 
-**Current**: Phase 4.3 - Navigation Setup
+**Status**: ✅ Complete  
+**Next**: Phase 5
 
 ### 4.1: Theme Setup (20 min) ✅ COMPLETE
 
@@ -424,58 +425,136 @@ Theme system complete with Homebase branding. Core UI components built (Button, 
 
 ---
 
-## Phase 5: MVP Features (Core Functionality)
+## Phase 5: MVP Features (Core Functionality) 🔄 IN PROGRESS
 
-### 5.1: Authentication Flow (1 hour)
+Building core features: authentication, household management, transactions, budgets, and debt tracking.
 
-- [ ] Create Login screen
-- [ ] Create Signup screen
-- [ ] Implement Firebase Auth
-- [ ] Test sign up
-- [ ] Test sign in
-- [ ] Test sign out
-- [ ] **Test app runs**, full auth flow works
+**Current**: Phase 5.5 - Monthly Budget Creation (after navigation foundation)
 
-**Exit Criteria**: Can create account, sign in/out
+### 5.1: Authentication Flow (1 hour) ✅ COMPLETE
 
----
+- [x] Create Login screen
+- [x] Create Signup screen
+- [x] Implement Firebase Auth
+- [x] Test sign up
+- [x] Test sign in
+- [x] Test sign out
+- [x] **Test app runs**, full auth flow works
 
-### 5.2: Household Setup (1 hour)
+**Exit Criteria**: Can create account, sign in/out ✅ VERIFIED  
+**Status**: COMPLETE
 
-- [ ] Create Household creation screen
-- [ ] Create Household selection screen
-- [ ] Save household to Firestore
-- [ ] Test creating household
-- [ ] **Test app runs**, can create and select household
-
-**Exit Criteria**: User can create/select household
-
----
-
-### 5.3: Baby Steps Tracker (1.5 hours)
-
-- [ ] Create Baby Steps display component
-- [ ] Show current step (1-7)
-- [ ] Show progress bar
-- [ ] Create step selection screen
-- [ ] Save to household
-- [ ] **Test app runs**, Baby Steps visible
-
-**Exit Criteria**: Baby Steps tracker functional
+**What was built**:
+- `AuthContext.tsx` - Authentication state management with Firebase Auth
+- `login.tsx` - Login screen with email/password validation
+- `signup.tsx` - Signup screen with name, email, password, confirm password
+- Auth guard in tabs layout - redirects to login if not authenticated
+- Sign out button on home screen
+- User welcome message displaying name and email
 
 ---
 
-### 5.4: Account Management (2 hours)
+### 5.2: Household Setup (1 hour) ✅ COMPLETE
 
-- [ ] Create Account List screen
-- [ ] Create Add Account screen
-- [ ] Create Edit Account screen
-- [ ] Implement save/update to Firestore
-- [ ] Test adding account
-- [ ] Test editing account
-- [ ] **Test app runs**, accounts work
+- [x] Create Household creation screen
+- [x] Create Household selection screen
+- [x] Save household to Firestore
+- [x] Test creating household
+- [x] **Test app runs**, can create and select household
 
-**Exit Criteria**: Can add/edit/view accounts
+**Exit Criteria**: User can create/select household ✅ VERIFIED  
+**Status**: COMPLETE
+
+**What was built**:
+- `household/create.tsx` - Household creation screen with name input
+- `household/select.tsx` - Household selection screen for multi-household users
+- Household guard in tabs layout - redirects to household setup if no household
+- Updated signup flow - directs to household creation after account creation
+- Creates household with default baby step 1
+- Updates user with household_ids and default_household_id
+
+---
+
+### 5.3: Baby Steps Tracker (1.5 hours) ✅ COMPLETE
+
+- [x] Create Baby Steps display component
+- [x] Show current step (1-7)
+- [x] Show progress bar
+- [x] Create step selection screen
+- [x] Save to household
+- [x] **Test app runs**, Baby Steps visible
+
+**Exit Criteria**: Baby Steps tracker functional ✅ VERIFIED  
+**Status**: COMPLETE
+
+**What was built**:
+- `shared/constants/baby-steps.ts` - All 7 Dave Ramsey Baby Steps with descriptions
+- `BabyStepsDisplay.tsx` - Component showing current step with progress bar
+- `baby-steps/select.tsx` - Screen to select/change current baby step
+- Home screen integration - Loads current step from household Firestore doc
+- Tappable card navigates to step selection
+
+---
+
+### 5.4: Account Management (2 hours) ✅ COMPLETE
+
+- [x] Create Account List screen
+- [x] Create Add Account screen
+- [x] Create Edit Account screen
+- [x] Implement save/update to Firestore
+- [x] Test adding account
+- [x] Test editing account
+- [x] **Test app runs**, accounts work
+
+**Exit Criteria**: Can add/edit/view accounts ✅ VERIFIED  
+**Status**: COMPLETE
+
+**What was built**:
+- `accounts/index.tsx` - Account list screen with total balance summary
+- `accounts/add.tsx` - Add new account (6 types: Bank, Savings, Credit Card, Cash, Loan, Investment)
+- `accounts/edit.tsx` - Edit existing account with archive functionality
+- Fixed Account entity to include `household_id` field
+- Implemented `getActiveAccounts` in FirestoreAccountRepository
+- Added account type icons (🏦💰💳💵🏠📈)
+- Include in budget toggle
+- Active/inactive status toggle
+- Linked from home screen "Manage Your Accounts"
+- **Currency formatting integration** - All account screens now respect household currency
+- Fixed currency display bug where accounts showed $ even when household was set to ZAR
+- All balances now display in correct currency symbol (R, $, €, etc.)
+
+---
+
+### 5.4.5: Navigation & Menu Structure (2 hours) ✅ COMPLETE
+
+- [x] Create reusable ScreenHeader component
+- [x] Update all existing screens to use consistent headers
+- [x] Replace Explore tab with proper More/Settings screen
+- [x] Add navigation to key features from More tab
+- [x] Test all navigation flows
+- [x] **Test app runs**, navigation works perfectly
+
+**Exit Criteria**: Consistent navigation across all screens ✅ VERIFIED  
+**Status**: COMPLETE
+
+**What was built**:
+- `ScreenHeader.tsx` - Reusable header component with back button, title, and optional right action
+- Updated `accounts/index.tsx` - Now uses ScreenHeader with "+" button
+- Updated `baby-steps/select.tsx` - Now uses ScreenHeader
+- Replaced `explore.tsx` - New More/Settings screen with:
+  - User info card (avatar with initial, name, email)
+  - Financial section (Accounts, Baby Steps navigation)
+  - Settings section (Household, Currency/Timezone display)
+  - About section (App version)
+  - Sign out button with confirmation
+- Consistent header styling: 60px top padding for status bar, border bottom, back button with chevron
+- Professional UX: All screens now have proper back navigation
+
+**Why This Mattered**:
+- Fixed before building 5+ more screens that would need navigation
+- Prevents future refactoring of every screen
+- Makes app feel professional and polished
+- Users can now navigate naturally throughout the app
 
 ---
 
@@ -595,6 +674,22 @@ Theme system complete with Homebase branding. Core UI components built (Button, 
 ---
 
 ## Phase 6: Polish & Testing
+
+### 6.0: Household Management (2 hours) **NEW**
+
+- [ ] Add "Manage Households" to More/Settings tab
+- [ ] Create household management screen
+  - List all user's households
+  - Show which is default
+  - Delete household (with confirmation)
+  - Switch default household
+  - Edit household name/settings
+- [ ] Test deleting test households
+- [ ] **Test app runs**, household management works
+
+**Exit Criteria**: Can view, delete, and manage households
+
+---
 
 ### 6.1: Business Expense Tracking (3 hours)
 
@@ -740,13 +835,16 @@ npm run android
 
 ## 🚀 Current Status
 
-**You are here**: Phase 4.1 - Theme Setup
+**You are here**: Phase 5.5 - Monthly Budget Creation
 
 **What's Complete**:
-- ✅ Phase 0-3: All infrastructure, domain entities, data layer, Firebase integration
+- ✅ Phase 0-4: All infrastructure, domain, data, Firebase, theme, components, navigation
+- ✅ Phase 5.1-5.4: Authentication, Households, Baby Steps, Accounts
+- ✅ UI component library with Homebase branding
 - ✅ Firebase tested and working (offline + online)
+- ✅ Multi-currency support with conversion
 
-**Next step**: Build theme system (colors, typography, ThemeProvider)
+**Next step**: Build monthly budget creation (zero-based budgeting)
 
 **To verify app works**:
 ```powershell
@@ -756,5 +854,5 @@ npm run android
 
 ---
 
-**Remember**: We're **starting the UI layer**! Time to make things beautiful. 🎨
+**Remember**: We're **building MVP features**! Account management complete. Next: Budget creation. 💰
 
