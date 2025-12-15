@@ -212,6 +212,41 @@ export default function ManageCategoriesScreen() {
     );
   }
 
+  async function handleLoadDefaults() {
+    if (!user?.default_household_id) return;
+
+    Alert.alert(
+      'Load Default Categories?',
+      'This will add all Dave Ramsey recommended categories to your household. You can edit or delete them after.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Load Defaults',
+          onPress: async () => {
+            try {
+              const defaults = getDefaultCategories();
+              const addPromises = defaults.map(category => {
+                const { id, ...categoryData } = category; // Remove client-generated ID
+                return addDoc(collection(db, 'master_categories'), {
+                  ...categoryData,
+                  household_id: user.default_household_id,
+                });
+              });
+
+              await Promise.all(addPromises);
+
+              Alert.alert('Success! 🎉', `Added ${defaults.length} default categories`);
+              loadCategories();
+            } catch (error) {
+              console.error('Error loading defaults:', error);
+              Alert.alert('Error', 'Failed to load default categories');
+            }
+          },
+        },
+      ]
+    );
+  }
+
   // Category group options for SearchableSelect
   const categoryGroupOptions: SelectOption[] = Object.entries(CATEGORY_GROUP_INFO).map(([key, info]) => ({
     value: key,
@@ -254,14 +289,21 @@ export default function ManageCategoriesScreen() {
       />
 
       <ScrollView style={styles.scrollView}>
-        {/* Add Category Button */}
-        {!showAddForm && (
+        {/* Action Buttons */}
+        {!showAddForm && !editingCategory && (
           <View style={styles.section}>
-            <PrimaryButton
-              title="+ Add Category"
-              onPress={() => setShowAddForm(true)}
-              fullWidth
-            />
+            <View style={{ gap: 12 }}>
+              <PrimaryButton
+                title="+ Add Category"
+                onPress={() => setShowAddForm(true)}
+                fullWidth
+              />
+              <OutlineButton
+                title="📋 Load Dave Ramsey Defaults"
+                onPress={handleLoadDefaults}
+                fullWidth
+              />
+            </View>
           </View>
         )}
 
