@@ -48,8 +48,8 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   // Filter options based on search query
   const filteredOptions = options.filter(
     (option) =>
-      option.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      option.value.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      option.label?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      option.value?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       option.subtitle?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
