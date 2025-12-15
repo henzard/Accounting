@@ -7,10 +7,8 @@ import {
   getDocs,
   setDoc,
   updateDoc,
-  deleteDoc,
   query,
   where,
-  orderBy,
   Timestamp,
 } from 'firebase/firestore';
 import { Account } from '@/domain/entities';
@@ -38,16 +36,19 @@ export class FirestoreAccountRepository implements IAccountRepository {
 
   async getAccountsByHousehold(householdId: string): Promise<Account[]> {
     try {
+      // Simplified query: Only filter by household_id and is_active
+      // Remove orderBy to avoid needing a composite index
       const q = query(
         collection(db, this.COLLECTION),
         where('household_id', '==', householdId),
-        where('is_active', '==', true),
-        orderBy('name', 'asc')
+        where('is_active', '==', true)
       );
 
       const querySnapshot = await getDocs(q);
       
-      return querySnapshot.docs.map(doc => this.firestoreToAccount(doc.data()));
+      // Sort in memory instead of using Firestore orderBy
+      const accounts = querySnapshot.docs.map(doc => this.firestoreToAccount(doc.data()));
+      return accounts.sort((a, b) => a.name.localeCompare(b.name));
     } catch (error) {
       console.error('Error getting accounts:', error);
       throw error;
@@ -56,17 +57,20 @@ export class FirestoreAccountRepository implements IAccountRepository {
 
   async getBudgetAccounts(householdId: string): Promise<Account[]> {
     try {
+      // Simplified query: Only filter by household_id, is_in_budget, and is_active
+      // Remove orderBy to avoid needing a composite index
       const q = query(
         collection(db, this.COLLECTION),
         where('household_id', '==', householdId),
         where('is_in_budget', '==', true),
-        where('is_active', '==', true),
-        orderBy('name', 'asc')
+        where('is_active', '==', true)
       );
 
       const querySnapshot = await getDocs(q);
       
-      return querySnapshot.docs.map(doc => this.firestoreToAccount(doc.data()));
+      // Sort in memory instead of using Firestore orderBy
+      const accounts = querySnapshot.docs.map(doc => this.firestoreToAccount(doc.data()));
+      return accounts.sort((a, b) => a.name.localeCompare(b.name));
     } catch (error) {
       console.error('Error getting budget accounts:', error);
       throw error;
