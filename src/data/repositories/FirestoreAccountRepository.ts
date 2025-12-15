@@ -15,14 +15,12 @@ import {
 } from 'firebase/firestore';
 import { Account } from '@/domain/entities';
 import { IAccountRepository } from '@/domain/repositories';
-import { getFirestoreDb } from '@/infrastructure/firebase';
+import { db } from '@/infrastructure/firebase';
 
 export class FirestoreAccountRepository implements IAccountRepository {
   private readonly COLLECTION = 'accounts';
 
   async getAccountById(accountId: string): Promise<Account | null> {
-    const db = getFirestoreDb();
-    
     try {
       const docRef = doc(db, this.COLLECTION, accountId);
       const docSnap = await getDoc(docRef);
@@ -39,8 +37,6 @@ export class FirestoreAccountRepository implements IAccountRepository {
   }
 
   async getAccountsByHousehold(householdId: string): Promise<Account[]> {
-    const db = getFirestoreDb();
-
     try {
       const q = query(
         collection(db, this.COLLECTION),
@@ -59,8 +55,6 @@ export class FirestoreAccountRepository implements IAccountRepository {
   }
 
   async getBudgetAccounts(householdId: string): Promise<Account[]> {
-    const db = getFirestoreDb();
-
     try {
       const q = query(
         collection(db, this.COLLECTION),
@@ -80,8 +74,6 @@ export class FirestoreAccountRepository implements IAccountRepository {
   }
 
   async createAccount(account: Account): Promise<void> {
-    const db = getFirestoreDb();
-
     try {
       const docRef = doc(db, this.COLLECTION, account.id);
       const firestoreData = this.accountToFirestore(account);
@@ -95,8 +87,6 @@ export class FirestoreAccountRepository implements IAccountRepository {
   }
 
   async updateAccount(accountId: string, updates: Partial<Account>): Promise<void> {
-    const db = getFirestoreDb();
-
     try {
       const docRef = doc(db, this.COLLECTION, accountId);
       

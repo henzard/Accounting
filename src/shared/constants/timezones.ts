@@ -1,7 +1,7 @@
 // Timezone options for SearchableSelect
 // Common world timezones grouped by region
 
-import { SelectOption } from '@/presentation/components/SearchableSelect';
+import { SelectOption } from '@/shared/types';
 
 export const TIMEZONE_OPTIONS: SelectOption[] = [
   // Africa

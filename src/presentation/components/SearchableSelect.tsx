@@ -14,12 +14,7 @@ import {
 import { useTheme } from '@/infrastructure/theme';
 import { Input } from './Input';
 import { OutlineButton } from './Button';
-
-export interface SelectOption {
-  label: string;
-  value: string;
-  subtitle?: string;
-}
+import { SelectOption } from '@/shared/types';
 
 interface SearchableSelectProps {
   label: string;

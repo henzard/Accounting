@@ -1,7 +1,7 @@
 // Currency options for SearchableSelect
 // Common world currencies with their codes and names
 
-import { SelectOption } from '@/presentation/components/SearchableSelect';
+import { SelectOption } from '@/shared/types';
 
 export const CURRENCY_OPTIONS: SelectOption[] = [
   { value: 'USD', label: 'USD - US Dollar', subtitle: 'United States' },
