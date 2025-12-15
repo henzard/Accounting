@@ -429,7 +429,7 @@ Theme system complete with Homebase branding. Core UI components built (Button, 
 
 Building core features: authentication, household management, transactions, budgets, and debt tracking.
 
-**Current**: Phase 5.6 - Transaction Entry (next up!)
+**Current**: Phase 5.5.1 - Budget Critical Fixes (before transactions!)
 
 ### 5.1: Authentication Flow (1 hour) ✅ COMPLETE
 
@@ -585,11 +585,11 @@ Building core features: authentication, household management, transactions, budg
 - [x] Save budget to Firestore
   - **Test app runs**, budget persists ✅
 
-- [ ] Copy previous month feature (DEFERRED to Phase 5.5.1)
+- [ ] Copy previous month feature (DEFERRED to Phase 5.5.5)
   - **Test app runs**, can copy budget
 
 **Exit Criteria**: Can create monthly budget ✅ VERIFIED  
-**Status**: COMPLETE
+**Status**: COMPLETE (with known limitations - see ADR 005)
 
 **What was built**:
 - **Budget Entity** (Budget.ts): Monthly budget with planned_income, categories, helpers
@@ -604,9 +604,67 @@ Building core features: authentication, household management, transactions, budg
   - Real-time remaining-to-budget calculation
   - Auto-creates budget with default categories
   - Saves to Firestore
-  - Month/year display
+  - Month/year display (CURRENT MONTH ONLY - no navigation yet)
   - Navigation from home screen
 - **Helper Functions**: calculateTotalExpenses, isZeroBasedBudget, getBudgetMonthName
+
+**Known Limitations** (see ADR 005):
+- ❌ No month/year selector (stuck on current month)
+- ❌ No category management (hardcoded Dave Ramsey categories)
+- ❌ Calendar month only (no pay period support)
+- ❌ No actual tracking (planned amounts only)
+- ⚠️ These MUST be fixed before production use
+
+---
+
+### 5.5.1: Month Navigation (1 hour) **NEW - CRITICAL**
+
+**Why This Matters**: Users need to view past budgets and plan future months!
+
+- [ ] Add month/year selector component
+- [ ] Previous/Next month buttons
+- [ ] Load budget for selected month
+- [ ] Create budget if doesn't exist for selected month
+- [ ] Update header to show selected month
+- [ ] **Test app runs**, can navigate months ✅
+
+**Exit Criteria**: Can view any month's budget
+
+---
+
+### 5.5.2: Category Management (2 hours) **NEW - CRITICAL**
+
+**Why This Matters**: Users need custom categories beyond Dave Ramsey defaults!
+
+- [ ] Create "Manage Categories" screen
+- [ ] Link from budget screen (gear icon or menu)
+- [ ] List all categories grouped by CategoryGroup
+- [ ] Add new category (name, group, icon, sort_order)
+- [ ] Edit existing category
+- [ ] Delete category (with warning if has transactions)
+- [ ] Save to Firestore `master_categories` collection
+- [ ] Load custom categories on budget screen
+- [ ] Fall back to DEFAULT_BUDGET_CATEGORIES if none exist
+- [ ] **Test app runs**, can customize categories ✅
+
+**Exit Criteria**: Can add/edit/delete budget categories
+
+---
+
+### 5.5.3: Pay Period Support (1.5 hours) **NEW - HIGH PRIORITY**
+
+**Why This Matters**: Many users paid mid-month (15th, 20th) need custom budget periods!
+
+- [ ] Add `budget_period_start_day` to Household entity (1-31, default: 1)
+- [ ] Create Household Settings screen
+- [ ] Add "Budget starts on day ___" input
+- [ ] Update Budget entity: add period_start, period_end Timestamps
+- [ ] Calculate period based on start day:
+  - If start_day = 20 and month = Dec 2025 → period_start = Dec 20, 2025, period_end = Jan 19, 2026
+- [ ] Update getBudgetByMonth to use period overlap logic
+- [ ] **Test app runs**, custom pay periods work ✅
+
+**Exit Criteria**: Budget can use custom pay period (e.g., 20th-19th)
 
 ---
 
