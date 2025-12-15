@@ -130,6 +130,17 @@ export default function HomeScreen() {
         </View>
       </ThemedView>
 
+      {/* Accounts Quick Link */}
+      <ThemedView style={styles.stepContainer}>
+        <ThemedText type="subtitle">💰 Accounts</ThemedText>
+        <Link href="/accounts" style={{ marginTop: 10 }}>
+          <ThemedText type="link">Manage Your Accounts →</ThemedText>
+        </Link>
+        <ThemedText style={{ fontSize: 12, marginTop: 5 }}>
+          View balances, add accounts, track spending
+        </ThemedText>
+      </ThemedView>
+
       {/* Quick Links */}
       <ThemedView style={styles.stepContainer}>
         <ThemedText type="subtitle">🎨 UI Components</ThemedText>

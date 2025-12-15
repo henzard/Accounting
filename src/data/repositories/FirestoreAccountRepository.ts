@@ -137,6 +137,11 @@ export class FirestoreAccountRepository implements IAccountRepository {
     await this.archiveAccount(accountId);
   }
 
+  async getActiveAccounts(householdId: string): Promise<Account[]> {
+    // Same as getAccountsByHousehold since it already filters by is_active
+    return this.getAccountsByHousehold(householdId);
+  }
+
   // ============================================
   // HELPER METHODS
   // ============================================
