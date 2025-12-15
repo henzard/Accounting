@@ -1,7 +1,7 @@
 // Manage Categories Screen
 // Add, edit, and delete custom budget categories
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -42,12 +42,28 @@ export default function ManageCategoriesScreen() {
   const [editCategoryName, setEditCategoryName] = useState('');
   const [editCategoryGroup, setEditCategoryGroup] = useState<CategoryGroup>('LIFESTYLE');
   const [editCategoryIcon, setEditCategoryIcon] = useState('📦');
+  
+  // UX Enhancement State
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<CategoryGroup>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [categoryUsage, setCategoryUsage] = useState<Map<string, boolean>>(new Map());
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
 
   useFocusEffect(
     useCallback(() => {
       loadCategories();
     }, [user?.default_household_id])
   );
+
+  // Load category usage when categories change
+  useEffect(() => {
+    if (categories.length > 0) {
+      loadCategoryUsage();
+    }
+  }, [categories.length]);
 
   async function loadCategories() {
     if (!user?.default_household_id) {
@@ -217,6 +233,122 @@ export default function ManageCategoriesScreen() {
             } catch (error) {
               console.error('Error resetting categories:', error);
               Alert.alert('Error', 'Failed to reset categories');
+            }
+          },
+        },
+      ]
+    );
+  }
+
+  // ============================================
+  // UX ENHANCEMENT FUNCTIONS
+  // ============================================
+
+  // 1. Toggle group collapse
+  function toggleGroupCollapse(group: CategoryGroup) {
+    setCollapsedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(group)) {
+        newSet.delete(group);
+      } else {
+        newSet.add(group);
+      }
+      return newSet;
+    });
+  }
+
+  // 2. Filter categories by search query
+  function filterCategories(cats: MasterCategory[]): MasterCategory[] {
+    if (!searchQuery.trim()) return cats;
+    const query = searchQuery.toLowerCase();
+    return cats.filter(cat => 
+      cat.name.toLowerCase().includes(query) ||
+      cat.group.toLowerCase().includes(query)
+    );
+  }
+
+  // 8. Load category usage from current budget
+  async function loadCategoryUsage() {
+    if (!user?.default_household_id) return;
+    
+    try {
+      const now = new Date();
+      const currentMonth = now.getMonth() + 1;
+      const currentYear = now.getFullYear();
+      
+      // Query current month's budget
+      const budgetsQuery = query(
+        collection(db, 'budgets'),
+        where('household_id', '==', user.default_household_id),
+        where('month', '==', currentMonth),
+        where('year', '==', currentYear)
+      );
+      
+      const snapshot = await getDocs(budgetsQuery);
+      if (!snapshot.empty) {
+        const budgetData = snapshot.docs[0].data();
+        const usedCategoryIds = new Set(
+          (budgetData.categories || []).map((c: any) => c.category_id)
+        );
+        
+        const usageMap = new Map<string, boolean>();
+        categories.forEach(cat => {
+          usageMap.set(cat.id, usedCategoryIds.has(cat.id));
+        });
+        setCategoryUsage(usageMap);
+      }
+    } catch (error) {
+      console.error('Error loading category usage:', error);
+    }
+  }
+
+  // 9. Bulk selection handlers
+  function toggleSelection(categoryId: string) {
+    setSelectedCategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(categoryId)) {
+        newSet.delete(categoryId);
+      } else {
+        newSet.add(categoryId);
+      }
+      return newSet;
+    });
+  }
+
+  function selectAll() {
+    const allIds = categories.filter(c => !c.is_default).map(c => c.id);
+    setSelectedCategories(new Set(allIds));
+  }
+
+  function deselectAll() {
+    setSelectedCategories(new Set());
+  }
+
+  async function handleBulkDelete() {
+    if (selectedCategories.size === 0) return;
+    
+    Alert.alert(
+      'Delete Selected Categories?',
+      `Delete ${selectedCategories.size} categories? This cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const deletePromises = Array.from(selectedCategories).map(id =>
+                deleteDoc(doc(db, 'master_categories', id))
+              );
+              await Promise.all(deletePromises);
+              
+              Alert.alert('Success', `Deleted ${selectedCategories.size} categories`);
+              setSelectionMode(false);
+              setSelectedCategories(new Set());
+              loadCategories();
+            } catch (error) {
+              console.error('Error bulk deleting:', error);
+              Alert.alert('Error', 'Failed to delete categories');
             }
           },
         },
