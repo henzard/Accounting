@@ -2,6 +2,7 @@
 // Zero-based budgeting (Dave Ramsey style) - Every dollar has a job!
 
 import React, { useState, useCallback } from 'react';
+import { TextInput } from 'react-native';
 import {
   View,
   Text,
@@ -37,6 +38,10 @@ export default function BudgetScreen() {
   const now = new Date();
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1); // 1-12
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+
+  // UX Enhancement State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   const budgetRepository = new FirestoreBudgetRepository();
 
@@ -222,6 +227,35 @@ export default function BudgetScreen() {
     const now = new Date();
     setSelectedMonth(now.getMonth() + 1);
     setSelectedYear(now.getFullYear());
+  }
+
+  // UX ENHANCEMENT FUNCTIONS
+  function toggleGroupCollapse(group: string) {
+    setCollapsedGroups(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(group)) {
+        newSet.delete(group);
+      } else {
+        newSet.add(group);
+      }
+      return newSet;
+    });
+  }
+
+  function filterCategories(categories: BudgetCategory[]): BudgetCategory[] {
+    if (!searchQuery.trim()) return categories;
+    const query = searchQuery.toLowerCase();
+    return categories.filter(cat => 
+      cat.name.toLowerCase().includes(query) ||
+      cat.group.toLowerCase().includes(query)
+    );
+  }
+
+  function calculateFundingStatus(category: BudgetCategory): 'funded' | 'partial' | 'empty' {
+    if (category.planned_amount === 0) return 'empty';
+    if (category.actual_amount >= category.planned_amount) return 'funded';
+    if (category.actual_amount > 0) return 'partial';
+    return 'empty';
   }
 
   // Calculate remaining to budget using domain helper (correctly excludes INCOME categories)
