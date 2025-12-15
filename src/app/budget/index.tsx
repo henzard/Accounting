@@ -377,32 +377,125 @@ export default function BudgetScreen() {
 
         {/* Categories Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text.primary }]}>
-            📋 Categories
-          </Text>
-          {budget?.categories.map((category) => {
-            const groupInfo = CATEGORY_GROUP_INFO[category.group];
+          {/* SEARCH BAR */}
+          <View style={[styles.searchContainer, { backgroundColor: theme.background.secondary, borderBottomColor: theme.border.default }]}>
+            <TextInput
+              style={[styles.searchInput, { color: theme.text.primary }]}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder="🔍 Search categories..."
+              placeholderTextColor={theme.text.tertiary}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+                <Text style={{ color: theme.text.secondary, fontSize: 18 }}>✕</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* COLLAPSIBLE GROUPED CATEGORIES */}
+          {(() => {
+            // Filter and group categories
+            const filteredCategories = budget?.categories ? filterCategories(budget.categories) : [];
+            const groupedCategories = filteredCategories.reduce((acc, cat) => {
+              if (!acc[cat.group]) acc[cat.group] = [];
+              acc[cat.group].push(cat);
+              return acc;
+            }, {} as Record<string, BudgetCategory[]>);
+
             return (
-              <Card key={category.id} style={styles.categoryCard}>
-                <View style={styles.categoryHeader}>
-                  <Text style={styles.categoryIcon}>{category.icon}</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.categoryName, { color: theme.text.primary }]}>
-                      {category.name}
+              <>
+                {Object.entries(groupedCategories).map(([groupKey, groupCategories]) => {
+                  const groupInfo = CATEGORY_GROUP_INFO[groupKey];
+                  const isCollapsed = collapsedGroups.has(groupKey);
+                  
+                  // Calculate group totals
+                  const groupTotal = groupCategories.reduce((sum, cat) => sum + cat.planned_amount, 0);
+                  
+                  return (
+                    <View key={groupKey} style={{ marginBottom: 16 }}>
+                      {/* COLLAPSIBLE GROUP HEADER */}
+                      <TouchableOpacity 
+                        onPress={() => toggleGroupCollapse(groupKey)}
+                        style={[styles.groupHeader, { backgroundColor: theme.background.secondary, borderBottomColor: theme.border.default }]}
+                        activeOpacity={0.7}
+                      >
+                        <Text style={styles.groupIcon}>{groupInfo.icon}</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.groupName, { color: theme.text.primary }]}>
+                            {groupInfo.name}
+                            {/* COUNT BADGE */}
+                            <Text style={[styles.countBadge, { color: theme.text.tertiary }]}>
+                              {' '}({groupCategories.length})
+                            </Text>
+                          </Text>
+                          <Text style={[styles.groupTotal, { color: theme.text.secondary }]}>
+                            {formatCurrency(groupTotal, householdCurrency)}
+                          </Text>
+                        </View>
+                        <Text style={[styles.collapseIcon, { color: theme.text.tertiary }]}>
+                          {isCollapsed ? '▶' : '▼'}
+                        </Text>
+                      </TouchableOpacity>
+
+                      {/* CATEGORY CARDS (only show if not collapsed) */}
+                      {!isCollapsed && groupCategories.map((category) => {
+                        const fundingStatus = calculateFundingStatus(category);
+                        
+                        return (
+                          <Card key={category.id} style={styles.categoryCard}>
+                            <View style={styles.categoryHeader}>
+                              <Text style={styles.categoryIcon}>{category.icon}</Text>
+                              <View style={{ flex: 1 }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                  <Text style={[styles.categoryName, { color: theme.text.primary }]}>
+                                    {category.name}
+                                  </Text>
+                                  {/* FUNDING STATUS INDICATOR */}
+                                  {fundingStatus === 'funded' && (
+                                    <View style={[styles.statusBadge, { backgroundColor: theme.status.success + '20' }]}>
+                                      <Text style={[styles.statusText, { color: theme.status.success }]}>
+                                        ● Funded
+                                      </Text>
+                                    </View>
+                                  )}
+                                  {fundingStatus === 'partial' && (
+                                    <View style={[styles.statusBadge, { backgroundColor: theme.status.warning + '20' }]}>
+                                      <Text style={[styles.statusText, { color: theme.status.warning }]}>
+                                        ● Partial
+                                      </Text>
+                                    </View>
+                                  )}
+                                </View>
+                              </View>
+                            </View>
+                            <AmountInput
+                              value={category.planned_amount}
+                              onChangeValue={(amountInCents) => handleUpdateCategoryAmount(category.id, amountInCents)}
+                              currency={householdCurrency}
+                            />
+                          </Card>
+                        );
+                      })}
+                    </View>
+                  );
+                })}
+
+                {/* NO RESULTS STATE */}
+                {filteredCategories.length === 0 && budget?.categories.length > 0 && (
+                  <View style={styles.emptyState}>
+                    <Text style={[styles.emptyIcon, { color: theme.text.tertiary }]}>🔍</Text>
+                    <Text style={[styles.emptyTitle, { color: theme.text.primary }]}>
+                      No Results Found
                     </Text>
-                    <Text style={[styles.categoryGroup, { color: theme.text.tertiary }]}>
-                      {groupInfo.name}
+                    <Text style={[styles.emptyDescription, { color: theme.text.secondary }]}>
+                      No categories match "{searchQuery}". Try a different search term.
                     </Text>
                   </View>
-                </View>
-                <AmountInput
-                  value={category.planned_amount}
-                  onChangeValue={(amountInCents) => handleUpdateCategoryAmount(category.id, amountInCents)}
-                  currency={householdCurrency}
-                />
-              </Card>
+                )}
+              </>
             );
-          })}
+          })()}
 
           {/* Manage Categories Button */}
           <TouchableOpacity
@@ -541,6 +634,81 @@ const styles = StyleSheet.create({
   manageCategoriesText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  // NEW UX ENHANCEMENT STYLES
+  searchContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 8,
+  },
+  clearButton: {
+    padding: 8,
+  },
+  groupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    marginBottom: 8,
+  },
+  groupIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  groupName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  groupTotal: {
+    fontSize: 14,
+    marginTop: 2,
+  },
+  countBadge: {
+    fontSize: 14,
+  },
+  collapseIcon: {
+    fontSize: 14,
+    marginLeft: 8,
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  statusText: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 64,
+  },
+  emptyIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyDescription: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
 
