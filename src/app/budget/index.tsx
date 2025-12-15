@@ -30,7 +30,7 @@ export default function BudgetScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [budget, setBudget] = useState<Budget | null>(null);
-  const [plannedIncome, setPlannedIncome] = useState('');
+  const [plannedIncomeInCents, setPlannedIncomeInCents] = useState(0); // Store income in cents
   const [householdCurrency, setHouseholdCurrency] = useState<CurrencyCode>('USD');
 
   const budgetRepository = new FirestoreBudgetRepository();
@@ -80,12 +80,12 @@ export default function BudgetScreen() {
 
       if (existingBudget) {
         setBudget(existingBudget);
-        setPlannedIncome((existingBudget.planned_income / 100).toFixed(2));
+        setPlannedIncomeInCents(existingBudget.planned_income); // Already in cents
       } else {
         // Create new budget with default categories
         const newBudget = await createNewBudget();
         setBudget(newBudget);
-        setPlannedIncome('0.00');
+        setPlannedIncomeInCents(0);
       }
     } catch (error) {
       console.error('Error loading budget:', error);
@@ -130,9 +130,8 @@ export default function BudgetScreen() {
 
     setSaving(true);
     try {
-      // Update planned income
-      const incomeInCents = Math.round(parseFloat(plannedIncome || '0') * 100);
-      budget.planned_income = incomeInCents;
+      // Update planned income (already in cents)
+      budget.planned_income = plannedIncomeInCents;
 
       // Save to Firestore
       const existingBudget = await budgetRepository.getBudgetById(budget.id);
@@ -151,10 +150,8 @@ export default function BudgetScreen() {
     }
   }
 
-  function handleUpdateCategoryAmount(categoryId: string, amount: string) {
+  function handleUpdateCategoryAmount(categoryId: string, amountInCents: number) {
     if (!budget) return;
-
-    const amountInCents = Math.round(parseFloat(amount || '0') * 100);
     
     const updatedCategories = budget.categories.map(cat =>
       cat.id === categoryId
@@ -201,14 +198,12 @@ export default function BudgetScreen() {
 
       <ScrollView style={styles.scrollView}>
         {/* Zero-Based Budget Status */}
-        <Card style={[
-          styles.statusCard,
-          {
-            backgroundColor: isZeroBased
-              ? theme.status.successBackground
-              : theme.status.warningBackground,
-          },
-        ]}>
+        <Card style={{
+          ...styles.statusCard,
+          backgroundColor: isZeroBased
+            ? theme.status.successBackground
+            : theme.status.warningBackground,
+        }}>
           <Text style={[styles.statusTitle, {
             color: isZeroBased ? theme.status.success : theme.status.warning,
           }]}>
@@ -232,10 +227,9 @@ export default function BudgetScreen() {
               Planned Income
             </Text>
             <AmountInput
-              value={plannedIncome}
-              onChangeText={setPlannedIncome}
+              value={plannedIncomeInCents}
+              onChangeValue={setPlannedIncomeInCents}
               currency={householdCurrency}
-              placeholder="0.00"
             />
           </Card>
         </View>
@@ -261,10 +255,9 @@ export default function BudgetScreen() {
                   </View>
                 </View>
                 <AmountInput
-                  value={(category.planned_amount / 100).toFixed(2)}
-                  onChangeText={(amount) => handleUpdateCategoryAmount(category.id, amount)}
+                  value={category.planned_amount}
+                  onChangeValue={(amountInCents) => handleUpdateCategoryAmount(category.id, amountInCents)}
                   currency={householdCurrency}
-                  placeholder="0.00"
                 />
               </Card>
             );

@@ -4,7 +4,6 @@ export * from './User';
 export * from './Household';
 export * from './Account';
 export * from './Transaction';
-export * from './Budget';
-export * from './BudgetCategory';
+export * from './Budget'; // BudgetCategory is now exported from Budget.ts
 export * from './Debt';
 
