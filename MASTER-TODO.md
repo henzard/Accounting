@@ -429,7 +429,7 @@ Theme system complete with Homebase branding. Core UI components built (Button, 
 
 Building core features: authentication, household management, transactions, budgets, and debt tracking.
 
-**Current**: Phase 5.5 - Monthly Budget Creation
+**Current**: Phase 5.5 - Monthly Budget Creation (after navigation foundation)
 
 ### 5.1: Authentication Flow (1 hour) ✅ COMPLETE
 
@@ -522,6 +522,39 @@ Building core features: authentication, household management, transactions, budg
 - **Currency formatting integration** - All account screens now respect household currency
 - Fixed currency display bug where accounts showed $ even when household was set to ZAR
 - All balances now display in correct currency symbol (R, $, €, etc.)
+
+---
+
+### 5.4.5: Navigation & Menu Structure (2 hours) ✅ COMPLETE
+
+- [x] Create reusable ScreenHeader component
+- [x] Update all existing screens to use consistent headers
+- [x] Replace Explore tab with proper More/Settings screen
+- [x] Add navigation to key features from More tab
+- [x] Test all navigation flows
+- [x] **Test app runs**, navigation works perfectly
+
+**Exit Criteria**: Consistent navigation across all screens ✅ VERIFIED  
+**Status**: COMPLETE
+
+**What was built**:
+- `ScreenHeader.tsx` - Reusable header component with back button, title, and optional right action
+- Updated `accounts/index.tsx` - Now uses ScreenHeader with "+" button
+- Updated `baby-steps/select.tsx` - Now uses ScreenHeader
+- Replaced `explore.tsx` - New More/Settings screen with:
+  - User info card (avatar with initial, name, email)
+  - Financial section (Accounts, Baby Steps navigation)
+  - Settings section (Household, Currency/Timezone display)
+  - About section (App version)
+  - Sign out button with confirmation
+- Consistent header styling: 60px top padding for status bar, border bottom, back button with chevron
+- Professional UX: All screens now have proper back navigation
+
+**Why This Mattered**:
+- Fixed before building 5+ more screens that would need navigation
+- Prevents future refactoring of every screen
+- Makes app feel professional and polished
+- Users can now navigate naturally throughout the app
 
 ---
 
