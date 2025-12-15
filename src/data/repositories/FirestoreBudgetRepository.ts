@@ -266,11 +266,22 @@ export class FirestoreBudgetRepository implements IBudgetRepository {
   // ============================================
 
   private firestoreToBudget(data: any): Budget {
+    // Convert Firestore Timestamps to Dates
+    const period_start = data.period_start instanceof Timestamp
+      ? data.period_start.toDate()
+      : new Date(data.year, data.month - 1, 1); // Fallback to calendar month start
+    
+    const period_end = data.period_end instanceof Timestamp
+      ? data.period_end.toDate()
+      : new Date(data.year, data.month, 0, 23, 59, 59, 999); // Fallback to calendar month end
+
     return createBudget({
       id: data.id,
       household_id: data.household_id,
       month: data.month,
       year: data.year,
+      period_start,
+      period_end,
       planned_income: data.planned_income || 0,
       categories: (data.categories || []).map((cat: any) => this.firestoreToBudgetCategory(cat)),
     });
@@ -296,6 +307,8 @@ export class FirestoreBudgetRepository implements IBudgetRepository {
       household_id: budget.household_id,
       month: budget.month,
       year: budget.year,
+      period_start: Timestamp.fromDate(budget.period_start),
+      period_end: Timestamp.fromDate(budget.period_end),
       planned_income: budget.planned_income,
       categories: budget.categories.map(cat => ({
         id: cat.id,

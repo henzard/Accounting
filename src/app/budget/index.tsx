@@ -16,7 +16,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
 import { ScreenHeader, Card, AmountInput, PrimaryButton } from '@/presentation/components';
-import { Budget, BudgetCategory, createBudget, createBudgetCategory, calculateRemainingToBudget, getBudgetMonthName } from '@/domain/entities';
+import { Budget, BudgetCategory, createBudget, createBudgetCategory, calculateRemainingToBudget, getBudgetMonthName, calculateBudgetPeriod } from '@/domain/entities';
 import { FirestoreBudgetRepository } from '@/data/repositories/FirestoreBudgetRepository';
 import { getDefaultCategories, CATEGORY_GROUP_INFO } from '@/shared/constants/budget-categories';
 import { CurrencyCode, formatCurrency } from '@/shared/utils/currency';
@@ -108,6 +108,26 @@ export default function BudgetScreen() {
 
     const budgetId = `${user.default_household_id}_${selectedYear}_${selectedMonth}`;
     
+    // Load household budget_period_start_day
+    let budgetPeriodStartDay = 1; // Default to calendar month
+    try {
+      const householdDoc = await getDoc(doc(db, 'households', user.default_household_id));
+      if (householdDoc.exists()) {
+        budgetPeriodStartDay = householdDoc.data().budget_period_start_day || 1;
+      }
+    } catch (error) {
+      console.warn('Failed to load budget_period_start_day, using default (1):', error);
+    }
+
+    // Calculate period dates based on custom start day
+    const { period_start, period_end } = calculateBudgetPeriod(
+      selectedMonth,
+      selectedYear,
+      budgetPeriodStartDay
+    );
+
+    console.log(`📅 Creating budget for ${selectedMonth}/${selectedYear} with period ${period_start.toLocaleDateString()} - ${period_end.toLocaleDateString()}`);
+    
     // Load custom categories or use defaults
     const masterCategories = await loadMasterCategories();
     const budgetCategories: BudgetCategory[] = masterCategories.map((cat, index) =>
@@ -126,6 +146,8 @@ export default function BudgetScreen() {
       household_id: user.default_household_id,
       month: selectedMonth,
       year: selectedYear,
+      period_start,
+      period_end,
       planned_income: 0,
       categories: budgetCategories,
     });
