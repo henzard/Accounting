@@ -182,7 +182,7 @@ export default function ManageCategoriesScreen() {
   function handleResetToDefaults() {
     Alert.alert(
       'Reset to Defaults?',
-      'This will delete all custom categories and restore Dave Ramsey defaults. This cannot be undone.',
+      'This will delete all your custom categories and load all Dave Ramsey defaults (which you can then edit or delete). This cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -191,7 +191,7 @@ export default function ManageCategoriesScreen() {
           onPress: async () => {
             if (!user?.default_household_id) return;
             try {
-              // Delete all custom categories
+              // Step 1: Delete all custom categories
               const categoriesQuery = query(
                 collection(db, 'master_categories'),
                 where('household_id', '==', user.default_household_id)
@@ -200,57 +200,23 @@ export default function ManageCategoriesScreen() {
               const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
               await Promise.all(deletePromises);
 
-              Alert.alert('Success', 'Categories reset to defaults');
-              loadCategories();
-            } catch (error) {
-              console.error('Error resetting categories:', error);
-              Alert.alert('Error', 'Failed to reset categories');
-            }
-          },
-        },
-      ]
-    );
-  }
-
-  async function handleLoadDefaults() {
-    if (!user?.default_household_id) return;
-
-    // Check if defaults are already loaded
-    if (categories.length > 0) {
-      Alert.alert(
-        'Categories Already Exist',
-        'You already have categories loaded. Loading defaults would create duplicates. Use "Reset" to replace all categories with defaults, or add individual categories manually.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
-    Alert.alert(
-      'Load Default Categories?',
-      'This will add all Dave Ramsey recommended categories to your household. You can edit or delete them after.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Load Defaults',
-          onPress: async () => {
-            try {
+              // Step 2: Add all Dave Ramsey defaults as editable categories
               const defaults = getDefaultCategories();
               const addPromises = defaults.map(category => {
-                const { id, is_default, ...categoryData } = category; // Remove client ID and is_default flag
+                const { id, is_default, ...categoryData } = category;
                 return addDoc(collection(db, 'master_categories'), {
                   ...categoryData,
                   household_id: user.default_household_id,
                   is_default: false, // Make them editable/deletable
                 });
               });
-
               await Promise.all(addPromises);
 
-              Alert.alert('Success! 🎉', `Added ${defaults.length} default categories. You can now edit or delete them.`);
+              Alert.alert('Success! 🎉', `Reset complete. Added ${defaults.length} Dave Ramsey categories. You can now edit or delete them.`);
               loadCategories();
             } catch (error) {
-              console.error('Error loading defaults:', error);
-              Alert.alert('Error', 'Failed to load default categories');
+              console.error('Error resetting categories:', error);
+              Alert.alert('Error', 'Failed to reset categories');
             }
           },
         },
@@ -300,21 +266,14 @@ export default function ManageCategoriesScreen() {
       />
 
       <ScrollView style={styles.scrollView}>
-        {/* Action Buttons */}
+        {/* Add Category Button */}
         {!showAddForm && !editingCategory && (
           <View style={styles.section}>
-            <View style={{ gap: 12 }}>
-              <PrimaryButton
-                title="+ Add Category"
-                onPress={() => setShowAddForm(true)}
-                fullWidth
-              />
-              <OutlineButton
-                title="📋 Load Dave Ramsey Defaults"
-                onPress={handleLoadDefaults}
-                fullWidth
-              />
-            </View>
+            <PrimaryButton
+              title="+ Add Category"
+              onPress={() => setShowAddForm(true)}
+              fullWidth
+            />
           </View>
         )}
 
