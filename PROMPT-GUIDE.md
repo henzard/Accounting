@@ -172,5 +172,55 @@ User: Next goal
 
 ---
 
+## 🎨 UX Standards (Phase 5.5.2+)
+
+**Reference**: `docs/design/ux-patterns.md` and `.cursor/rules/34-ux-standards.mdc`
+
+### The 7 Standard Patterns
+
+Every list/management screen MUST include:
+
+1. **Search/Filter Bar** (if 10+ items)
+2. **Collapsible Groups** (if content is grouped)
+3. **Icon Buttons** (✏️🗑️ not "Edit" "Delete")
+4. **Empty States** (always with helpful guidance)
+5. **Count Badges** (on group headers)
+6. **Status Indicators** (if items have states)
+7. **Bulk Selection Mode** (if bulk actions make sense)
+
+### Reference Implementation
+
+**See**: `src/app/budget/manage-categories.tsx` - Perfect example of all 7 patterns
+
+### AI Checklist for New Screens
+
+Before marking a list screen complete:
+
+- [ ] Has search (if needed)
+- [ ] Has collapsible groups (if grouped)
+- [ ] Uses icon buttons
+- [ ] Has empty state
+- [ ] Has count badges
+- [ ] Has status indicators (if applicable)
+- [ ] Has bulk selection (if applicable)
+- [ ] Uses SPACING constants
+- [ ] Has loading state
+- [ ] Has error states
+
+### User Prompt Shortcuts
+
+```
+"Apply standard UX patterns" 
+  → AI adds search, collapsible, icons, empty state, etc.
+
+"Make this consistent with category management"
+  → AI copies patterns from manage-categories.tsx
+
+"Follow UX standards"
+  → AI checks docs/design/ux-patterns.md and applies
+```
+
+---
+
 **Include `@PROMPT-GUIDE.md` in your message when you want me to be extra careful about following this pattern.**
 
