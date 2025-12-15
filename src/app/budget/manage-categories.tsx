@@ -18,7 +18,7 @@ import { useAuth } from '@/infrastructure/auth';
 import { ScreenHeader, Card, PrimaryButton, OutlineButton, SearchableSelect } from '@/presentation/components';
 import { CategoryGroup } from '@/domain/entities/Budget';
 import { CATEGORY_GROUP_INFO, MasterCategory, getDefaultCategories } from '@/shared/constants/budget-categories';
-import { collection, getDocs, addDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
+import { collection, getDocs, addDoc, deleteDoc, updateDoc, doc, query, where } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
 import { SelectOption } from '@/shared/types';
 
@@ -36,6 +36,12 @@ export default function ManageCategoriesScreen() {
   const [newCategoryGroup, setNewCategoryGroup] = useState<CategoryGroup>('LIFESTYLE');
   const [newCategoryIcon, setNewCategoryIcon] = useState('📦');
   const [saving, setSaving] = useState(false);
+  
+  // Edit form state
+  const [editingCategory, setEditingCategory] = useState<MasterCategory | null>(null);
+  const [editCategoryName, setEditCategoryName] = useState('');
+  const [editCategoryGroup, setEditCategoryGroup] = useState<CategoryGroup>('LIFESTYLE');
+  const [editCategoryIcon, setEditCategoryIcon] = useState('📦');
 
   useFocusEffect(
     useCallback(() => {
@@ -107,6 +113,46 @@ export default function ManageCategoriesScreen() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleStartEdit(category: MasterCategory) {
+    setEditingCategory(category);
+    setEditCategoryName(category.name);
+    setEditCategoryGroup(category.group);
+    setEditCategoryIcon(category.icon || '📦');
+    setShowAddForm(false); // Close add form if open
+  }
+
+  async function handleSaveEdit() {
+    if (!editingCategory) return;
+    if (!editCategoryName.trim()) {
+      Alert.alert('Error', 'Category name is required');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const updates = {
+        name: editCategoryName.trim(),
+        group: editCategoryGroup,
+        icon: editCategoryIcon,
+      };
+
+      await updateDoc(doc(db, 'master_categories', editingCategory.id), updates);
+
+      Alert.alert('Success! 🎉', 'Category updated');
+      setEditingCategory(null);
+      loadCategories();
+    } catch (error) {
+      console.error('Error updating category:', error);
+      Alert.alert('Error', 'Failed to update category');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function handleCancelEdit() {
+    setEditingCategory(null);
   }
 
   async function handleDeleteCategory(categoryId: string, categoryName: string) {
@@ -288,6 +334,71 @@ export default function ManageCategoriesScreen() {
           </Card>
         )}
 
+        {/* Edit Category Form */}
+        {editingCategory && (
+          <Card style={styles.addForm}>
+            <Text style={[styles.formTitle, { color: theme.text.primary }]}>
+              Edit Category
+            </Text>
+
+            <Text style={[styles.label, { color: theme.text.secondary }]}>
+              Name
+            </Text>
+            <TextInput
+              style={[styles.input, {
+                backgroundColor: theme.background.secondary,
+                color: theme.text.primary,
+                borderColor: theme.border.default,
+              }]}
+              value={editCategoryName}
+              onChangeText={setEditCategoryName}
+              placeholder="e.g., Streaming Services"
+              placeholderTextColor={theme.text.tertiary}
+            />
+
+            <Text style={[styles.label, { color: theme.text.secondary }]}>
+              Group
+            </Text>
+            <SearchableSelect
+              label="Category Group"
+              options={categoryGroupOptions}
+              value={editCategoryGroup}
+              onSelect={(value) => setEditCategoryGroup(value as CategoryGroup)}
+              placeholder="Select category group"
+            />
+
+            <Text style={[styles.label, { color: theme.text.secondary }]}>
+              Icon (emoji)
+            </Text>
+            <TextInput
+              style={[styles.input, {
+                backgroundColor: theme.background.secondary,
+                color: theme.text.primary,
+                borderColor: theme.border.default,
+              }]}
+              value={editCategoryIcon}
+              onChangeText={setEditCategoryIcon}
+              placeholder="📦"
+              placeholderTextColor={theme.text.tertiary}
+              maxLength={2}
+            />
+
+            <View style={styles.formButtons}>
+              <OutlineButton
+                title="Cancel"
+                onPress={handleCancelEdit}
+                style={{ flex: 1 }}
+              />
+              <PrimaryButton
+                title="Save"
+                onPress={handleSaveEdit}
+                loading={saving}
+                style={{ flex: 1 }}
+              />
+            </View>
+          </Card>
+        )}
+
         {/* Categories List (grouped) */}
         {Object.entries(groupedCategories).map(([groupKey, groupCategories]) => {
           const groupInfo = CATEGORY_GROUP_INFO[groupKey as CategoryGroup];
@@ -318,14 +429,24 @@ export default function ManageCategoriesScreen() {
                       )}
                     </View>
                     {!category.is_default && (
-                      <TouchableOpacity
-                        onPress={() => handleDeleteCategory(category.id, category.name)}
-                        style={styles.deleteButton}
-                      >
-                        <Text style={[styles.deleteButtonText, { color: theme.status.error }]}>
-                          Delete
-                        </Text>
-                      </TouchableOpacity>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <TouchableOpacity
+                          onPress={() => handleStartEdit(category)}
+                          style={styles.editButton}
+                        >
+                          <Text style={[styles.editButtonText, { color: theme.interactive.primary }]}>
+                            Edit
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => handleDeleteCategory(category.id, category.name)}
+                          style={styles.deleteButton}
+                        >
+                          <Text style={[styles.deleteButtonText, { color: theme.status.error }]}>
+                            Delete
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
                     )}
                   </View>
                 </Card>
@@ -425,6 +546,14 @@ const styles = StyleSheet.create({
   defaultBadge: {
     fontSize: 12,
     marginTop: 2,
+  },
+  editButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+  },
+  editButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
   },
   deleteButton: {
     paddingVertical: 8,
