@@ -130,16 +130,22 @@ export default function BudgetScreen() {
 
     setSaving(true);
     try {
-      // Update planned income (already in cents)
-      budget.planned_income = plannedIncomeInCents;
+      // Create new budget object with updated income (immutable update)
+      const updatedBudget: Budget = {
+        ...budget,
+        planned_income: plannedIncomeInCents,
+      };
 
       // Save to Firestore
-      const existingBudget = await budgetRepository.getBudgetById(budget.id);
+      const existingBudget = await budgetRepository.getBudgetById(updatedBudget.id);
       if (existingBudget) {
-        await budgetRepository.updateBudget(budget.id, budget);
+        await budgetRepository.updateBudget(updatedBudget.id, updatedBudget);
       } else {
-        await budgetRepository.createBudget(budget);
+        await budgetRepository.createBudget(updatedBudget);
       }
+
+      // Update local state with saved budget
+      setBudget(updatedBudget);
 
       Alert.alert('Success! 🎉', 'Budget saved successfully');
     } catch (error) {
