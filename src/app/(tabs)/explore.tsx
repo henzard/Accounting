@@ -1,16 +1,16 @@
 // More/Settings Screen - Homebase Budget
 // User settings, preferences, and navigation to other features
 
-import React from 'react';
+import React, { ComponentProps } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { Link, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
 import { Card } from '@/presentation/components';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
 interface MenuItemProps {
-  icon: string;
+  icon: ComponentProps<typeof IconSymbol>['name'];
   label: string;
   subtitle?: string;
   onPress: () => void;
@@ -127,23 +127,10 @@ export default function MoreScreen() {
         
         <Card>
           <MenuItem
-            icon="building.2.fill"
-            label="Household"
-            subtitle="Manage household settings"
-            onPress={() => {
-              Alert.alert('Coming Soon', 'Household management will be available in Phase 6.0');
-            }}
-          />
-          
-          <View style={[styles.divider, { backgroundColor: theme.border.default }]} />
-          
-          <MenuItem
-            icon="dollarsign.circle.fill"
-            label="Currency & Timezone"
-            subtitle={`${user?.currency || 'USD'} · ${user?.timezone || 'UTC'}`}
-            onPress={() => {
-              Alert.alert('Coming Soon', 'Settings will be available soon');
-            }}
+            icon="gearshape.fill"
+            label="Household Settings"
+            subtitle="Budget period, currency, timezone"
+            onPress={() => router.push('/household/settings')}
           />
         </Card>
       </View>
@@ -158,9 +145,9 @@ export default function MoreScreen() {
           <MenuItem
             icon="info.circle.fill"
             label="App Version"
-            subtitle="1.0.0 (Phase 5.4)"
+            subtitle="1.0.0 (Phase 5.6)"
             onPress={() => {
-              Alert.alert('Homebase Budget', 'Version 1.0.0\nDave Ramsey Budget Tracker');
+              Alert.alert('Homebase Budget', 'Version 1.0.0\nDave Ramsey Budget Tracker\n\nPhase 5.6: Transaction Entry Complete');
             }}
             color={theme.status.info}
           />
