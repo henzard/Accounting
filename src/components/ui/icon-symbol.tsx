@@ -22,6 +22,8 @@ const MAPPING = {
   'gearshape.fill': 'settings',
   'dollarsign.circle.fill': 'attach-money',
   'info.circle.fill': 'info',
+  'list.bullet': 'format-list-bulleted',
+  'ellipsis.circle.fill': 'more-horiz',
 } as IconMapping;
 
 /**
