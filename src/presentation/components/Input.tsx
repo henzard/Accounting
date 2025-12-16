@@ -42,6 +42,10 @@ export const Input: React.FC<InputProps> = ({
 
   const hasError = !!error;
 
+  // Filter out any props that might cause issues with TextInput
+  // TextInput doesn't support onSelect (only onSelectionChange)
+  const { onSelect, ...safeTextInputProps } = textInputProps as any;
+
   return (
     <View style={[styles.container, fullWidth && { width: '100%' }, containerStyle]}>
       {/* Label */}
@@ -94,15 +98,15 @@ export const Input: React.FC<InputProps> = ({
 
         {/* Text Input */}
         <TextInput
-          {...textInputProps}
+          {...safeTextInputProps}
           editable={!disabled}
           onFocus={(e) => {
             setIsFocused(true);
-            textInputProps.onFocus?.(e);
+            safeTextInputProps.onFocus?.(e);
           }}
           onBlur={(e) => {
             setIsFocused(false);
-            textInputProps.onBlur?.(e);
+            safeTextInputProps.onBlur?.(e);
           }}
           style={[
             styles.input,
