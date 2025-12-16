@@ -262,6 +262,32 @@ export class FirestoreBudgetRepository implements IBudgetRepository {
   }
 
   // ============================================
+  // CATEGORY MANAGEMENT
+  // ============================================
+
+  async getMasterCategoriesByHousehold(householdId: string): Promise<any[]> {
+    try {
+      const q = query(
+        collection(db, 'master_categories'),
+        where('household_id', '==', householdId)
+      );
+
+      const querySnapshot = await getDocs(q);
+      
+      const categories = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+
+      console.log(`✅ Loaded ${categories.length} master categories for household`);
+      return categories;
+    } catch (error) {
+      console.error('Error getting master categories:', error);
+      throw error;
+    }
+  }
+
+  // ============================================
   // HELPER METHODS
   // ============================================
 
