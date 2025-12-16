@@ -10,7 +10,6 @@ import {
   updateDoc,
   query,
   where,
-  orderBy,
   limit,
   onSnapshot,
   Unsubscribe,
@@ -62,18 +61,22 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
   ): Promise<Transaction[]> {
 
     try {
+      // Note: Removed orderBy to avoid composite index requirement
+      // Sorting in-memory instead
       const q = query(
         collection(db, this.COLLECTION),
         where('household_id', '==', householdId),
-        orderBy('date', 'desc'),
         limit(limitCount)
       );
 
       const querySnapshot = await getDocs(q);
       
-      return querySnapshot.docs.map(doc => 
+      const transactions = querySnapshot.docs.map(doc => 
         this.firestoreToTransaction(doc.data())
       );
+
+      // Sort in-memory by date (desc)
+      return transactions.sort((a, b) => b.date.getTime() - a.date.getTime());
     } catch (error) {
       console.error('Error getting transactions:', error);
       throw error;
@@ -128,17 +131,22 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
     callback: (transactions: Transaction[]) => void
   ): Unsubscribe {
 
+    // Note: Removed orderBy to avoid composite index requirement
+    // Sorting in-memory instead
     const q = query(
       collection(db, this.COLLECTION),
-      where('household_id', '==', householdId),
-      orderBy('date', 'desc')
+      where('household_id', '==', householdId)
     );
 
     return onSnapshot(q, (snapshot) => {
       const transactions = snapshot.docs.map(doc =>
         this.firestoreToTransaction(doc.data())
       );
-      callback(transactions);
+      
+      // Sort in-memory by date (desc)
+      const sortedTransactions = transactions.sort((a, b) => b.date.getTime() - a.date.getTime());
+      
+      callback(sortedTransactions);
     }, (error) => {
       console.error('Error in transaction subscription:', error);
     });
