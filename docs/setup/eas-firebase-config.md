@@ -8,6 +8,8 @@ The Firebase config file (`src/infrastructure/firebase/config.ts`) is in `.gitig
 
 The config now uses environment variables for EAS builds, with fallback to local values for development.
 
+**Important**: EAS secrets are automatically available as environment variables during builds. You do NOT need to define them in `eas.json`. Just set them as secrets via `eas secret:create` or the Expo dashboard.
+
 ## Setup Steps
 
 ### 1. Set EAS Secrets
