@@ -42,9 +42,18 @@ jobs:
         working-directory: ./src
         id: android-build
         run: |
-          eas build --platform android --profile production --non-interactive --no-wait
-          sleep 5  # Wait for build to be registered
-          BUILD_ID=$(eas build:list --platform android --limit 1 --json | jq -r '.[0].id')
+          BUILD_OUTPUT=$(eas build --platform android --profile production --non-interactive --no-wait --json 2>&1)
+          # Try to extract build ID from JSON (could be array or single object)
+          BUILD_ID=$(echo "$BUILD_OUTPUT" | jq -r 'if type == "array" then .[0].id else .id end' 2>/dev/null || echo "")
+          # Fallback: extract from URL if JSON parsing fails (format: .../builds/3128e966-7624-435b-a9e7-e6df68a59c57)
+          if [ -z "$BUILD_ID" ] || [ "$BUILD_ID" = "null" ] || [ "$BUILD_ID" = "" ]; then
+            BUILD_ID=$(echo "$BUILD_OUTPUT" | grep -o 'builds/[a-f0-9-]\{36\}' | head -1 | sed 's|builds/||')
+          fi
+          if [ -z "$BUILD_ID" ]; then
+            echo "❌ Failed to extract build ID from output:"
+            echo "$BUILD_OUTPUT"
+            exit 1
+          fi
           echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
           echo "Android build ID: $BUILD_ID"
 
@@ -52,9 +61,18 @@ jobs:
         working-directory: ./src
         id: ios-build
         run: |
-          eas build --platform ios --profile production --non-interactive --no-wait
-          sleep 5  # Wait for build to be registered
-          BUILD_ID=$(eas build:list --platform ios --limit 1 --json | jq -r '.[0].id')
+          BUILD_OUTPUT=$(eas build --platform ios --profile production --non-interactive --no-wait --json 2>&1)
+          # Try to extract build ID from JSON (could be array or single object)
+          BUILD_ID=$(echo "$BUILD_OUTPUT" | jq -r 'if type == "array" then .[0].id else .id end' 2>/dev/null || echo "")
+          # Fallback: extract from URL if JSON parsing fails (format: .../builds/3128e966-7624-435b-a9e7-e6df68a59c57)
+          if [ -z "$BUILD_ID" ] || [ "$BUILD_ID" = "null" ] || [ "$BUILD_ID" = "" ]; then
+            BUILD_ID=$(echo "$BUILD_OUTPUT" | grep -o 'builds/[a-f0-9-]\{36\}' | head -1 | sed 's|builds/||')
+          fi
+          if [ -z "$BUILD_ID" ]; then
+            echo "❌ Failed to extract build ID from output:"
+            echo "$BUILD_OUTPUT"
+            exit 1
+          fi
           echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
           echo "iOS build ID: $BUILD_ID"
 
