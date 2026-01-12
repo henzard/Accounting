@@ -28,10 +28,29 @@ alwaysApply: true
    - Add JSDoc to public APIs
 
 ### After Changes
-1. **Remind user to run tests**
-2. **Remind user to verify APK build**
-3. **Update todo.md** if completing a task
-4. **Suggest version bump** if significant change
+1. **Automatically determine and apply version bump**:
+   - Bug fix → PATCH version (1.0.0 → 1.0.1)
+   - New feature → MINOR version (1.0.0 → 1.1.0)
+   - Breaking change → MAJOR version (1.0.0 → 2.0.0)
+   - Documentation/refactor only → No bump (or PATCH if significant refactor)
+   
+2. **If version bump needed, automatically**:
+   - Run `npm version patch|minor|major` in `src/` directory (this auto-syncs app.json)
+   - Update release notes in `docs/release-notes.md` (if significant change)
+   - Create and push tag: `git tag v1.1.0 && git push --tags`
+   
+3. **Always commit and push automatically**:
+   - Stage all changes: `git add -A`
+   - Commit with descriptive message following conventional commits
+   - Push commits: `git push`
+   - Push tags if created: `git push --tags`
+   
+4. **After pushing, remind user**:
+   - Run tests if applicable
+   - Verify APK build if native changes
+   - Update todo.md if completing a task
+
+**IMPORTANT**: Do NOT ask permission for version bumps, commits, or pushes. Just do it automatically based on the change type.
 
 ## Code Generation Guidelines
 

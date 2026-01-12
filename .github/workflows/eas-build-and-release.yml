@@ -1,0 +1,104 @@
+name: EAS Build and GitHub Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v1.0.0
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  build-and-release:
+    name: Build and Create Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required to create releases
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: src/package-lock.json
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        working-directory: ./src
+        run: npm ci
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Build Android APK
+        working-directory: ./src
+        id: android-build
+        run: |
+          eas build --platform android --profile production --non-interactive --no-wait
+          sleep 5  # Wait for build to be registered
+          BUILD_ID=$(eas build:list --platform android --limit 1 --json | jq -r '.[0].id')
+          echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
+          echo "Android build ID: $BUILD_ID"
+
+      - name: Build iOS IPA
+        working-directory: ./src
+        id: ios-build
+        run: |
+          eas build --platform ios --profile production --non-interactive --no-wait
+          sleep 5  # Wait for build to be registered
+          BUILD_ID=$(eas build:list --platform ios --limit 1 --json | jq -r '.[0].id')
+          echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
+          echo "iOS build ID: $BUILD_ID"
+
+      - name: Wait for Android build
+        working-directory: ./src
+        run: |
+          eas build:wait --id ${{ steps.android-build.outputs.build_id }} --timeout 1800
+
+      - name: Wait for iOS build
+        working-directory: ./src
+        run: |
+          eas build:wait --id ${{ steps.ios-build.outputs.build_id }} --timeout 1800
+
+      - name: Download Android build
+        working-directory: ./src
+        run: |
+          eas build:download --id ${{ steps.android-build.outputs.build_id }} --platform android --output ./android-build.apk
+
+      - name: Download iOS build
+        working-directory: ./src
+        run: |
+          eas build:download --id ${{ steps.ios-build.outputs.build_id }} --platform ios --output ./ios-build.ipa
+
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+          else
+            VERSION=$(node -p "require('./src/package.json').version")
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.get_version.outputs.tag }}
+          name: Release ${{ steps.get_version.outputs.version }}
+          body_path: docs/release-notes.md
+          files: |
+            src/android-build.apk
+            src/ios-build.ipa
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

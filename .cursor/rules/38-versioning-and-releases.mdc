@@ -1,0 +1,386 @@
+# Versioning and Release Management
+
+## Golden Rule: Version Everything
+
+**Every significant change gets a version bump, commit, tag, and push.**
+
+---
+
+## Versioning Strategy
+
+### Semantic Versioning (SemVer)
+
+Follow [Semantic Versioning](https://semver.org/):
+
+```
+MAJOR.MINOR.PATCH
+  │     │     └── Bug fixes, small changes (1.0.1)
+  │     └──────── New features, backwards compatible (1.1.0)
+  └────────────── Breaking changes (2.0.0)
+```
+
+### Version Locations
+
+Update these files when bumping version:
+- `src/package.json` - `version` field
+- `src/app.json` - `expo.version` field
+- `src/android/app/build.gradle` - `versionCode` and `versionName` (if exists)
+- `src/ios/[AppName]/Info.plist` - `CFBundleShortVersionString` and `CFBundleVersion` (if exists)
+
+---
+
+## Workflow: Version, Commit, Tag, Push
+
+### For Every Code Change
+
+1. **Make code changes**
+2. **Bump version** (if needed - see below)
+3. **Commit** with descriptive message
+4. **Tag** with version (if version changed)
+5. **Push** commits and tags
+
+### When to Bump Version
+
+| Change Type | Version Bump | Example |
+|------------|--------------|---------|
+| **Bug fix** | PATCH (1.0.0 → 1.0.1) | Fix dashboard loading error |
+| **New feature** | MINOR (1.0.0 → 1.1.0) | Add receipt photo management |
+| **Breaking change** | MAJOR (1.0.0 → 2.0.0) | Change API, remove feature |
+| **Documentation only** | No bump | Update README, fix typos |
+| **Refactoring (no behavior change)** | PATCH | Code cleanup, rename variables |
+
+### Version Bump Checklist
+
+Before bumping version:
+- [ ] All tests pass
+- [ ] Code is reviewed
+- [ ] Documentation updated (if needed)
+- [ ] Release notes updated (if significant)
+
+---
+
+## Git Workflow
+
+### Standard Commit + Push
+
+```powershell
+# 1. Stage changes
+git add -A
+
+# 2. Commit with descriptive message
+git commit -m "feat: add receipt photo management"
+
+# 3. Push
+git push
+```
+
+### Commit + Version Bump + Tag + Push
+
+```powershell
+# 1. Update version in package.json and app.json
+# (Edit files manually or use npm version)
+
+# 2. Stage all changes
+git add -A
+
+# 3. Commit with version bump
+git commit -m "chore: bump version to 1.1.0
+
+- Add receipt photo management
+- Fix dashboard loading error"
+
+# 4. Create and push tag
+git tag v1.1.0
+git push origin v1.1.0
+
+# 5. Push commits
+git push
+```
+
+### Using npm version (Recommended)
+
+```powershell
+cd src
+
+# Patch version (1.0.0 → 1.0.1)
+npm version patch -m "chore: bump version to %s"
+
+# Minor version (1.0.0 → 1.1.0)
+npm version minor -m "chore: bump version to %s"
+
+# Major version (1.0.0 → 2.0.0)
+npm version major -m "chore: bump version to %s"
+```
+
+**Note**: `npm version` automatically:
+- Updates `package.json`
+- Syncs version to `app.json` (via npm hooks)
+- Creates a git commit
+- Creates a git tag
+- Does NOT push (you must push manually)
+
+After `npm version`:
+```powershell
+# Push commits and tags
+git push
+git push --tags
+```
+
+### Using Helper Script (Easiest)
+
+```powershell
+# From project root
+.\scripts\bump-version.ps1 -Type minor -Message "Add receipt photo management"
+```
+
+The script automatically:
+- Bumps version in `package.json` and `app.json`
+- Creates commit and tag
+- Pushes commits and tags
+
+---
+
+## Automated Versioning Script
+
+Create a helper script for consistent versioning:
+
+```powershell
+# scripts/bump-version.ps1
+param(
+    [Parameter(Mandatory=$true)]
+    [ValidateSet("patch", "minor", "major")]
+    [string]$Type,
+    
+    [string]$Message = ""
+)
+
+cd src
+
+# Bump version
+npm version $Type -m "chore: bump version to %s`n`n$Message"
+
+# Push commits and tags
+git push
+git push --tags
+
+Write-Host "✅ Version bumped and pushed!"
+```
+
+---
+
+## Release Notes Management
+
+### Update Release Notes
+
+When making significant changes, update `docs/release-notes.md`:
+
+1. **For bug fixes**: Add to "Bug Fixes" section
+2. **For features**: Add to "New Features" section
+3. **For breaking changes**: Add to "Breaking Changes" section
+
+### Release Notes Template
+
+```markdown
+# Release Notes - v1.1.0
+
+## ✨ New Features
+- [Feature description]
+
+## 🐛 Bug Fixes
+- [Bug fix description]
+
+## 🔧 Technical Improvements
+- [Improvement description]
+```
+
+---
+
+## GitHub Releases
+
+### Automatic Release Creation
+
+When you push a version tag (e.g., `v1.1.0`), the GitHub Actions workflow will:
+
+1. ✅ Build Android APK and iOS IPA
+2. ✅ Create GitHub release
+3. ✅ Attach build artifacts
+4. ✅ Use release notes from `docs/release-notes.md`
+
+### Manual Release Creation
+
+If you prefer manual releases:
+
+1. Go to GitHub → Releases → Draft a new release
+2. Tag: `v1.1.0`
+3. Title: `Release v1.1.0`
+4. Description: Copy from `docs/release-notes.md`
+5. Upload APK/IPA files
+6. Publish
+
+---
+
+## Version Numbering Examples
+
+### Development Phase
+- `0.1.0` - Initial development
+- `0.2.0` - Added authentication
+- `0.3.0` - Added budget features
+- `0.9.0` - Pre-release candidate
+
+### Production Releases
+- `1.0.0` - First stable release (MVP complete)
+- `1.0.1` - Bug fix release
+- `1.1.0` - New feature (receipt photos)
+- `1.2.0` - More features
+- `2.0.0` - Major rewrite or breaking changes
+
+---
+
+## Best Practices
+
+### ✅ DO
+- Bump version for every user-facing change
+- Use semantic versioning consistently
+- Tag every version
+- Push tags immediately after creating them
+- Update release notes for significant changes
+- Commit frequently with descriptive messages
+
+### ❌ DON'T
+- Skip version bumps for "small" changes (users notice!)
+- Create tags without pushing them
+- Bump major version for minor changes
+- Forget to update multiple version locations
+- Commit without descriptive messages
+
+---
+
+## AI Assistant Guidelines
+
+### When Making Code Changes - AUTOMATIC WORKFLOW
+
+**CRITICAL**: The AI assistant MUST automatically handle versioning, commits, tags, and pushes. Do NOT ask for permission.
+
+1. **After completing a feature/fix, AUTOMATICALLY**:
+   - Determine version bump type (patch/minor/major) based on change
+   - If version bump needed:
+     - Run `cd src && npm version patch|minor|major -m "chore: bump version to %s"` (auto-syncs app.json)
+     - Update release notes in `docs/release-notes.md` if significant
+     - Create tag: `git tag v<VERSION>` (use actual new version)
+     - Push tag: `git push --tags`
+   - Stage all changes: `git add -A`
+   - Commit with descriptive message following conventional commits
+   - Push commits: `git push`
+   - Push tags if created: `git push --tags`
+
+2. **Version bump decision (automatic)**:
+   - Bug fix → PATCH (1.0.0 → 1.0.1)
+   - New feature → MINOR (1.0.0 → 1.1.0)
+   - Breaking change → MAJOR (1.0.0 → 2.0.0)
+   - Documentation/refactor only → No bump (or PATCH if significant)
+
+3. **Commit message format** (automatic):
+   ```
+   <type>(<scope>): <subject>
+   
+   <body>
+   
+   <footer>
+   ```
+
+### Example Automatic Workflow
+
+```powershell
+# AI automatically does this after making changes:
+
+# 1. Determine version bump (e.g., new feature = minor)
+cd src
+npm version minor -m "chore: bump version to %s
+
+- Add receipt photo management feature"
+
+# 2. Stage and commit code changes
+git add -A
+git commit -m "feat(receipts): add receipt photo management
+
+- Upload receipts when adding/editing transactions
+- View receipts in transaction detail screen
+- Delete receipts from Firebase Storage"
+
+# 3. Push everything
+git push
+git push --tags
+```
+
+**IMPORTANT**: The AI should never ask "Should I commit?" or "Should I bump version?" - it should just do it automatically based on the change type.
+
+---
+
+## Integration with Other Rules
+
+### Works with Rule 01 (Project Overview)
+- Version bumps documented in commits
+- Release notes track progress
+
+### Works with Rule 02 (Development Workflow)
+- Version bump is part of "After Completing Changes"
+- Tags created after verification
+
+### Works with Rule 11 (AI Assistant)
+- AI reminds to bump version after significant changes
+- AI helps determine version bump type
+
+---
+
+## Quick Reference
+
+### Version Bump Commands
+
+```powershell
+# Patch (bug fix)
+cd src; npm version patch; git push; git push --tags
+
+# Minor (new feature)
+cd src; npm version minor; git push; git push --tags
+
+# Major (breaking change)
+cd src; npm version major; git push; git push --tags
+```
+
+### Check Current Version
+
+```powershell
+cd src
+node -p "require('./package.json').version"
+```
+
+### List All Tags
+
+```powershell
+git tag --list
+```
+
+### View Tag Details
+
+```powershell
+git show v1.0.0
+```
+
+---
+
+## Summary
+
+**Golden Rule**: Version everything, tag everything, push everything.
+
+**Workflow**:
+1. Make changes
+2. Bump version (if needed)
+3. Commit
+4. Tag (if version changed)
+5. Push (commits + tags)
+
+**Result**: Clear version history, easy rollbacks, automated releases.
+
+---
+
+*Versioning is not optional. It's essential for tracking progress and managing releases.*
