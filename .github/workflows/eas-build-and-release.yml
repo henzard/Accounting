@@ -42,22 +42,56 @@ jobs:
         working-directory: ./src
         id: android-build
         run: |
-          # Build and wait for completion (--wait flag waits for build to finish)
-          BUILD_OUTPUT=$(eas build --platform android --profile production --non-interactive --wait --json 2>&1)
+          # Start build without waiting (--no-wait)
+          echo "🚀 Starting Android build..."
+          BUILD_OUTPUT=$(eas build --platform android --profile production --non-interactive --no-wait --json 2>&1)
+          
           # Try to extract build ID from JSON (could be array or single object)
           BUILD_ID=$(echo "$BUILD_OUTPUT" | jq -r 'if type == "array" then .[0].id else .id end' 2>/dev/null || echo "")
+          
           # Fallback: extract from URL if JSON parsing fails (format: .../builds/3128e966-7624-435b-a9e7-e6df68a59c57)
           if [ -z "$BUILD_ID" ] || [ "$BUILD_ID" = "null" ] || [ "$BUILD_ID" = "" ]; then
             BUILD_ID=$(echo "$BUILD_OUTPUT" | grep -o 'builds/[a-f0-9-]\{36\}' | head -1 | sed 's|builds/||')
           fi
+          
           if [ -z "$BUILD_ID" ]; then
             echo "❌ Failed to extract build ID from output:"
             echo "$BUILD_OUTPUT"
             exit 1
           fi
+          
           echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
-          echo "Android build ID: $BUILD_ID"
-          echo "✅ Android build completed successfully"
+          echo "✅ Android build started with ID: $BUILD_ID"
+          echo "📋 Build URL: https://expo.dev/accounts/henzardkruger/projects/Accounting/builds/$BUILD_ID"
+
+      - name: Wait for Android build
+        working-directory: ./src
+        run: |
+          BUILD_ID="${{ steps.android-build.outputs.build_id }}"
+          echo "⏳ Waiting for build $BUILD_ID to complete..."
+          MAX_ATTEMPTS=120  # 30 minutes max (120 * 15 seconds)
+          ATTEMPT=0
+          
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            BUILD_STATUS=$(eas build:list --platform android --limit 1 --json 2>/dev/null | jq -r ".[] | select(.id == \"$BUILD_ID\") | .status" 2>/dev/null || echo "")
+            
+            if [ "$BUILD_STATUS" = "finished" ]; then
+              echo "✅ Build completed successfully!"
+              exit 0
+            elif [ "$BUILD_STATUS" = "errored" ] || [ "$BUILD_STATUS" = "canceled" ]; then
+              echo "❌ Build failed with status: $BUILD_STATUS"
+              exit 1
+            fi
+            
+            ATTEMPT=$((ATTEMPT + 1))
+            if [ $((ATTEMPT % 4)) -eq 0 ]; then
+              echo "   Still waiting... (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+            fi
+            sleep 15
+          done
+          
+          echo "❌ Build timeout after 30 minutes"
+          exit 1
 
       # iOS builds skipped for now
       # - name: Build iOS IPA
