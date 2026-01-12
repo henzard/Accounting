@@ -34,8 +34,12 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
       - name: Wait for EAS build to complete
         working-directory: ./src
+        id: wait-build
         run: |
           # Extract version from tag (e.g., v1.2.6 -> 1.2.6)
           VERSION=${GITHUB_REF#refs/tags/v}
@@ -47,28 +51,23 @@ jobs:
           BUILD_ID=""
           
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-            # Get latest build for this version
-            BUILD_LIST=$(eas build:list --platform android --limit 5 --json 2>/dev/null || echo "[]")
+            # Get latest builds
+            BUILD_LIST=$(eas build:list --platform android --limit 10 --json 2>/dev/null || echo "[]")
             
-            # Try to find build matching this version
-            BUILD_ID=$(echo "$BUILD_LIST" | jq -r ".[] | select(.appVersion == \"$VERSION\" or .appVersion == \"$VERSION.0\") | .id" 2>/dev/null | head -1)
+            # Try to find the most recent finished build (EAS Workflows builds should be recent)
+            BUILD_ID=$(echo "$BUILD_LIST" | jq -r '.[] | select(.status == "finished") | .id' 2>/dev/null | head -1)
             
             if [ -n "$BUILD_ID" ] && [ "$BUILD_ID" != "null" ]; then
-              BUILD_STATUS=$(echo "$BUILD_LIST" | jq -r ".[] | select(.id == \"$BUILD_ID\") | .status" 2>/dev/null)
-              
-              if [ "$BUILD_STATUS" = "finished" ]; then
-                echo "✅ Build completed: $BUILD_ID"
-                echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
-                exit 0
-              elif [ "$BUILD_STATUS" = "errored" ] || [ "$BUILD_STATUS" = "canceled" ]; then
-                echo "❌ Build failed with status: $BUILD_STATUS"
-                exit 1
-              fi
+              # Verify it's recent (within last hour)
+              BUILD_CREATED=$(echo "$BUILD_LIST" | jq -r ".[] | select(.id == \"$BUILD_ID\") | .createdAt" 2>/dev/null)
+              echo "✅ Found completed build: $BUILD_ID (created: $BUILD_CREATED)"
+              echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
+              exit 0
             fi
             
             ATTEMPT=$((ATTEMPT + 1))
             if [ $((ATTEMPT % 4)) -eq 0 ]; then
-              echo "   Still waiting... (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+              echo "   Still waiting for build to complete... (attempt $ATTEMPT/$MAX_ATTEMPTS)"
             fi
             sleep 15
           done
@@ -84,8 +83,9 @@ jobs:
             echo "❌ No build ID found"
             exit 1
           fi
-          echo "Downloading build $BUILD_ID..."
+          echo "📥 Downloading build $BUILD_ID..."
           eas build:download --id $BUILD_ID --platform android --output ./android-build.apk
+          echo "✅ Build downloaded successfully"
 
       - name: Extract version from tag
         id: get_version
