@@ -88,32 +88,33 @@ export default function ManageHouseholdsScreen() {
   const handleSwitchDefault = async (householdId: string) => {
     if (!user) return;
 
-    showConfirm(
+    const confirmed = await showConfirm(
       'Switch Default Household?',
-      'This will make this household your default. All new data will be added to this household.',
-      async () => {
-        try {
-          await setDoc(
-            doc(db, 'users', user.id),
-            {
-              default_household_id: householdId,
-              updated_at: serverTimestamp(),
-            },
-            { merge: true }
-          );
-
-          updateUserLocally({
-            default_household_id: householdId,
-          });
-
-          showAlert('Success', 'Default household switched');
-          loadHouseholds();
-        } catch (error) {
-          console.error('Error switching default household:', error);
-          showAlert('Error', 'Failed to switch default household');
-        }
-      }
+      'This will make this household your default. All new data will be added to this household.'
     );
+
+    if (!confirmed) return;
+
+    try {
+      await setDoc(
+        doc(db, 'users', user.id),
+        {
+          default_household_id: householdId,
+          updated_at: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      updateUserLocally({
+        default_household_id: householdId,
+      });
+
+      showAlert('Success', 'Default household switched');
+      loadHouseholds();
+    } catch (error) {
+      console.error('Error switching default household:', error);
+      showAlert('Error', 'Failed to switch default household');
+    }
   };
 
   const handleDeleteHousehold = async (household: Household) => {
@@ -134,53 +135,54 @@ export default function ManageHouseholdsScreen() {
       return;
     }
 
-    showConfirm(
+    const confirmed = await showConfirm(
       'Delete Household?',
-      `Are you sure you want to delete "${household.name}"? This will permanently delete all budgets, transactions, accounts, and debts associated with this household. This action cannot be undone.`,
-      async () => {
-        try {
-          // Remove household ID from user's household_ids
-          const updatedHouseholdIds = user.household_ids.filter(id => id !== household.id);
-          
-          // If this was the default, set a new default
-          let newDefaultId = user.default_household_id;
-          if (user.default_household_id === household.id) {
-            newDefaultId = updatedHouseholdIds[0] || undefined;
-          }
-
-          // Update user document
-          await setDoc(
-            doc(db, 'users', user.id),
-            {
-              household_ids: updatedHouseholdIds,
-              default_household_id: newDefaultId,
-              updated_at: serverTimestamp(),
-            },
-            { merge: true }
-          );
-
-          // Delete household document (this will cascade delete subcollections in Firestore rules)
-          await deleteDoc(doc(db, 'households', household.id));
-
-          // Update local user state
-          updateUserLocally({
-            household_ids: updatedHouseholdIds,
-            default_household_id: newDefaultId,
-          });
-
-          showAlert('Success', 'Household deleted successfully');
-          loadHouseholds();
-
-          // If we deleted the default and have no households left, redirect to create
-          if (updatedHouseholdIds.length === 0) {
-            router.replace('/household/create');
-          }
-        } catch (error) {
-          console.error('Error deleting household:', error);
-          showAlert('Error', 'Failed to delete household');
-        }
-      }
+      `Are you sure you want to delete "${household.name}"? This will permanently delete all budgets, transactions, accounts, and debts associated with this household. This action cannot be undone.`
     );
+
+    if (!confirmed) return;
+
+    try {
+      // Remove household ID from user's household_ids
+      const updatedHouseholdIds = user.household_ids.filter(id => id !== household.id);
+      
+      // If this was the default, set a new default
+      let newDefaultId = user.default_household_id;
+      if (user.default_household_id === household.id) {
+        newDefaultId = updatedHouseholdIds[0] || undefined;
+      }
+
+      // Update user document
+      await setDoc(
+        doc(db, 'users', user.id),
+        {
+          household_ids: updatedHouseholdIds,
+          default_household_id: newDefaultId,
+          updated_at: serverTimestamp(),
+        },
+        { merge: true }
+      );
+
+      // Delete household document (this will cascade delete subcollections in Firestore rules)
+      await deleteDoc(doc(db, 'households', household.id));
+
+      // Update local user state
+      updateUserLocally({
+        household_ids: updatedHouseholdIds,
+        default_household_id: newDefaultId,
+      });
+
+      showAlert('Success', 'Household deleted successfully');
+      loadHouseholds();
+
+      // If we deleted the default and have no households left, redirect to create
+      if (updatedHouseholdIds.length === 0) {
+        router.replace('/household/create');
+      }
+    } catch (error) {
+      console.error('Error deleting household:', error);
+      showAlert('Error', 'Failed to delete household');
+    }
   };
 
   const handleStartEdit = (household: Household) => {

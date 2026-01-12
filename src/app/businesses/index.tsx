@@ -68,20 +68,21 @@ export default function BusinessesScreen() {
     loadBusinesses();
   };
 
-  const handleDelete = (business: Business) => {
-    showConfirm(
+  const handleDelete = async (business: Business) => {
+    const confirmed = await showConfirm(
       'Delete Business',
-      `Are you sure you want to delete "${business.name}"? This will not delete associated transactions or claims.`,
-      async () => {
-        try {
-          await businessRepo.deleteBusiness(business.id);
-          loadBusinesses();
-        } catch (error) {
-          console.error('❌ Failed to delete business:', error);
-          showAlert('Error', 'Failed to delete business');
-        }
-      }
+      `Are you sure you want to delete "${business.name}"? This will not delete associated transactions or claims.`
     );
+
+    if (!confirmed) return;
+
+    try {
+      await businessRepo.deleteBusiness(business.id);
+      loadBusinesses();
+    } catch (error) {
+      console.error('❌ Failed to delete business:', error);
+      showAlert('Error', 'Failed to delete business');
+    }
   };
 
   const getTypeLabel = (type: Business['type']) => {

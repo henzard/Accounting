@@ -53,11 +53,11 @@ export class FirestoreBudgetRepository implements IBudgetRepository {
 
   async getBudgetByMonth(householdId: string, month: number, year: number): Promise<Budget | null> {
     try {
+      // Use single where clause to avoid composite index requirement
+      // Filter by month and year in memory (acceptable since households have limited budgets)
       const q = query(
         collection(db, this.COLLECTION),
-        where('household_id', '==', householdId),
-        where('month', '==', month),
-        where('year', '==', year)
+        where('household_id', '==', householdId)
       );
 
       const querySnapshot = await getDocs(q);
@@ -66,9 +66,17 @@ export class FirestoreBudgetRepository implements IBudgetRepository {
         return null;
       }
 
+      // Filter by month and year in memory
+      const budgets = querySnapshot.docs
+        .map(doc => this.firestoreToBudget(doc.data()))
+        .filter(budget => budget.month === month && budget.year === year);
+
+      if (budgets.length === 0) {
+        return null;
+      }
+
       // Should only be one budget per month per household
-      const docSnap = querySnapshot.docs[0];
-      return this.firestoreToBudget(docSnap.data());
+      return budgets[0];
     } catch (error) {
       console.error('Error getting budget by month:', error);
       throw error;

@@ -241,7 +241,7 @@ export default function HouseholdMembersScreen() {
     }
   };
 
-  const handleRemoveMember = (member: MemberInfo) => {
+  const handleRemoveMember = async (member: MemberInfo) => {
     if (!household || !user) return;
 
     // Can't remove owner
@@ -262,20 +262,21 @@ export default function HouseholdMembersScreen() {
       return;
     }
 
-    showConfirm(
+    const confirmed = await showConfirm(
       'Remove Member?',
-      `Are you sure you want to remove ${member.name} (${member.email}) from this household?`,
-      async () => {
-        try {
-          await householdRepo.removeMember(household.id, member.userId);
-          showAlert('Success', 'Member removed successfully');
-          loadHouseholdAndMembers();
-        } catch (error) {
-          console.error('❌ Failed to remove member:', error);
-          showAlert('Error', 'Failed to remove member');
-        }
-      }
+      `Are you sure you want to remove ${member.name} (${member.email}) from this household?`
     );
+
+    if (!confirmed) return;
+
+    try {
+      await householdRepo.removeMember(household.id, member.userId);
+      showAlert('Success', 'Member removed successfully');
+      loadHouseholdAndMembers();
+    } catch (error) {
+      console.error('❌ Failed to remove member:', error);
+      showAlert('Error', 'Failed to remove member');
+    }
   };
 
   if (loading) {

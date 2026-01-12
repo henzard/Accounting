@@ -11,6 +11,7 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
@@ -27,6 +28,7 @@ import {
   ScreenWrapper,
   AppText,
 } from '@/presentation/components';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
 import { FirestoreTransactionRepository } from '@/data/repositories/FirestoreTransactionRepository';
 import { FirestoreAccountRepository } from '@/data/repositories/FirestoreAccountRepository';
@@ -41,6 +43,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
 import { v4 as uuidv4 } from 'uuid';
 import { CurrencyCode } from '@/shared/utils/currency';
+import { pickReceiptImage, takeReceiptPhoto, uploadReceipts, ReceiptImage } from '@/shared/utils/receipt-upload';
 
 export default function AddTransactionScreen() {
   const { theme } = useTheme();
@@ -60,6 +63,10 @@ export default function AddTransactionScreen() {
   const [isBusiness, setIsBusiness] = useState(false);
   const [selectedBusinessId, setSelectedBusinessId] = useState<string>('');
   const [reimbursementType, setReimbursementType] = useState<'REIMBURSABLE' | 'BUSINESS_OWNED' | undefined>(undefined);
+
+  // Receipt state
+  const [receiptImages, setReceiptImages] = useState<ReceiptImage[]>([]);
+  const [uploadingReceipts, setUploadingReceipts] = useState(false);
 
   // Data state
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -165,6 +172,37 @@ export default function AddTransactionScreen() {
     return null;
   };
 
+  // Handle receipt photo selection
+  const handleAddReceipt = async () => {
+    try {
+      const image = await pickReceiptImage();
+      if (image) {
+        setReceiptImages([...receiptImages, image]);
+      }
+    } catch (error) {
+      console.error('❌ Error selecting receipt:', error);
+      showAlert('Error', 'Failed to select receipt photo');
+    }
+  };
+
+  // Handle taking receipt photo
+  const handleTakeReceiptPhoto = async () => {
+    try {
+      const image = await takeReceiptPhoto();
+      if (image) {
+        setReceiptImages([...receiptImages, image]);
+      }
+    } catch (error) {
+      console.error('❌ Error taking receipt photo:', error);
+      showAlert('Error', 'Failed to take receipt photo');
+    }
+  };
+
+  // Remove receipt image
+  const handleRemoveReceipt = (index: number) => {
+    setReceiptImages(receiptImages.filter((_, i) => i !== index));
+  };
+
   // Save transaction
   const handleSave = async () => {
     // Validate
@@ -191,9 +229,52 @@ export default function AddTransactionScreen() {
         }
       }
 
+      // Create transaction ID first (needed for receipt upload)
+      const transactionId = uuidv4();
+
+      // Upload receipts if any
+      let receiptUrls: string[] = [];
+      if (receiptImages.length > 0) {
+        setUploadingReceipts(true);
+        try {
+          receiptUrls = await uploadReceipts(receiptImages, transactionId, user.default_household_id!);
+          console.log(`✅ Uploaded ${receiptUrls.length} receipt(s)`);
+        } catch (error: any) {
+          console.error('❌ Failed to upload receipts:', error);
+          
+          // Check if it's a CORS/configuration error
+          const errorMessage = error?.message || String(error);
+          const isCorsError = errorMessage.includes('CORS') || 
+                            errorMessage.includes('blocked by CORS') ||
+                            errorMessage.includes('preflight');
+          
+          if (isCorsError) {
+            // CORS error means Firebase Storage is not configured
+            showAlert(
+              'Receipt Upload Failed',
+              'Receipt upload failed due to Firebase Storage CORS configuration.\n\n' +
+              'The transaction will be saved without receipts.\n\n' +
+              'To enable receipt uploads, configure Firebase Storage:\n' +
+              '1. Go to Firebase Console → Storage → Rules\n' +
+              '2. Add security rules (see docs/security/firebase-storage-rules.md)\n' +
+              '3. Configure CORS for localhost:8081\n\n' +
+              'You can add receipts later by editing this transaction.'
+            );
+          } else {
+            // Other error - just warn and continue
+            showAlert(
+              'Receipt Upload Failed',
+              'Transaction will be saved without receipts. You can add receipts later by editing the transaction.'
+            );
+          }
+        } finally {
+          setUploadingReceipts(false);
+        }
+      }
+
       // Create transaction
       const transaction = createTransaction({
-        id: uuidv4(),
+        id: transactionId,
         household_id: user.default_household_id!,
         type,
         date: transactionDate,
@@ -216,6 +297,11 @@ export default function AddTransactionScreen() {
       if (isBusiness && reimbursementType) {
         transaction.reimbursement_type = reimbursementType as ReimbursementType;
       }
+
+      // Set receipt fields
+      transaction.has_receipt = receiptUrls.length > 0;
+      transaction.receipt_count = receiptUrls.length;
+      transaction.receipt_urls = receiptUrls.length > 0 ? receiptUrls : undefined;
 
       // Save to Firestore
       await transactionRepo.createTransaction(transaction);
@@ -511,12 +597,77 @@ export default function AddTransactionScreen() {
             </AppText>
           </Card>
 
+          {/* Receipt Photos */}
+          <Card padding="md" style={{ marginBottom: SPACING[4] }}>
+            <AppText variant="body" color={theme.text.secondary} style={{ marginBottom: SPACING[3] }}>
+              Receipt Photos ({receiptImages.length})
+            </AppText>
+
+            {/* Receipt Images Grid */}
+            {receiptImages.length > 0 && (
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: SPACING[3] }}>
+                {receiptImages.map((image, index) => (
+                  <View key={index} style={{ position: 'relative', width: 100, height: 100, marginRight: SPACING[2], marginBottom: SPACING[2] }}>
+                    <Image
+                      source={{ uri: image.uri }}
+                      style={{
+                        width: 100,
+                        height: 100,
+                        borderRadius: BORDER_RADIUS.sm,
+                        backgroundColor: theme.background.secondary,
+                      }}
+                      resizeMode="cover"
+                    />
+                    <TouchableOpacity
+                      onPress={() => handleRemoveReceipt(index)}
+                      style={{
+                        position: 'absolute',
+                        top: -8,
+                        right: -8,
+                        width: 24,
+                        height: 24,
+                        borderRadius: 12,
+                        backgroundColor: theme.status.error,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <IconSymbol name="xmark" size={14} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Add Receipt Buttons */}
+            <View style={{ flexDirection: 'row', gap: SPACING[2] }}>
+              <OutlineButton
+                title="📷 Take Photo"
+                onPress={handleTakeReceiptPhoto}
+                size="sm"
+                style={{ flex: 1 }}
+              />
+              <OutlineButton
+                title="📁 Choose from Gallery"
+                onPress={handleAddReceipt}
+                size="sm"
+                style={{ flex: 1 }}
+              />
+            </View>
+          </Card>
+
           {/* Save Button */}
           <PrimaryButton
-            title={saving ? 'Saving...' : 'Save Transaction'}
+            title={
+              uploadingReceipts
+                ? 'Uploading Receipts...'
+                : saving
+                ? 'Saving...'
+                : 'Save Transaction'
+            }
             onPress={handleSave}
-            disabled={saving}
-            loading={saving}
+            disabled={saving || uploadingReceipts}
+            loading={saving || uploadingReceipts}
             fullWidth
             size="lg"
           />

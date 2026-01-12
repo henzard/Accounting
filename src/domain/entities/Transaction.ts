@@ -51,6 +51,7 @@ export interface Transaction {
   // Receipt
   has_receipt: boolean;
   receipt_count: number;
+  receipt_urls?: string[]; // Firebase Storage URLs for receipt photos
   
   // Late Entry Tracking
   captured_at: Date;

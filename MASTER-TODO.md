@@ -972,13 +972,25 @@ Building core features: authentication, household management, transactions, budg
 
 ---
 
-### 6.2: Receipt Photos (2 hours)
+### 6.2: Receipt Photos (2 hours) ✅ COMPLETE
 
-- [ ] Integrate expo-image-picker
-- [ ] Add photo to transaction
-- [ ] Upload to Firebase Storage
-- [ ] Display receipt in transaction detail
-- [ ] **Test app runs**, photos work
+- [x] Integrate expo-image-picker
+- [x] Add photo to transaction
+- [x] Upload to Firebase Storage
+- [x] Display receipt in transaction detail
+- [x] **Test app runs**, photos work
+
+**Exit Criteria**: Can attach and view receipt photos on transactions ✅ VERIFIED  
+**Status**: COMPLETE
+
+**What was built:**
+- `expo-image-picker` package installed
+- `receipt-upload.ts` utility for image selection, camera capture, and Firebase Storage upload
+- Receipt photo capture/selection UI in transaction add screen
+- Receipt display with thumbnail grid and full-screen modal in transaction detail screen
+- `receipt_urls` field added to Transaction entity
+- Firestore repository updated to handle receipt URLs
+- Multiple receipt support (can add multiple photos per transaction)
 
 ---
 
@@ -1106,19 +1118,20 @@ npm run android
 
 ## 🚀 Current Status
 
-**You are here**: Phase 6.2 - Receipt Photos
+**You are here**: Phase 6.3 - Sinking Funds
 
 **What's Complete**:
 - ✅ Phase 0-5: All infrastructure, domain, data, Firebase, theme, components, navigation, MVP features
 - ✅ Phase 5.1-5.9: Authentication, Households, Baby Steps, Accounts, Budgets, Transactions, Category Tracking, Debt Snowball, Dashboard
-- ✅ Phase 6.0-6.1: Household Management, Business Expense Tracking
+- ✅ Phase 6.0-6.2: Household Management, Business Expense Tracking, Receipt Photos
 - ✅ UI component library with premium design standards
 - ✅ Firebase tested and working (offline + online)
 - ✅ Multi-currency support
 - ✅ Theme system (light/dark mode)
 - ✅ Household switcher and theme toggle on all screens
+- ✅ Receipt photo capture and storage
 
-**Next step**: Phase 6.2 - Receipt Photos (integrate expo-image-picker, upload to Firebase Storage)
+**Next step**: Phase 6.3 - Sinking Funds (create Goals screen, track progress toward goals)
 
 **To verify app works**:
 ```powershell

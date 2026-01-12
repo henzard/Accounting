@@ -49,35 +49,33 @@ export function showAlert(
  * Show a confirmation dialog that works on both web and native
  * On web: Uses window.confirm
  * On native: Uses Alert.alert with buttons
+ * 
+ * @returns Promise that resolves to true if confirmed, false if cancelled
  */
 export function showConfirm(
   title: string,
-  message: string,
-  onConfirm: () => void,
-  onCancel?: () => void
-): void {
-  if (Platform.OS === 'web') {
-    const confirmed = window.confirm(`${title}\n\n${message}`);
-    if (confirmed) {
-      onConfirm();
-    } else if (onCancel) {
-      onCancel();
+  message: string
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm(`${title}\n\n${message}`);
+      resolve(confirmed);
+    } else {
+      Alert.alert(
+        title,
+        message,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => resolve(false),
+          },
+          {
+            text: 'Confirm',
+            onPress: () => resolve(true),
+          },
+        ]
+      );
     }
-  } else {
-    Alert.alert(
-      title,
-      message,
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-          onPress: onCancel,
-        },
-        {
-          text: 'Confirm',
-          onPress: onConfirm,
-        },
-      ]
-    );
-  }
+  });
 }

@@ -52,19 +52,20 @@ export default function MoreScreen() {
   const router = useRouter();
 
   const handleSignOut = async () => {
-    showConfirm(
+    const confirmed = await showConfirm(
       'Sign Out',
-      'Are you sure you want to sign out?',
-      async () => {
-        try {
-          await signOut();
-          router.replace('/login');
-        } catch (error) {
-          console.error('❌ Sign out failed:', error);
-          showAlert('Error', 'Failed to sign out');
-        }
-      }
+      'Are you sure you want to sign out?'
     );
+
+    if (!confirmed) return;
+
+    try {
+      await signOut();
+      router.replace('/login');
+    } catch (error) {
+      console.error('❌ Sign out failed:', error);
+      showAlert('Error', 'Failed to sign out');
+    }
   };
 
   return (

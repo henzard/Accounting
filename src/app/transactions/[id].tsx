@@ -11,6 +11,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
+  Image,
+  Modal,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
@@ -42,6 +44,14 @@ import { SelectOption } from '@/shared/types';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
 import { formatCurrency, CurrencyCode } from '@/shared/utils/currency';
+import {
+  pickReceiptImage,
+  takeReceiptPhoto,
+  uploadReceipts,
+  deleteReceipts,
+  ReceiptImage,
+} from '@/shared/utils/receipt-upload';
+import { Image as ExpoImage } from 'expo-image';
 
 export default function TransactionDetailScreen() {
   const { theme } = useTheme();
@@ -72,6 +82,12 @@ export default function TransactionDetailScreen() {
   const [isBusiness, setIsBusiness] = useState(false);
   const [selectedBusinessId, setSelectedBusinessId] = useState<string>('');
   const [reimbursementType, setReimbursementType] = useState<ReimbursementType>('NONE');
+
+  // Receipt state
+  const [receiptImages, setReceiptImages] = useState<ReceiptImage[]>([]); // New images to upload
+  const [existingReceiptUrls, setExistingReceiptUrls] = useState<string[]>([]); // Existing URLs from transaction
+  const [deletedReceiptUrls, setDeletedReceiptUrls] = useState<string[]>([]); // URLs to delete
+  const [uploadingReceipts, setUploadingReceipts] = useState(false);
 
   // Data state
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -118,6 +134,11 @@ export default function TransactionDetailScreen() {
         setIsBusiness(txn.is_business || false);
         setSelectedBusinessId(txn.business_id || '');
         setReimbursementType(txn.reimbursement_type || 'NONE');
+
+        // Initialize receipt state
+        setExistingReceiptUrls(txn.receipt_urls || []);
+        setReceiptImages([]);
+        setDeletedReceiptUrls([]);
 
         // Load accounts, categories, and businesses
         const accts = await accountRepo.getAccountsByHousehold(user.default_household_id);
@@ -172,6 +193,40 @@ export default function TransactionDetailScreen() {
     { label: 'Business Owned', value: 'BUSINESS_OWNED' },
   ];
 
+  // Receipt handlers
+  const handleAddReceipt = async () => {
+    try {
+      const image = await pickReceiptImage();
+      if (image) {
+        setReceiptImages([...receiptImages, image]);
+      }
+    } catch (error) {
+      console.error('❌ Error selecting receipt:', error);
+      showAlert('Error', 'Failed to select receipt photo');
+    }
+  };
+
+  const handleTakeReceiptPhoto = async () => {
+    try {
+      const image = await takeReceiptPhoto();
+      if (image) {
+        setReceiptImages([...receiptImages, image]);
+      }
+    } catch (error) {
+      console.error('❌ Error taking receipt photo:', error);
+      showAlert('Error', 'Failed to take receipt photo');
+    }
+  };
+
+  const handleRemoveNewReceipt = (index: number) => {
+    setReceiptImages(receiptImages.filter((_, i) => i !== index));
+  };
+
+  const handleDeleteExistingReceipt = (url: string) => {
+    setExistingReceiptUrls(existingReceiptUrls.filter((u) => u !== url));
+    setDeletedReceiptUrls([...deletedReceiptUrls, url]);
+  };
+
   // Save edits
   const handleSave = async () => {
     if (!transaction || !user) return;
@@ -193,6 +248,38 @@ export default function TransactionDetailScreen() {
       const oldCategoryId = transaction.category_id;
       const amountDifference = amountInCents - oldAmount;
 
+      // Handle receipt uploads and deletions
+      let finalReceiptUrls = [...existingReceiptUrls];
+      
+      // Delete removed receipts
+      if (deletedReceiptUrls.length > 0) {
+        try {
+          await deleteReceipts(deletedReceiptUrls);
+          console.log(`✅ Deleted ${deletedReceiptUrls.length} receipt(s)`);
+        } catch (error) {
+          console.error('❌ Failed to delete some receipts:', error);
+          // Continue anyway - receipts might already be deleted
+        }
+      }
+
+      // Upload new receipts
+      if (receiptImages.length > 0) {
+        setUploadingReceipts(true);
+        try {
+          const newUrls = await uploadReceipts(receiptImages, transaction.id, user.default_household_id!);
+          finalReceiptUrls = [...finalReceiptUrls, ...newUrls];
+          console.log(`✅ Uploaded ${newUrls.length} receipt(s)`);
+        } catch (error) {
+          console.error('❌ Failed to upload receipts:', error);
+          showAlert(
+            'Receipt Upload Failed',
+            'Transaction will be saved without the new receipts. You can add them later by editing the transaction.'
+          );
+        } finally {
+          setUploadingReceipts(false);
+        }
+      }
+
       // Update transaction
       const updatedTransaction: Transaction = {
         ...transaction,
@@ -203,6 +290,9 @@ export default function TransactionDetailScreen() {
         payee: payee.trim(),
         notes: notes.trim() || undefined,
         updated_at: new Date(),
+        has_receipt: finalReceiptUrls.length > 0,
+        receipt_count: finalReceiptUrls.length,
+        receipt_urls: finalReceiptUrls.length > 0 ? finalReceiptUrls : undefined,
       };
 
       // Update business expense fields
@@ -273,6 +363,10 @@ export default function TransactionDetailScreen() {
       }
 
       setTransaction(updatedTransaction);
+      // Reset receipt state
+      setExistingReceiptUrls(finalReceiptUrls);
+      setReceiptImages([]);
+      setDeletedReceiptUrls([]);
       setIsEditing(false);
       showAlert('Success', 'Transaction updated successfully');
     } catch (error) {
@@ -324,17 +418,17 @@ export default function TransactionDetailScreen() {
     console.log('🔴 All validations passed, showing delete confirmation');
 
     // Use showConfirm for web-compatible confirmation
-    showConfirm(
+    const confirmed = await showConfirm(
       'Delete Transaction',
-      'Are you sure you want to delete this transaction? This action cannot be undone.',
-      () => {
-        console.log('🔴 Delete confirmed, starting deletion...');
-        performDelete();
-      },
-      () => {
-        console.log('🔴 Delete cancelled by user');
-      }
+      'Are you sure you want to delete this transaction? This action cannot be undone.'
     );
+    
+    if (confirmed) {
+      console.log('🔴 Delete confirmed, starting deletion...');
+      performDelete();
+    } else {
+      console.log('🔴 Delete cancelled by user');
+    }
   };
 
   const performDelete = async () => {
@@ -376,6 +470,18 @@ export default function TransactionDetailScreen() {
         }
       } else {
         console.log('ℹ️ No category to remove from budget');
+      }
+
+      // Delete receipt images if any
+      if (transaction.receipt_urls && transaction.receipt_urls.length > 0) {
+        console.log('🗑️ Deleting receipt images:', transaction.receipt_urls.length);
+        try {
+          await deleteReceipts(transaction.receipt_urls);
+          console.log('✅ Receipt images deleted successfully');
+        } catch (error) {
+          console.warn('⚠️ Failed to delete some receipt images:', error);
+          // Continue with transaction deletion even if receipt deletion fails
+        }
       }
 
       // Delete transaction using repository
@@ -526,6 +632,22 @@ export default function TransactionDetailScreen() {
                 </View>
               )}
             </Card>
+
+            {/* Receipt Photos */}
+            {transaction.has_receipt && transaction.receipt_urls && transaction.receipt_urls.length > 0 && (
+              <Card padding="md" style={{ marginBottom: SPACING[4] }}>
+                <AppText variant="overline" color={theme.text.tertiary} style={{ marginBottom: SPACING[3] }}>
+                  RECEIPTS ({transaction.receipt_count})
+                </AppText>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                  {transaction.receipt_urls.map((url, index) => (
+                    <View key={index} style={{ marginRight: SPACING[2], marginBottom: SPACING[2] }}>
+                      <ReceiptThumbnail url={url} theme={theme} />
+                    </View>
+                  ))}
+                </View>
+              </Card>
+            )}
 
             {/* Delete Button */}
             <Button
@@ -724,6 +846,140 @@ export default function TransactionDetailScreen() {
             )}
           </Card>
 
+          {/* Receipt Photos Section */}
+          <View style={{ height: SPACING[4] }} />
+          <Card padding="md" style={{ marginBottom: SPACING[4] }}>
+            <AppText variant="h2" style={{ marginBottom: SPACING[3] }}>Receipt Photos</AppText>
+
+            {/* Existing Receipts */}
+            {existingReceiptUrls.length > 0 && (
+              <View style={{ marginBottom: SPACING[4] }}>
+                <AppText variant="overline" color={theme.text.tertiary} style={{ marginBottom: SPACING[2] }}>
+                  EXISTING RECEIPTS
+                </AppText>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                  {existingReceiptUrls.map((url, index) => (
+                    <View key={index} style={{ marginRight: SPACING[2], marginBottom: SPACING[2], position: 'relative' }}>
+                      <ExpoImage
+                        source={{ uri: url }}
+                        style={{ width: 80, height: 80, borderRadius: BORDER_RADIUS.sm }}
+                        contentFit="cover"
+                      />
+                      <TouchableOpacity
+                        onPress={() => handleDeleteExistingReceipt(url)}
+                        style={{
+                          position: 'absolute',
+                          top: -8,
+                          right: -8,
+                          backgroundColor: theme.status.error,
+                          borderRadius: 12,
+                          width: 24,
+                          height: 24,
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <IconSymbol name="xmark" size={14} color="#FFFFFF" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* New Receipts */}
+            {receiptImages.length > 0 && (
+              <View style={{ marginBottom: SPACING[4] }}>
+                <AppText variant="overline" color={theme.text.tertiary} style={{ marginBottom: SPACING[2] }}>
+                  NEW RECEIPTS
+                </AppText>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                  {receiptImages.map((image, index) => (
+                    <View key={index} style={{ marginRight: SPACING[2], marginBottom: SPACING[2], position: 'relative' }}>
+                      <ExpoImage
+                        source={{ uri: image.uri }}
+                        style={{ width: 80, height: 80, borderRadius: BORDER_RADIUS.sm }}
+                        contentFit="cover"
+                      />
+                      <TouchableOpacity
+                        onPress={() => handleRemoveNewReceipt(index)}
+                        style={{
+                          position: 'absolute',
+                          top: -8,
+                          right: -8,
+                          backgroundColor: theme.status.error,
+                          borderRadius: 12,
+                          width: 24,
+                          height: 24,
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <IconSymbol name="xmark" size={14} color="#FFFFFF" />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Add Receipt Buttons */}
+            <View style={{ flexDirection: 'row', gap: SPACING[2] }}>
+              <TouchableOpacity
+                onPress={handleTakeReceiptPhoto}
+                disabled={uploadingReceipts}
+                style={{
+                  flex: 1,
+                  paddingVertical: SPACING[3],
+                  paddingHorizontal: SPACING[4],
+                  borderRadius: BORDER_RADIUS.sm,
+                  backgroundColor: theme.background.secondary,
+                  borderWidth: 1,
+                  borderColor: theme.border.default,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: uploadingReceipts ? 0.5 : 1,
+                }}
+              >
+                <IconSymbol name="camera" size={20} color={theme.text.primary} style={{ marginBottom: SPACING[1] }} />
+                <AppText variant="caption" color={theme.text.secondary}>
+                  Take Photo
+                </AppText>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleAddReceipt}
+                disabled={uploadingReceipts}
+                style={{
+                  flex: 1,
+                  paddingVertical: SPACING[3],
+                  paddingHorizontal: SPACING[4],
+                  borderRadius: BORDER_RADIUS.sm,
+                  backgroundColor: theme.background.secondary,
+                  borderWidth: 1,
+                  borderColor: theme.border.default,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: uploadingReceipts ? 0.5 : 1,
+                }}
+              >
+                <IconSymbol name="photo" size={20} color={theme.text.primary} style={{ marginBottom: SPACING[1] }} />
+                <AppText variant="caption" color={theme.text.secondary}>
+                  Choose from Gallery
+                </AppText>
+              </TouchableOpacity>
+            </View>
+
+            {uploadingReceipts && (
+              <View style={{ marginTop: SPACING[2], alignItems: 'center' }}>
+                <ActivityIndicator size="small" color={theme.interactive.primary} />
+                <AppText variant="caption" color={theme.text.tertiary} style={{ marginTop: SPACING[1] }}>
+                  Uploading receipts...
+                </AppText>
+              </View>
+            )}
+          </Card>
+
           <PrimaryButton
             title={saving ? 'Saving...' : 'Save Changes'}
             onPress={handleSave}
@@ -745,6 +1001,87 @@ export default function TransactionDetailScreen() {
       </ScrollView>
       </KeyboardAvoidingView>
     </ScreenWrapper>
+  );
+}
+
+// Receipt Thumbnail Component
+function ReceiptThumbnail({ url, theme }: { url: string; theme: any }) {
+  const [modalVisible, setModalVisible] = useState(false);
+
+  return (
+    <>
+      <TouchableOpacity
+        onPress={() => setModalVisible(true)}
+        style={{
+          width: 100,
+          height: 100,
+          borderRadius: BORDER_RADIUS.sm,
+          overflow: 'hidden',
+          backgroundColor: theme.background.secondary,
+        }}
+      >
+        <ExpoImage
+          source={{ uri: url }}
+          style={{ width: 100, height: 100 }}
+          contentFit="cover"
+        />
+      </TouchableOpacity>
+
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+          activeOpacity={1}
+          onPress={() => setModalVisible(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={(e) => e.stopPropagation()}
+            style={{
+              width: '90%',
+              height: '90%',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <ExpoImage
+              source={{ uri: url }}
+              style={{
+                width: '100%',
+                height: '100%',
+              }}
+              contentFit="contain"
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => setModalVisible(false)}
+            style={{
+              position: 'absolute',
+              top: 50,
+              right: 20,
+              width: 44,
+              height: 44,
+              borderRadius: 22,
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 1000,
+            }}
+          >
+            <IconSymbol name="xmark" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+    </>
   );
 }
 

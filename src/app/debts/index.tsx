@@ -108,34 +108,35 @@ export default function DebtListScreen() {
   };
 
   const handleMarkPaidOff = async (debt: Debt) => {
-    showConfirm(
+    const confirmed = await showConfirm(
       'Mark as Paid Off?',
-      `Are you sure you've paid off "${debt.name}"? This will celebrate your progress and move to the next debt!`,
-      async () => {
-        try {
-          // Note: markDebtPaidOff implementation requires paidOffBy, but interface doesn't
-          // Using updateDebt as workaround
-          await debtRepository.updateDebt(debt.id, {
-            status: 'paid_off',
-            paid_off_at: new Date(),
-            current_balance: 0,
-            is_focus_debt: false,
-            updated_at: new Date(),
-          });
-          // Recalculate snowball order for remaining debts
-          await debtRepository.recalculateSnowballOrder(user!.default_household_id);
-          await loadDebts();
-          
-          showAlert(
-            '🎉 Debt Paid Off!',
-            `Congratulations! "${debt.name}" is now paid off. Keep going with the next debt in your snowball!`
-          );
-        } catch (error) {
-          console.error('Error marking debt as paid off:', error);
-          showAlert('Error', 'Failed to mark debt as paid off');
-        }
-      }
+      `Are you sure you've paid off "${debt.name}"? This will celebrate your progress and move to the next debt!`
     );
+
+    if (!confirmed) return;
+
+    try {
+      // Note: markDebtPaidOff implementation requires paidOffBy, but interface doesn't
+      // Using updateDebt as workaround
+      await debtRepository.updateDebt(debt.id, {
+        status: 'paid_off',
+        paid_off_at: new Date(),
+        current_balance: 0,
+        is_focus_debt: false,
+        updated_at: new Date(),
+      });
+      // Recalculate snowball order for remaining debts
+      await debtRepository.recalculateSnowballOrder(user!.default_household_id);
+      await loadDebts();
+      
+      showAlert(
+        '🎉 Debt Paid Off!',
+        `Congratulations! "${debt.name}" is now paid off. Keep going with the next debt in your snowball!`
+      );
+    } catch (error) {
+      console.error('Error marking debt as paid off:', error);
+      showAlert('Error', 'Failed to mark debt as paid off');
+    }
   };
 
   const activeDebts = debts.filter(d => d.status === 'active' && !d.is_mortgage);
