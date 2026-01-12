@@ -34,8 +34,8 @@ yarn-error.*
 .env*.local
 .env
 
-# Firebase config (contains secrets)
-infrastructure/firebase/config.ts
+# Firebase config files (note: config.ts is now committed - Firebase config is public in client bundle)
+# infrastructure/firebase/config.ts  # Removed - Firebase config is public, safe to commit
 firebase-config.json
 google-services.json
 GoogleService-Info.plist
