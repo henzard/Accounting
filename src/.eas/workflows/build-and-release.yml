@@ -1,4 +1,17 @@
-name: Build and Release
+name: Build Android Production
+
+# EAS Workflows - simpler alternative to GitHub Actions
+# This builds Android when version tags are pushed
+# 
+# Setup required:
+# 1. Link GitHub repo: https://expo.dev/accounts/henzardkruger/projects/Accounting/settings/github
+# 2. Install Expo GitHub App and connect repository
+# 3. Workflow will trigger automatically on version tag pushes
+#
+# Note: For GitHub Releases, you can:
+# - Download builds manually from Expo dashboard
+# - Use GitHub Actions workflow (backed up in .github/workflows/eas-build-and-release.yml.backup)
+# - Or create releases manually after builds complete
 
 on:
   push:
@@ -13,22 +26,3 @@ jobs:
     params:
       platform: android
       profile: production
-
-  download_android:
-    name: Download Android Build
-    type: download-build
-    depends-on: build_android
-    params:
-      build-id: ${{ jobs.build_android.outputs.build-id }}
-      path: ./android-build.apk
-
-  create_release:
-    name: Create GitHub Release
-    type: github-release
-    depends-on: download_android
-    params:
-      tag: ${{ github.ref_name }}
-      name: Release ${{ github.ref_name }}
-      body-path: ../../docs/release-notes.md
-      files:
-        - ./android-build.apk
