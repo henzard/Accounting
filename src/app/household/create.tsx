@@ -2,17 +2,18 @@
 // First-time household setup after signup
 
 import React, { useState } from 'react';
-import { View, Text, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
-import { Input, PrimaryButton, Card, SearchableSelect } from '@/presentation/components';
+import { Input, PrimaryButton, Card, SearchableSelect, ScreenWrapper, AppText } from '@/presentation/components';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
 import { createHousehold } from '@/domain/entities';
 import { v4 as uuid } from 'uuid';
 import { CURRENCY_OPTIONS } from '@/shared/constants/currencies';
 import { TIMEZONE_OPTIONS } from '@/shared/constants/timezones';
+import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
 
 export default function CreateHouseholdScreen() {
   const { theme } = useTheme();
@@ -122,154 +123,152 @@ export default function CreateHouseholdScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1, backgroundColor: theme.background.primary }}
+      style={{ flex: 1 }}
     >
-      <ScrollView
-        contentContainerStyle={{
-          flexGrow: 1,
-          justifyContent: 'center',
-          padding: theme.spacing[6],
-        }}
-        keyboardShouldPersistTaps="handled"
-      >
-        {/* Header */}
-        <View style={{ alignItems: 'center', marginBottom: theme.spacing[8] }}>
-          <View
-            style={{
-              width: 80,
-              height: 80,
-              borderRadius: 40,
-              backgroundColor: theme.interactive.primary,
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginBottom: theme.spacing[4],
-            }}
-          >
-            <Text style={{ fontSize: 40, color: theme.text.inverse }}>🏠</Text>
+      <ScreenWrapper>
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: 'center',
+          }}
+          keyboardShouldPersistTaps="handled"
+        >
+          {/* Header */}
+          <View style={{ alignItems: 'center', marginBottom: SPACING[8] }}>
+            <View
+              style={{
+                width: 80,
+                height: 80,
+                borderRadius: 40,
+                backgroundColor: theme.interactive.primary,
+                justifyContent: 'center',
+                alignItems: 'center',
+                marginBottom: SPACING[4],
+              }}
+            >
+              <AppText variant="display" style={{ color: theme.text.inverse }}>🏠</AppText>
+            </View>
+            <AppText
+              variant="display"
+              style={{
+                color: theme.text.primary,
+                marginBottom: SPACING[2],
+                textAlign: 'center',
+              }}
+            >
+              Create Your Household
+            </AppText>
+            <AppText
+              variant="body"
+              style={{
+                color: theme.text.secondary,
+                textAlign: 'center',
+              }}
+            >
+              Your household is your financial homebase. This is where you&apos;ll track your budget, transactions, and Baby Steps progress.
+            </AppText>
           </View>
-          <Text
-            style={{
-              fontSize: 28,
-              fontWeight: 'bold',
-              color: theme.text.primary,
-              marginBottom: theme.spacing[2],
-              textAlign: 'center',
-            }}
-          >
-            Create Your Household
-          </Text>
-          <Text
-            style={{
-              fontSize: 16,
-              color: theme.text.secondary,
-              textAlign: 'center',
-            }}
-          >
-            Your household is your financial homebase. This is where you&apos;ll track your budget, transactions, and Baby Steps progress.
-          </Text>
-        </View>
 
-        {/* Info Card */}
-        <Card
-          variant="outlined"
-          style={{
-            marginBottom: theme.spacing[6],
-            backgroundColor: theme.status.infoBackground,
-            borderColor: theme.status.info,
-          }}
-        >
-          <Text
+          {/* Info Card */}
+          <Card
+            variant="outlined"
             style={{
-              fontSize: 14,
-              color: theme.status.info,
-              marginBottom: theme.spacing[2],
-              fontWeight: '600',
+              marginBottom: SPACING[6],
+              backgroundColor: theme.status.infoBackground,
+              borderColor: theme.status.info,
             }}
           >
-            💡 What is a household?
-          </Text>
-          <Text style={{ fontSize: 14, color: theme.text.secondary }}>
-            A household can be just you, or you and your spouse/partner. Multiple people can manage the same budget together.
-          </Text>
-        </Card>
+            <AppText
+              variant="bodyEmphasis"
+              style={{
+                color: theme.status.info,
+                marginBottom: SPACING[2],
+              }}
+            >
+              💡 What is a household?
+            </AppText>
+            <AppText variant="body" style={{ color: theme.text.secondary }}>
+              A household can be just you, or you and your spouse/partner. Multiple people can manage the same budget together.
+            </AppText>
+          </Card>
 
-        {/* Form */}
-        <View style={{ marginBottom: theme.spacing[6] }}>
-          <Input
-            label="Household Name"
-            value={householdName}
-            onChangeText={(text) => {
-              setHouseholdName(text);
-              setNameError('');
-            }}
-            onBlur={() => validateName(householdName)}
-            error={nameError}
-            placeholder="e.g., Smith Family, My Budget, John & Jane"
-            autoCapitalize="words"
-            testID="household-name-input"
-            required
+          {/* Form */}
+          <View style={{ marginBottom: SPACING[6] }}>
+            <Input
+              label="Household Name"
+              value={householdName}
+              onChangeText={(text) => {
+                setHouseholdName(text);
+                setNameError('');
+              }}
+              onBlur={() => validateName(householdName)}
+              error={nameError}
+              placeholder="e.g., Smith Family, My Budget, John & Jane"
+              autoCapitalize="words"
+              testID="household-name-input"
+              required
+            />
+
+            <View style={{ height: SPACING[4] }} />
+
+            <SearchableSelect
+              label="Currency"
+              value={currency}
+              onSelect={setCurrency}
+              options={CURRENCY_OPTIONS}
+              placeholder="Select currency"
+              helperText="Your household's currency for all transactions"
+              testID="household-currency-select"
+              required
+            />
+
+            <View style={{ height: SPACING[4] }} />
+
+            <SearchableSelect
+              label="Timezone"
+              value={timezone}
+              onSelect={setTimezone}
+              options={TIMEZONE_OPTIONS}
+              placeholder="Select timezone"
+              helperText="Your timezone for accurate date/time display"
+              testID="household-timezone-select"
+              required
+            />
+          </View>
+
+          {/* Create Button */}
+          <PrimaryButton
+            title={loading ? 'Creating household...' : 'Create Household'}
+            onPress={handleCreateHousehold}
+            loading={loading}
+            disabled={loading}
+            fullWidth
+            size="lg"
+            testID="create-household-button"
           />
 
-          <View style={{ height: theme.spacing[4] }} />
-
-          <SearchableSelect
-            label="Currency"
-            value={currency}
-            onSelect={setCurrency}
-            options={CURRENCY_OPTIONS}
-            placeholder="Select currency"
-            helperText="Your household's currency for all transactions"
-            testID="household-currency-select"
-            required
-          />
-
-          <View style={{ height: theme.spacing[4] }} />
-
-          <SearchableSelect
-            label="Timezone"
-            value={timezone}
-            onSelect={setTimezone}
-            options={TIMEZONE_OPTIONS}
-            placeholder="Select timezone"
-            helperText="Your timezone for accurate date/time display"
-            testID="household-timezone-select"
-            required
-          />
-        </View>
-
-        {/* Create Button */}
-        <PrimaryButton
-          title={loading ? 'Creating household...' : 'Create Household'}
-          onPress={handleCreateHousehold}
-          loading={loading}
-          disabled={loading}
-          fullWidth
-          size="lg"
-          testID="create-household-button"
-        />
-
-        {/* Baby Steps Preview */}
-        <Card
-          style={{
-            marginTop: theme.spacing[8],
-            backgroundColor: theme.background.tertiary,
-          }}
-        >
-          <Text
+          {/* Baby Steps Preview */}
+          <Card
             style={{
-              fontSize: 14,
-              fontWeight: '600',
-              color: theme.text.primary,
-              marginBottom: theme.spacing[2],
+              marginTop: SPACING[8],
+              backgroundColor: theme.background.tertiary,
             }}
           >
-            📈 You&apos;ll start at Baby Step 1
-          </Text>
-          <Text style={{ fontSize: 13, color: theme.text.secondary }}>
-            Save $1,000 for your starter emergency fund. This is your first step toward financial freedom!
-          </Text>
-        </Card>
-      </ScrollView>
+            <AppText
+              variant="bodyEmphasis"
+              style={{
+                color: theme.text.primary,
+                marginBottom: SPACING[2],
+              }}
+            >
+              📈 You&apos;ll start at Baby Step 1
+            </AppText>
+            <AppText variant="caption" style={{ color: theme.text.secondary }}>
+              Save $1,000 for your starter emergency fund. This is your first step toward financial freedom!
+            </AppText>
+          </Card>
+        </ScrollView>
+      </ScreenWrapper>
     </KeyboardAvoidingView>
   );
 }

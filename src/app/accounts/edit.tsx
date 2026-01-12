@@ -4,7 +4,6 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
@@ -16,12 +15,13 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
-import { Input, Button, Card } from '@/presentation/components';
+import { Input, Button, Card, ScreenWrapper, AppText } from '@/presentation/components';
 import { Account, AccountType } from '@/domain/entities/Account';
 import { FirestoreAccountRepository } from '@/data/repositories/FirestoreAccountRepository';
 import { formatCurrency, CurrencyCode } from '@/shared/utils/currency';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
+import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
 
 const ACCOUNT_TYPES: { value: AccountType; label: string; icon: string }[] = [
   { value: 'BANK', label: 'Checking', icon: '🏦' },
@@ -165,14 +165,14 @@ export default function EditAccountScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
+      <ScreenWrapper>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.interactive.primary} />
-          <Text style={[styles.loadingText, { color: theme.text.secondary }]}>
+          <AppText variant="body" style={{ color: theme.text.secondary, marginTop: SPACING[4] }}>
             Loading account...
-          </Text>
+          </AppText>
         </View>
-      </View>
+      </ScreenWrapper>
     );
   }
 
@@ -185,15 +185,15 @@ export default function EditAccountScreen() {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
+      <ScreenWrapper>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
-            <Text style={[styles.cancelButton, { color: theme.interactive.primary }]}>
+            <AppText variant="body" style={{ color: theme.interactive.primary, width: 60 }}>
               Cancel
-            </Text>
+            </AppText>
           </TouchableOpacity>
-          <Text style={[styles.title, { color: theme.text.primary }]}>Edit Account</Text>
+          <AppText variant="h2">Edit Account</AppText>
           <View style={{ width: 60 }} />
         </View>
 
@@ -203,22 +203,22 @@ export default function EditAccountScreen() {
         >
           {/* Balance Display (Read-only) */}
           <Card>
-            <Text style={[styles.label, { color: theme.text.secondary }]}>
+            <AppText variant="bodyEmphasis" style={{ color: theme.text.secondary, marginBottom: SPACING[2] }}>
               Current Balance
-            </Text>
-            <Text style={[styles.balanceText, { color: theme.text.primary }]}>
+            </AppText>
+            <AppText variant="display" style={{ color: theme.text.primary, marginBottom: SPACING[1] }}>
               {formatCurrency(account.balance / 100, householdCurrency)}
-            </Text>
-            <Text style={[styles.helperText, { color: theme.text.tertiary }]}>
+            </AppText>
+            <AppText variant="caption" style={{ color: theme.text.tertiary }}>
               Balance is updated automatically by transactions
-            </Text>
+            </AppText>
           </Card>
 
           {/* Account Type Selection */}
           <Card style={styles.card}>
-            <Text style={[styles.label, { color: theme.text.primary }]}>
+            <AppText variant="bodyEmphasis" style={{ color: theme.text.primary, marginBottom: SPACING[4] }}>
               Account Type
-            </Text>
+            </AppText>
             <View style={styles.typeGrid}>
               {ACCOUNT_TYPES.map((type) => (
                 <TouchableOpacity
@@ -238,10 +238,10 @@ export default function EditAccountScreen() {
                     },
                   ]}
                 >
-                  <Text style={styles.typeIcon}>{type.icon}</Text>
-                  <Text
+                  <AppText variant="display" style={styles.typeIcon}>{type.icon}</AppText>
+                  <AppText
+                    variant="overline"
                     style={[
-                      styles.typeLabel,
                       {
                         color:
                           selectedType === type.value
@@ -251,7 +251,7 @@ export default function EditAccountScreen() {
                     ]}
                   >
                     {type.label}
-                  </Text>
+                  </AppText>
                 </TouchableOpacity>
               ))}
             </View>
@@ -275,12 +275,12 @@ export default function EditAccountScreen() {
               style={styles.toggleRow}
             >
               <View style={styles.toggleInfo}>
-                <Text style={[styles.toggleLabel, { color: theme.text.primary }]}>
+                <AppText variant="bodyEmphasis" style={{ color: theme.text.primary, marginBottom: SPACING[1] }}>
                   Include in Budget
-                </Text>
-                <Text style={[styles.toggleHelper, { color: theme.text.secondary }]}>
+                </AppText>
+                <AppText variant="caption" style={{ color: theme.text.secondary }}>
                   Track this account in your monthly budget
-                </Text>
+                </AppText>
               </View>
               <View
                 style={[
@@ -312,12 +312,12 @@ export default function EditAccountScreen() {
               style={styles.toggleRow}
             >
               <View style={styles.toggleInfo}>
-                <Text style={[styles.toggleLabel, { color: theme.text.primary }]}>
+                <AppText variant="bodyEmphasis" style={{ color: theme.text.primary, marginBottom: SPACING[1] }}>
                   Account Active
-                </Text>
-                <Text style={[styles.toggleHelper, { color: theme.text.secondary }]}>
+                </AppText>
+                <AppText variant="caption" style={{ color: theme.text.secondary }}>
                   Show this account in lists and reports
-                </Text>
+                </AppText>
               </View>
               <View
                 style={[
@@ -357,62 +357,31 @@ export default function EditAccountScreen() {
             onPress={handleArchive}
             style={[styles.archiveButton, { borderColor: theme.status.error }]}
           >
-            <Text style={[styles.archiveButtonText, { color: theme.status.error }]}>
+            <AppText variant="bodyEmphasis" style={{ color: theme.status.error }}>
               Archive Account
-            </Text>
+            </AppText>
           </TouchableOpacity>
         </ScrollView>
-      </View>
+      </ScreenWrapper>
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-  },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-  },
-  cancelButton: {
-    fontSize: 16,
-    fontWeight: '600',
-    width: 60,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    paddingTop: SPACING[8],
+    paddingBottom: SPACING[5],
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  balanceText: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  helperText: {
-    fontSize: 14,
+    paddingBottom: SPACING[10],
   },
   typeGrid: {
     flexDirection: 'row',
@@ -421,23 +390,17 @@ const styles = StyleSheet.create({
   },
   typeCard: {
     width: '31%',
-    margin: 6,
-    padding: 16,
-    borderRadius: 12,
+    margin: SPACING[2], // 8px - 8pt grid compliant
+    padding: SPACING[4],
+    borderRadius: BORDER_RADIUS.md,
     borderWidth: 2,
     alignItems: 'center',
   },
   typeIcon: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
-  typeLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    textAlign: 'center',
+    marginBottom: SPACING[2],
   },
   card: {
-    marginTop: 16,
+    marginTop: SPACING[4],
   },
   toggleRow: {
     flexDirection: 'row',
@@ -446,15 +409,7 @@ const styles = StyleSheet.create({
   },
   toggleInfo: {
     flex: 1,
-    marginRight: 16,
-  },
-  toggleLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  toggleHelper: {
-    fontSize: 14,
+    marginRight: SPACING[4],
   },
   toggle: {
     width: 50,
@@ -468,15 +423,11 @@ const styles = StyleSheet.create({
     borderRadius: 13,
   },
   archiveButton: {
-    marginTop: 16,
-    padding: 16,
-    borderRadius: 8,
+    marginTop: SPACING[4],
+    padding: SPACING[4],
+    borderRadius: BORDER_RADIUS.md,
     borderWidth: 2,
     alignItems: 'center',
-  },
-  archiveButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
 

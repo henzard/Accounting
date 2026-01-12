@@ -1,51 +1,26 @@
-// Repository Interface: Budget
+// Budget Repository Interface
 // Defines contract for budget data access
 
-import { Budget, BudgetCategory } from '@/domain/entities';
+import { Budget } from '@/domain/entities/Budget';
 
 export interface IBudgetRepository {
-  // Get budget by month/year
-  getBudgetByPeriod(
-    householdId: string,
-    month: number,
-    year: number
-  ): Promise<Budget | null>;
-  
-  // Get current month budget
-  getCurrentMonthBudget(householdId: string): Promise<Budget | null>;
-  
-  // Get budget by ID
-  getBudgetById(budgetId: string): Promise<Budget | null>;
-  
-  // Get all budgets for household (paginated)
-  getBudgetsByHousehold(
-    householdId: string,
-    limit?: number
-  ): Promise<Budget[]>;
-  
-  // Create new budget
+  // Create
   createBudget(budget: Budget): Promise<void>;
   
-  // Update budget
+  // Read
+  getBudgetById(budgetId: string): Promise<Budget | null>;
+  getBudgetByMonth(householdId: string, month: number, year: number): Promise<Budget | null>;
+  getBudgetsByHousehold(householdId: string): Promise<Budget[]>;
+  getBudgetsByYear(householdId: string, year: number): Promise<Budget[]>;
+  
+  // Update
   updateBudget(budgetId: string, updates: Partial<Budget>): Promise<void>;
+  updateCategoryPlannedAmount(budgetId: string, categoryId: string, amount: number): Promise<void>;
+  updateCategoryActualAmount(budgetId: string, categoryId: string, amount: number): Promise<void>;
   
-  // Copy budget from previous month
-  copyBudgetFromPrevious(
-    sourceBudgetId: string,
-    targetMonth: number,
-    targetYear: number
-  ): Promise<Budget>;
+  // Delete
+  deleteBudget(budgetId: string): Promise<void>;
   
-  // Get categories for a budget
-  getCategoriesForBudget(budgetId: string): Promise<BudgetCategory[]>;
-  
-  // Create category
-  createCategory(category: BudgetCategory): Promise<void>;
-  
-  // Update category
-  updateCategory(categoryId: string, updates: Partial<BudgetCategory>): Promise<void>;
-  
-  // Update category actual amount (when transaction allocated)
-  updateCategoryActual(categoryId: string, amountToAdd: number): Promise<void>;
+  // Utility
+  copyBudgetToNextMonth(budgetId: string): Promise<Budget>;
 }
-

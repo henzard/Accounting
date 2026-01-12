@@ -2,7 +2,7 @@
 // Shows all UI components in action with Homebase theme
 
 import React, { useState } from 'react';
-import { ScrollView, View, Text } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { useTheme } from '@/infrastructure/theme';
 import {
   Button,
@@ -16,7 +16,10 @@ import {
   Input,
   AmountInput,
   formatCurrency,
+  ScreenWrapper,
+  AppText,
 } from '@/presentation/components';
+import { SPACING } from '@/shared/constants/spacing';
 
 export default function ComponentsDemoScreen() {
   const { theme, toggleTheme, isDark } = useTheme();
@@ -24,74 +27,42 @@ export default function ComponentsDemoScreen() {
   const [amount, setAmount] = useState(25000); // $250.00 in cents
 
   return (
-    <ScrollView
-      style={{
-        flex: 1,
-        backgroundColor: theme.background.primary,
-      }}
-    >
-      <View style={{ padding: theme.spacing[4] }}>
+    <ScreenWrapper>
+      <ScrollView style={{ flex: 1 }}>
         {/* Header */}
-        <Text
-          style={{
-            fontSize: 28,
-            fontWeight: 'bold',
-            color: theme.text.primary,
-            marginBottom: theme.spacing[2],
-          }}
-        >
+        <AppText variant="display" style={{ marginBottom: SPACING[2] }}>
           UI Components
-        </Text>
-        <Text
-          style={{
-            fontSize: 16,
-            color: theme.text.secondary,
-            marginBottom: theme.spacing[6],
-          }}
-        >
+        </AppText>
+        <AppText variant="body" color={theme.text.secondary} style={{ marginBottom: SPACING[6] }}>
           Homebase Budget design system showcase
-        </Text>
+        </AppText>
 
         {/* Theme Toggle */}
-        <Card padding="md" style={{ marginBottom: theme.spacing[4] }}>
-          <Text
-            style={{
-              fontSize: 18,
-              fontWeight: '600',
-              color: theme.text.primary,
-              marginBottom: theme.spacing[3],
-            }}
-          >
+        <Card padding="md" style={{ marginBottom: SPACING[4] }}>
+          <AppText variant="h2" style={{ marginBottom: SPACING[3] }}>
             Theme: {isDark ? 'Dark' : 'Light'} Mode
-          </Text>
+          </AppText>
           <Button title="Toggle Theme" onPress={toggleTheme} size="sm" />
         </Card>
 
         {/* Buttons Section */}
-        <Text
-          style={{
-            fontSize: 20,
-            fontWeight: '600',
-            color: theme.text.primary,
-            marginBottom: theme.spacing[3],
-          }}
-        >
+        <AppText variant="h2" style={{ marginBottom: SPACING[3] }}>
           Buttons
-        </Text>
+        </AppText>
 
-        <Card padding="lg" style={{ marginBottom: theme.spacing[4] }}>
-          <View style={{ gap: theme.spacing[3] }}>
+        <Card padding="lg" style={{ marginBottom: SPACING[4] }}>
+          <View style={{ gap: SPACING[3] }}>
             <PrimaryButton title="Primary Button" onPress={() => {}} />
             <SecondaryButton title="Secondary Button" onPress={() => {}} />
             <OutlineButton title="Outline Button" onPress={() => {}} />
             <GhostButton title="Ghost Button" onPress={() => {}} />
             
-            <View style={{ height: theme.spacing[2] }} />
+            <View style={{ height: SPACING[2] }} />
             
             <PrimaryButton title="Small Button" onPress={() => {}} size="sm" />
             <PrimaryButton title="Large Button" onPress={() => {}} size="lg" />
             
-            <View style={{ height: theme.spacing[2] }} />
+            <View style={{ height: SPACING[2] }} />
             
             <PrimaryButton title="Loading..." onPress={() => {}} loading />
             <SecondaryButton title="Disabled" onPress={() => {}} disabled />
@@ -99,60 +70,39 @@ export default function ComponentsDemoScreen() {
         </Card>
 
         {/* Cards Section */}
-        <Text
-          style={{
-            fontSize: 20,
-            fontWeight: '600',
-            color: theme.text.primary,
-            marginBottom: theme.spacing[3],
-          }}
-        >
+        <AppText variant="h2" style={{ marginBottom: SPACING[3] }}>
           Cards
-        </Text>
+        </AppText>
 
-        <View style={{ gap: theme.spacing[3], marginBottom: theme.spacing[4] }}>
+        <View style={{ gap: SPACING[3], marginBottom: SPACING[4] }}>
           <Card>
-            <Text style={{ color: theme.text.primary }}>Default Card</Text>
+            <AppText variant="body">Default Card</AppText>
           </Card>
 
           <ElevatedCard>
-            <Text style={{ color: theme.text.primary }}>Elevated Card (with shadow)</Text>
+            <AppText variant="body">Elevated Card (with shadow)</AppText>
           </ElevatedCard>
 
           <OutlinedCard>
-            <Text style={{ color: theme.text.primary }}>Outlined Card</Text>
+            <AppText variant="body">Outlined Card</AppText>
           </OutlinedCard>
 
           <Card padding="lg">
-            <Text
-              style={{
-                fontSize: 18,
-                fontWeight: '600',
-                color: theme.text.primary,
-                marginBottom: theme.spacing[2],
-              }}
-            >
+            <AppText variant="h2" style={{ marginBottom: SPACING[2] }}>
               Card with Content
-            </Text>
-            <Text style={{ color: theme.text.secondary }}>
+            </AppText>
+            <AppText variant="body" color={theme.text.secondary}>
               This is a card with larger padding and multiple text elements.
-            </Text>
+            </AppText>
           </Card>
         </View>
 
         {/* Inputs Section */}
-        <Text
-          style={{
-            fontSize: 20,
-            fontWeight: '600',
-            color: theme.text.primary,
-            marginBottom: theme.spacing[3],
-          }}
-        >
+        <AppText variant="h2" style={{ marginBottom: SPACING[3] }}>
           Inputs
-        </Text>
+        </AppText>
 
-        <Card padding="lg" style={{ marginBottom: theme.spacing[4] }}>
+        <Card padding="lg" style={{ marginBottom: SPACING[4] }}>
           <Input
             label="Text Input"
             value={textValue}
@@ -161,7 +111,7 @@ export default function ComponentsDemoScreen() {
             helperText="This is helper text"
           />
 
-          <View style={{ height: theme.spacing[4] }} />
+          <View style={{ height: SPACING[4] }} />
 
           <Input
             label="Required Field"
@@ -171,7 +121,7 @@ export default function ComponentsDemoScreen() {
             required
           />
 
-          <View style={{ height: theme.spacing[4] }} />
+          <View style={{ height: SPACING[4] }} />
 
           <Input
             label="With Error"
@@ -180,7 +130,7 @@ export default function ComponentsDemoScreen() {
             error="Please enter a valid email address"
           />
 
-          <View style={{ height: theme.spacing[4] }} />
+          <View style={{ height: SPACING[4] }} />
 
           <Input
             label="Disabled"
@@ -191,18 +141,11 @@ export default function ComponentsDemoScreen() {
         </Card>
 
         {/* Amount Input Section */}
-        <Text
-          style={{
-            fontSize: 20,
-            fontWeight: '600',
-            color: theme.text.primary,
-            marginBottom: theme.spacing[3],
-          }}
-        >
+        <AppText variant="h2" style={{ marginBottom: SPACING[3] }}>
           Amount Input
-        </Text>
+        </AppText>
 
-        <Card padding="lg" style={{ marginBottom: theme.spacing[4] }}>
+        <Card padding="lg" style={{ marginBottom: SPACING[4] }}>
           <AmountInput
             label="Transaction Amount"
             value={amount}
@@ -212,87 +155,80 @@ export default function ComponentsDemoScreen() {
 
           <View
             style={{
-              marginTop: theme.spacing[4],
-              padding: theme.spacing[3],
+              marginTop: SPACING[4],
+              padding: SPACING[3],
               backgroundColor: theme.background.secondary,
               borderRadius: theme.borderRadius.md,
             }}
           >
-            <Text style={{ color: theme.text.secondary, fontSize: 14 }}>
+            <AppText variant="body" color={theme.text.secondary}>
               Formatted: {formatCurrency(amount, '$', true)}
-            </Text>
-            <Text style={{ color: theme.text.tertiary, fontSize: 12, marginTop: 4 }}>
+            </AppText>
+            <AppText variant="caption" color={theme.text.tertiary} style={{ marginTop: SPACING[1] }}>
               Stored as: {amount} cents
-            </Text>
+            </AppText>
           </View>
         </Card>
 
         {/* Financial Colors */}
-        <Text
-          style={{
-            fontSize: 20,
-            fontWeight: '600',
-            color: theme.text.primary,
-            marginBottom: theme.spacing[3],
-          }}
-        >
+        <AppText variant="h2" style={{ marginBottom: SPACING[3] }}>
           Financial Colors
-        </Text>
+        </AppText>
 
-        <View style={{ gap: theme.spacing[3], marginBottom: theme.spacing[6] }}>
+        <View style={{ gap: SPACING[3], marginBottom: SPACING[6] }}>
           <View
             style={{
               backgroundColor: theme.financial.incomeBackground,
-              padding: theme.spacing[4],
+              padding: SPACING[4],
               borderRadius: theme.borderRadius.md,
               borderLeftWidth: 4,
               borderLeftColor: theme.financial.income,
             }}
           >
-            <Text style={{ color: theme.financial.income, fontWeight: '600', fontSize: 18 }}>
+            <AppText variant="h2" color={theme.financial.income}>
               + $2,500.00
-            </Text>
-            <Text style={{ color: theme.text.secondary, marginTop: 4 }}>
+            </AppText>
+            <AppText variant="body" color={theme.text.secondary} style={{ marginTop: SPACING[1] }}>
               Income - Salary
-            </Text>
+            </AppText>
           </View>
 
           <View
             style={{
               backgroundColor: theme.financial.expenseBackground,
-              padding: theme.spacing[4],
+              padding: SPACING[4],
               borderRadius: theme.borderRadius.md,
               borderLeftWidth: 4,
               borderLeftColor: theme.financial.expense,
             }}
           >
-            <Text style={{ color: theme.financial.expense, fontWeight: '600', fontSize: 18 }}>
+            <AppText variant="h2" color={theme.financial.expense}>
               - $150.00
-            </Text>
-            <Text style={{ color: theme.text.secondary, marginTop: 4 }}>
+            </AppText>
+            <AppText variant="body" color={theme.text.secondary} style={{ marginTop: SPACING[1] }}>
               Expense - Groceries
-            </Text>
+            </AppText>
           </View>
 
           <View
             style={{
               backgroundColor: theme.financial.savingsBackground,
-              padding: theme.spacing[4],
+              padding: SPACING[4],
               borderRadius: theme.borderRadius.md,
               borderLeftWidth: 4,
               borderLeftColor: theme.financial.savings,
             }}
           >
-            <Text style={{ color: theme.financial.savings, fontWeight: '600', fontSize: 18 }}>
+            <AppText variant="h2" color={theme.financial.savings}>
               $1,000.00
-            </Text>
-            <Text style={{ color: theme.text.secondary, marginTop: 4 }}>
+            </AppText>
+            <AppText variant="body" color={theme.text.secondary} style={{ marginTop: SPACING[1] }}>
               Savings - Emergency Fund
-            </Text>
+            </AppText>
           </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </ScreenWrapper>
   );
 }
 

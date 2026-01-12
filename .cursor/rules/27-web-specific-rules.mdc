@@ -5,7 +5,18 @@ globs:
 alwaysApply: false
 ---
 
-# Web-Specific Rules & Best Practices
+# Web-Specific Rules
+
+## Alert Compatibility
+
+**⚠️ CRITICAL**: React Native's `Alert.alert()` does NOT work on web. It silently fails.
+
+**Solution**: Always use `showAlert` or `showConfirm` from `@/shared/utils/alert` instead of `Alert.alert` directly.
+
+See [Rule 35: Web Alert Compatibility](35-web-alert-compatibility.mdc) for complete details.
+
+---
+ & Best Practices
 
 ## Responsive Design
 

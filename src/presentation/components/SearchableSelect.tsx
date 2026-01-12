@@ -48,8 +48,8 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   // Filter options based on search query
   const filteredOptions = options.filter(
     (option) =>
-      option.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      option.value.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      option.label?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      option.value?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       option.subtitle?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -63,7 +63,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
     <View>
       {/* Trigger Input */}
       <TouchableOpacity onPress={() => setModalVisible(true)} activeOpacity={0.7}>
-        <View pointerEvents="none">
+        <View style={{ pointerEvents: 'none' }}>
           <Input
             label={label}
             value={displayValue}
@@ -113,7 +113,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
-              placeholder={`Search ${label.toLowerCase()}...`}
+              placeholder={`Search ${label?.toLowerCase() || 'options'}...`}
               placeholderTextColor={theme.text.tertiary}
               style={{
                 backgroundColor: theme.background.secondary,

@@ -35,8 +35,9 @@ export const AmountInput: React.FC<AmountInputProps> = ({
 }) => {
   const { theme } = useTheme();
   const [displayValue, setDisplayValue] = useState('');
+  const [isFocused, setIsFocused] = useState(false);
 
-  // Convert cents to display string
+  // Convert cents to display string (only when not focused)
   const centsToDisplay = (cents: number): string => {
     const dollars = Math.abs(cents) / 100;
     return dollars.toFixed(2);
@@ -46,6 +47,11 @@ export const AmountInput: React.FC<AmountInputProps> = ({
   const displayToCents = (display: string): number => {
     // Remove all non-digit and non-decimal characters
     const cleaned = display.replace(/[^\d.]/g, '');
+    
+    // Handle empty or just decimal point
+    if (!cleaned || cleaned === '.') {
+      return 0;
+    }
     
     // Parse as float and convert to cents
     const dollars = parseFloat(cleaned || '0');
@@ -59,10 +65,12 @@ export const AmountInput: React.FC<AmountInputProps> = ({
     return cents;
   };
 
-  // Initialize display value from props
+  // Initialize display value from props (only when not focused)
   useEffect(() => {
-    setDisplayValue(centsToDisplay(value));
-  }, [value]);
+    if (!isFocused) {
+      setDisplayValue(centsToDisplay(value));
+    }
+  }, [value, isFocused]);
 
   const handleChangeText = (text: string) => {
     // Allow only numbers and one decimal point
@@ -70,10 +78,10 @@ export const AmountInput: React.FC<AmountInputProps> = ({
     
     // Ensure only one decimal point
     const parts = cleaned.split('.');
-    let formatted = parts[0];
+    let formatted = parts[0] || '';
     if (parts.length > 1) {
       // Limit to 2 decimal places
-      formatted = `${parts[0]}.${parts[1].slice(0, 2)}`;
+      formatted = `${parts[0] || ''}.${parts[1].slice(0, 2)}`;
     }
 
     setDisplayValue(formatted);
@@ -83,11 +91,25 @@ export const AmountInput: React.FC<AmountInputProps> = ({
     onChangeValue(cents);
   };
 
+  const handleFocus = () => {
+    setIsFocused(true);
+    // When focusing, show the raw value without .00 if it's a whole number
+    if (displayValue && displayValue.endsWith('.00')) {
+      const withoutDecimals = displayValue.replace(/\.00$/, '');
+      setDisplayValue(withoutDecimals);
+    }
+  };
+
   const handleBlur = () => {
+    setIsFocused(false);
     // Format to 2 decimal places on blur
     if (displayValue) {
       const cents = displayToCents(displayValue);
       setDisplayValue(centsToDisplay(cents));
+    } else {
+      // If empty, show 0.00
+      setDisplayValue('0.00');
+      onChangeValue(0);
     }
   };
 
@@ -98,6 +120,7 @@ export const AmountInput: React.FC<AmountInputProps> = ({
         label={label}
         value={displayValue}
         onChangeText={handleChangeText}
+        onFocus={handleFocus}
         onBlur={handleBlur}
         error={error}
         helperText={helperText}

@@ -50,6 +50,12 @@ export interface Theme {
     secondaryHover: string;
   };
   
+  // Accent (Gold - use sparingly, 1-3% max)
+  accent: {
+    gold: string;           // Antique Gold (light) / Warm Gold (dark)
+    goldBackground?: string; // Champagne Tint (light theme only)
+  };
+  
   // Status
   status: {
     success: string;
@@ -85,66 +91,71 @@ export interface Theme {
 }
 
 // ============================================
-// LIGHT THEME - Homebase Budget
+// LIGHT THEME - "Polished Luxury"
 // ============================================
 export const lightTheme: Theme = {
   mode: 'light',
   
   background: {
-    primary: COLORS.neutral.white,        // #FFFFFF
-    secondary: COLORS.neutral.gray50,     // #FAFAFA
-    tertiary: COLORS.neutral.gray100,     // #F5F5F5
-    elevated: COLORS.neutral.white,       // #FFFFFF
+    primary: '#F6F7F4',        // Soft Ivory - main app background
+    secondary: '#ECEFF1',      // Cool Platinum - card backgrounds
+    tertiary: '#F3E9D2',      // Champagne Tint - subtle section backgrounds
+    elevated: '#FFFFFF',       // White - modals, dropdowns
   },
   
   surface: {
-    default: COLORS.neutral.white,
-    raised: COLORS.neutral.white,
-    overlay: 'rgba(0, 0, 0, 0.5)',
+    default: '#ECEFF1',        // Cool Platinum
+    raised: '#FFFFFF',         // White
+    overlay: 'rgba(15, 30, 45, 0.5)',  // Deep Navy with opacity
   },
   
   text: {
-    primary: COLORS.neutral.gray900,      // #212121 - high contrast
-    secondary: COLORS.neutral.gray700,    // #4A4A4A - medium emphasis
-    tertiary: COLORS.neutral.gray500,     // #9E9E9E - low emphasis
-    disabled: COLORS.neutral.gray400,     // #BDBDBD
-    inverse: COLORS.neutral.white,        // #FFFFFF
-    link: COLORS.primary[500],            // Homebase blue
+    primary: '#0F1E2D',        // Deep Navy - main text
+    secondary: '#4A5D73',      // Slate Blue-Gray - subdued text
+    tertiary: '#8A95A3',       // Cool Gray - hints, placeholders
+    disabled: '#D1D5D8',        // Brushed Steel - disabled
+    inverse: '#FFFFFF',         // White - text on dark backgrounds
+    link: '#0B3C78',           // Royal Blue - links
   },
   
   border: {
-    default: COLORS.neutral.gray300,      // #E0E0E0
-    strong: COLORS.neutral.gray400,       // #BDBDBD
-    focus: COLORS.primary[500],           // Homebase blue
+    default: '#D1D5D8',        // Brushed Steel - default borders
+    strong: '#4A5D73',         // Slate Blue-Gray - strong borders
+    focus: '#0B3C78',          // Royal Blue - focus states
   },
   
   interactive: {
-    primary: COLORS.primary[500],         // #1A44C8 - Homebase blue
-    primaryHover: COLORS.primary[600],    // Darker blue
-    primaryActive: COLORS.primary[700],   // Even darker
-    primaryDisabled: COLORS.primary[200], // Light blue
-    secondary: COLORS.neutral.gray100,    // #F5F5F5
-    secondaryHover: COLORS.neutral.gray200, // #EEEEEE
+    primary: '#0B3C78',        // Royal Blue - primary actions
+    primaryHover: '#072A55',    // Midnight Blue - hover state
+    primaryActive: '#0D47A1',  // Darker blue - active/pressed
+    primaryDisabled: '#8A95A3', // Cool Gray - disabled
+    secondary: '#ECEFF1',      // Cool Platinum - secondary actions
+    secondaryHover: '#D1D5D8', // Brushed Steel - secondary hover
+  },
+  
+  accent: {
+    gold: '#C9A24D',        // Antique Gold - luxury accent (use sparingly, 1-3% max)
+    goldBackground: '#F3E9D2', // Champagne Tint - accent background
   },
   
   status: {
-    success: COLORS.success.main,         // #3DBE3D - Green
-    successBackground: COLORS.success.light, // Light green
-    warning: COLORS.warning.main,         // #FFB300 - Amber
-    warningBackground: COLORS.warning.light, // Light amber
-    error: COLORS.error.main,             // #D32F2F - Red
-    errorBackground: COLORS.error.light,  // Light red
-    info: COLORS.info.main,               // Homebase blue
-    infoBackground: COLORS.info.light,    // Light blue
+    success: '#2E7D32',          // Green
+    successBackground: '#E8F5E9',
+    warning: '#F9A825',          // Amber
+    warningBackground: '#FFF8E1',
+    error: '#C62828',            // Red
+    errorBackground: '#FFEBEE',
+    info: '#0B3C78',             // Royal Blue
+    infoBackground: '#E3F2FD',
   },
   
   financial: {
-    income: COLORS.financial.income,      // #3DBE3D - Green
-    incomeBackground: '#E8F7E8',
-    expense: COLORS.financial.expense,    // #D32F2F - Red
+    income: '#2E7D32',          // Green - money coming in
+    incomeBackground: '#E8F5E9',
+    expense: '#C62828',         // Red - money going out
     expenseBackground: '#FFEBEE',
-    savings: COLORS.financial.savings,    // #1A44C8 - Homebase blue
-    savingsBackground: '#E3EAF8',
+    savings: '#0B3C78',         // Royal Blue - savings/sinking funds
+    savingsBackground: '#E3F2FD',
   },
   
   shadow: {
@@ -158,65 +169,70 @@ export const lightTheme: Theme = {
 };
 
 // ============================================
-// DARK THEME - Homebase Budget
+// DARK THEME - "Midnight Precision"
 // ============================================
 export const darkTheme: Theme = {
   mode: 'dark',
   
   background: {
-    primary: '#121212',                   // Dark background
-    secondary: '#1E1E1E',                 // Card backgrounds
-    tertiary: '#252525',                  // Subtle sections
-    elevated: '#2D2D2D',                  // Modals, dropdowns
+    primary: '#0A1420',        // Near-Black Navy - main app background
+    secondary: '#121E2B',       // Deep Steel Blue - card backgrounds
+    tertiary: '#182636',        // Charcoal Navy - subtle sections
+    elevated: '#182636',        // Charcoal Navy - modals, dropdowns
   },
   
   surface: {
-    default: '#1E1E1E',
-    raised: '#2D2D2D',
+    default: '#121E2B',        // Deep Steel Blue
+    raised: '#182636',         // Charcoal Navy
     overlay: 'rgba(0, 0, 0, 0.7)',
   },
   
   text: {
-    primary: COLORS.neutral.white,        // #FFFFFF
-    secondary: '#B0B0B0',                 // Medium emphasis
-    tertiary: COLORS.neutral.gray600,     // #757575 - low emphasis
-    disabled: '#505050',
-    inverse: COLORS.neutral.gray900,      // #212121
-    link: COLORS.primary[300],            // Lighter blue for dark mode
+    primary: '#E6E8E5',         // Soft Ivory - main text
+    secondary: '#A8B1BC',       // Muted Steel - subdued text
+    tertiary: '#6F7A85',        // Cool Gray - hints, placeholders
+    disabled: '#4A5D73',        // Slate Blue-Gray - disabled
+    inverse: '#0F1E2D',         // Deep Navy - text on light backgrounds
+    link: '#1E5FA8',           // Royal Blue (brighter) - links
   },
   
   border: {
-    default: '#333333',
-    strong: '#505050',
-    focus: COLORS.primary[400],           // Lighter blue for dark mode
+    default: '#223447',         // Blue-Gray Steel - default borders
+    strong: '#4A5D73',          // Slate Blue-Gray - strong borders
+    focus: '#1E5FA8',           // Royal Blue (brighter) - focus states
   },
   
   interactive: {
-    primary: COLORS.primary[400],         // Lighter blue for dark mode
-    primaryHover: COLORS.primary[300],    // Even lighter on hover
-    primaryActive: COLORS.primary[500],   // Homebase blue on active
-    primaryDisabled: COLORS.primary[800], // Dark blue
-    secondary: '#2D2D2D',
-    secondaryHover: '#3D3D3D',
+    primary: '#1E5FA8',         // Royal Blue (brighter) - primary actions
+    primaryHover: '#2C76C9',    // Luminous Blue - hover state
+    primaryActive: '#0B3C78',   // Royal Blue - active/pressed
+    primaryDisabled: '#4A5D73', // Slate Blue-Gray - disabled
+    secondary: '#182636',       // Charcoal Navy - secondary actions
+    secondaryHover: '#223447',  // Blue-Gray Steel - secondary hover
+  },
+  
+  accent: {
+    gold: '#D4AF37',        // Warm Gold - luxury accent (use sparingly, 1-3% max)
+    // goldBackground not used in dark theme
   },
   
   status: {
-    success: COLORS.accent[400],          // Lighter green for dark mode
+    success: '#66BB6A',          // Lighter green for dark mode
     successBackground: '#1B3D1F',
-    warning: COLORS.warning.main,
+    warning: '#FFB74D',          // Lighter amber for dark mode
     warningBackground: '#3D3012',
-    error: '#EF5350',                     // Lighter red for dark mode
+    error: '#EF5350',             // Lighter red for dark mode
     errorBackground: '#3D1B1B',
-    info: COLORS.primary[400],
+    info: '#1E5FA8',             // Royal Blue (brighter)
     infoBackground: '#12283D',
   },
   
   financial: {
-    income: COLORS.accent[400],           // Lighter green
+    income: '#66BB6A',           // Lighter green for dark mode
     incomeBackground: '#1B3D1F',
-    expense: '#EF5350',                   // Lighter red
+    expense: '#EF5350',          // Lighter red for dark mode
     expenseBackground: '#3D1B1B',
-    savings: COLORS.primary[400],         // Lighter blue
+    savings: '#1E5FA8',          // Royal Blue (brighter)
     savingsBackground: '#12283D',
   },
   

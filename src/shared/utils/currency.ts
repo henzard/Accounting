@@ -49,15 +49,20 @@ const CURRENCY_CONFIGS: Record<CurrencyCode, CurrencyConfig> = {
 
 /**
  * Format an amount with the specified currency
- * @param amount - The numeric amount (e.g., 1000)
+ * @param amount - The numeric amount in CENTS (e.g., 5522 for R55.22)
  * @param currencyCode - The currency code (e.g., 'ZAR', 'USD')
- * @returns Formatted string (e.g., 'R1,000.00', '$1,000.00')
+ * @returns Formatted string (e.g., 'R55.22', '$1,000.00')
  */
 export function formatCurrency(amount: number, currencyCode: CurrencyCode = 'USD'): string {
   const config = CURRENCY_CONFIGS[currencyCode] || CURRENCY_CONFIGS.USD;
   
+  // Convert cents to base currency units (dollars, rands, etc.)
+  // For currencies with 2 decimals: divide by 100
+  // For currencies with 0 decimals (JPY, KRW): divide by 1 (amount is already in base units)
+  const baseAmount = config.decimals === 0 ? amount : amount / 100;
+  
   // Format number with thousand separators and decimals
-  const formattedAmount = amount.toLocaleString('en-US', {
+  const formattedAmount = baseAmount.toLocaleString('en-US', {
     minimumFractionDigits: config.decimals,
     maximumFractionDigits: config.decimals,
   });

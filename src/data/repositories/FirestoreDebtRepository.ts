@@ -15,13 +15,12 @@ import {
 } from 'firebase/firestore';
 import { Debt, DebtStatus } from '@/domain/entities';
 import { IDebtRepository } from '@/domain/repositories';
-import { getFirestoreDb } from '@/infrastructure/firebase';
+import { db } from '@/infrastructure/firebase';
 
 export class FirestoreDebtRepository implements IDebtRepository {
   private readonly COLLECTION = 'debts';
 
   async getDebtById(debtId: string): Promise<Debt | null> {
-    const db = getFirestoreDb();
     
     try {
       const docRef = doc(db, this.COLLECTION, debtId);
@@ -42,7 +41,6 @@ export class FirestoreDebtRepository implements IDebtRepository {
     householdId: string,
     status?: DebtStatus
   ): Promise<Debt[]> {
-    const db = getFirestoreDb();
 
     try {
       let q = query(
@@ -81,8 +79,6 @@ export class FirestoreDebtRepository implements IDebtRepository {
   }
 
   async createDebt(debt: Debt): Promise<void> {
-    const db = getFirestoreDb();
-
     try {
       const docRef = doc(db, this.COLLECTION, debt.id);
       const firestoreData = this.debtToFirestore(debt);
@@ -96,8 +92,6 @@ export class FirestoreDebtRepository implements IDebtRepository {
   }
 
   async updateDebt(debtId: string, updates: Partial<Debt>): Promise<void> {
-    const db = getFirestoreDb();
-
     try {
       const docRef = doc(db, this.COLLECTION, debtId);
       
@@ -150,8 +144,6 @@ export class FirestoreDebtRepository implements IDebtRepository {
   }
 
   async deleteDebt(debtId: string): Promise<void> {
-    const db = getFirestoreDb();
-
     try {
       // Soft delete: mark as inactive instead of hard delete
       await this.updateDebt(debtId, {

@@ -2,11 +2,13 @@
 // Create new account with email/password
 
 import React, { useState } from 'react';
-import { View, Text, ScrollView, KeyboardAvoidingView, Platform, Alert, Image } from 'react-native';
+import { View, ScrollView, KeyboardAvoidingView, Platform, Alert, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
-import { Input, PrimaryButton, GhostButton } from '@/presentation/components';
+import { showAlert } from '@/shared/utils/alert';
+import { Input, PrimaryButton, GhostButton, ScreenWrapper, AppText } from '@/presentation/components';
+import { SPACING } from '@/shared/constants/spacing';
 
 export default function SignupScreen() {
   const { theme } = useTheme();
@@ -94,16 +96,16 @@ export default function SignupScreen() {
       
       console.log('✅ Account created successfully');
       
-      Alert.alert(
-        'Welcome!',
-        'Your account has been created successfully. Let us set up your household!',
-        [
-          {
-            text: 'Continue',
-            onPress: () => router.replace('/household/create'),
-          },
-        ]
-      );
+      // Wait a moment for auth state to update and check if user has households
+      // The auth guard in (tabs)/_layout.tsx will handle routing:
+      // - If user has default_household_id → go to app
+      // - If user has household_ids but no default → go to household/select
+      // - If user has no households → go to household/create
+      
+      // Small delay to ensure auth state is updated
+      setTimeout(() => {
+        router.replace('/(tabs)');
+      }, 500);
     } catch (error: any) {
       console.error('❌ Signup failed:', error);
       
@@ -113,7 +115,7 @@ export default function SignupScreen() {
         errorMessage = 'This email is already registered. Please sign in instead.';
       }
       
-      Alert.alert('Signup Failed', errorMessage);
+      showAlert('Signup Failed', errorMessage);
     } finally {
       setLoading(false);
     }
@@ -124,164 +126,150 @@ export default function SignupScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={{ flex: 1, backgroundColor: theme.background.primary }}
-    >
-      <ScrollView
-        contentContainerStyle={{
-          flexGrow: 1,
-          justifyContent: 'center',
-          padding: theme.spacing[6],
-        }}
-        keyboardShouldPersistTaps="handled"
+    <ScreenWrapper>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
       >
-        {/* Logo */}
-        <View style={{ alignItems: 'center', marginBottom: theme.spacing[6] }}>
-          <Image
-            source={require('@/assets/images/Gemini_Generated_Image_k7j3ztk7j3ztk7j3.png')}
-            style={{
-              width: 100,
-              height: 100,
-              marginBottom: theme.spacing[3],
-            }}
-            resizeMode="contain"
-          />
-          <Text
-            style={{
-              fontSize: 28,
-              fontWeight: 'bold',
-              color: theme.text.primary,
-              marginBottom: theme.spacing[2],
-            }}
-          >
-            Create Account
-          </Text>
-          <Text
-            style={{
-              fontSize: 16,
-              color: theme.text.secondary,
-              textAlign: 'center',
-            }}
-          >
-            Start your debt-free journey today
-          </Text>
-        </View>
-
-        {/* Signup Form */}
-        <View style={{ marginBottom: theme.spacing[6] }}>
-          <Input
-            label="Name"
-            value={name}
-            onChangeText={(text) => {
-              setName(text);
-              setNameError('');
-            }}
-            onBlur={() => validateName(name)}
-            error={nameError}
-            placeholder="Your full name"
-            autoCapitalize="words"
-            autoComplete="name"
-            testID="signup-name-input"
-          />
-
-          <View style={{ height: theme.spacing[4] }} />
-
-          <Input
-            label="Email"
-            value={email}
-            onChangeText={(text) => {
-              setEmail(text);
-              setEmailError('');
-            }}
-            onBlur={() => validateEmail(email)}
-            error={emailError}
-            placeholder="your@email.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-            testID="signup-email-input"
-          />
-
-          <View style={{ height: theme.spacing[4] }} />
-
-          <Input
-            label="Password"
-            value={password}
-            onChangeText={(text) => {
-              setPassword(text);
-              setPasswordError('');
-            }}
-            onBlur={() => validatePassword(password)}
-            error={passwordError}
-            placeholder="At least 6 characters"
-            secureTextEntry
-            autoCapitalize="none"
-            testID="signup-password-input"
-          />
-
-          <View style={{ height: theme.spacing[4] }} />
-
-          <Input
-            label="Confirm Password"
-            value={confirmPassword}
-            onChangeText={(text) => {
-              setConfirmPassword(text);
-              setConfirmPasswordError('');
-            }}
-            onBlur={() => validateConfirmPassword(confirmPassword)}
-            error={confirmPasswordError}
-            placeholder="Re-enter your password"
-            secureTextEntry
-            autoCapitalize="none"
-            testID="signup-confirm-password-input"
-          />
-        </View>
-
-        {/* Sign Up Button */}
-        <PrimaryButton
-          title={loading ? 'Creating account...' : 'Create Account'}
-          onPress={handleSignUp}
-          loading={loading}
-          disabled={loading || authLoading}
-          fullWidth
-          size="lg"
-          testID="signup-submit-button"
-        />
-
-        {/* Login Link */}
-        <View
-          style={{
-            flexDirection: 'row',
+        <ScrollView
+          contentContainerStyle={{
+            flexGrow: 1,
             justifyContent: 'center',
-            alignItems: 'center',
-            marginTop: theme.spacing[6],
+            padding: SPACING[6],
           }}
+          keyboardShouldPersistTaps="handled"
         >
-          <Text style={{ color: theme.text.secondary, fontSize: 16 }}>
-            Already have an account?{' '}
-          </Text>
-          <GhostButton
-            title="Sign In"
-            onPress={handleGoToLogin}
-            size="sm"
-            testID="go-to-login-button"
-          />
-        </View>
+          {/* Logo */}
+          <View style={{ alignItems: 'center', marginBottom: SPACING[6] }}>
+            <Image
+              source={require('@/assets/images/logo.png')}
+              style={{
+                width: 100,
+                height: 100,
+                marginBottom: SPACING[3],
+              }}
+              resizeMode="contain"
+            />
+            <AppText variant="h1" style={{ marginBottom: SPACING[2] }}>
+              Create Account
+            </AppText>
+            <AppText variant="body" color={theme.text.secondary} style={{ textAlign: 'center' }}>
+              Start your debt-free journey today
+            </AppText>
+          </View>
 
-        {/* Terms */}
-        <Text
-          style={{
-            fontSize: 12,
-            color: theme.text.tertiary,
-            textAlign: 'center',
-            marginTop: theme.spacing[8],
-          }}
-        >
-          By creating an account, you agree to follow Dave Ramsey&apos;s Baby Steps to financial freedom
-        </Text>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          {/* Signup Form */}
+          <View style={{ marginBottom: SPACING[6] }}>
+            <Input
+              label="Name"
+              value={name}
+              onChangeText={(text) => {
+                setName(text);
+                setNameError('');
+              }}
+              onBlur={() => validateName(name)}
+              error={nameError}
+              placeholder="Your full name"
+              autoCapitalize="words"
+              autoComplete="name"
+              testID="signup-name-input"
+            />
+
+            <View style={{ height: SPACING[4] }} />
+
+            <Input
+              label="Email"
+              value={email}
+              onChangeText={(text) => {
+                setEmail(text);
+                setEmailError('');
+              }}
+              onBlur={() => validateEmail(email)}
+              error={emailError}
+              placeholder="your@email.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              testID="signup-email-input"
+            />
+
+            <View style={{ height: SPACING[4] }} />
+
+            <Input
+              label="Password"
+              value={password}
+              onChangeText={(text) => {
+                setPassword(text);
+                setPasswordError('');
+              }}
+              onBlur={() => validatePassword(password)}
+              error={passwordError}
+              placeholder="At least 6 characters"
+              secureTextEntry
+              autoCapitalize="none"
+              testID="signup-password-input"
+            />
+
+            <View style={{ height: SPACING[4] }} />
+
+            <Input
+              label="Confirm Password"
+              value={confirmPassword}
+              onChangeText={(text) => {
+                setConfirmPassword(text);
+                setConfirmPasswordError('');
+              }}
+              onBlur={() => validateConfirmPassword(confirmPassword)}
+              error={confirmPasswordError}
+              placeholder="Re-enter your password"
+              secureTextEntry
+              autoCapitalize="none"
+              testID="signup-confirm-password-input"
+            />
+          </View>
+
+          {/* Sign Up Button */}
+          <PrimaryButton
+            title={loading ? 'Creating account...' : 'Create Account'}
+            onPress={handleSignUp}
+            loading={loading}
+            disabled={loading || authLoading}
+            fullWidth
+            size="lg"
+            testID="signup-submit-button"
+          />
+
+          {/* Login Link */}
+          <View
+            style={{
+              flexDirection: 'row',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginTop: SPACING[6],
+            }}
+          >
+            <AppText variant="body" color={theme.text.secondary}>
+              Already have an account?{' '}
+            </AppText>
+            <GhostButton
+              title="Sign In"
+              onPress={handleGoToLogin}
+              size="sm"
+              testID="go-to-login-button"
+            />
+          </View>
+
+          {/* Terms */}
+          <AppText
+            variant="caption"
+            color={theme.text.tertiary}
+            style={{ textAlign: 'center', marginTop: SPACING[8] }}
+          >
+            By creating an account, you agree to follow Dave Ramsey&apos;s Baby Steps to financial freedom
+          </AppText>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </ScreenWrapper>
   );
 }
 

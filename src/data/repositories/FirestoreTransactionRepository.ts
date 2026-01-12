@@ -8,9 +8,9 @@ import {
   getDocs,
   setDoc,
   updateDoc,
+  deleteDoc,
   query,
   where,
-  orderBy,
   limit,
   onSnapshot,
   Unsubscribe,
@@ -18,7 +18,7 @@ import {
 } from 'firebase/firestore';
 import { Transaction } from '@/domain/entities';
 import { ITransactionRepository } from '@/domain/repositories';
-import { getFirestoreDb } from '@/infrastructure/firebase';
+import { db } from '@/infrastructure/firebase';
 
 /**
  * Firestore Transaction Repository
@@ -34,7 +34,6 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
    * Get a single transaction by ID
    */
   async getTransaction(transactionId: string): Promise<Transaction | null> {
-    const db = getFirestoreDb();
     
     try {
       // Note: We need householdId to construct the path
@@ -61,21 +60,24 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
     householdId: string,
     limitCount: number = 100
   ): Promise<Transaction[]> {
-    const db = getFirestoreDb();
 
     try {
+      // Note: Removed orderBy to avoid composite index requirement
+      // Sorting in-memory instead
       const q = query(
         collection(db, this.COLLECTION),
         where('household_id', '==', householdId),
-        orderBy('date', 'desc'),
         limit(limitCount)
       );
 
       const querySnapshot = await getDocs(q);
       
-      return querySnapshot.docs.map(doc => 
+      const transactions = querySnapshot.docs.map(doc => 
         this.firestoreToTransaction(doc.data())
       );
+
+      // Sort in-memory by date (desc)
+      return transactions.sort((a, b) => b.date.getTime() - a.date.getTime());
     } catch (error) {
       console.error('Error getting transactions:', error);
       throw error;
@@ -87,7 +89,6 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
    * Works offline - queues for sync when online
    */
   async createTransaction(transaction: Transaction): Promise<void> {
-    const db = getFirestoreDb();
 
     try {
       const docRef = doc(db, this.COLLECTION, transaction.id);
@@ -108,7 +109,6 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
    * Works offline - queues for sync when online
    */
   async updateTransaction(transaction: Transaction): Promise<void> {
-    const db = getFirestoreDb();
 
     try {
       const docRef = doc(db, this.COLLECTION, transaction.id);
@@ -124,6 +124,22 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
   }
 
   /**
+   * Delete a transaction
+   * Works offline - queues for sync when online
+   */
+  async deleteTransaction(transactionId: string): Promise<void> {
+    try {
+      const docRef = doc(db, this.COLLECTION, transactionId);
+      await deleteDoc(docRef);
+      
+      console.log(`✅ Transaction ${transactionId} deleted (will sync when online)`);
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Subscribe to real-time transaction updates
    * Updates automatically when online
    */
@@ -131,19 +147,23 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
     householdId: string,
     callback: (transactions: Transaction[]) => void
   ): Unsubscribe {
-    const db = getFirestoreDb();
 
+    // Note: Removed orderBy to avoid composite index requirement
+    // Sorting in-memory instead
     const q = query(
       collection(db, this.COLLECTION),
-      where('household_id', '==', householdId),
-      orderBy('date', 'desc')
+      where('household_id', '==', householdId)
     );
 
     return onSnapshot(q, (snapshot) => {
       const transactions = snapshot.docs.map(doc =>
         this.firestoreToTransaction(doc.data())
       );
-      callback(transactions);
+      
+      // Sort in-memory by date (desc)
+      const sortedTransactions = transactions.sort((a, b) => b.date.getTime() - a.date.getTime());
+      
+      callback(sortedTransactions);
     }, (error) => {
       console.error('Error in transaction subscription:', error);
     });
@@ -167,6 +187,7 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
       account_id: data.account_id,
       payee: data.payee,
       payer: data.payer,
+      category_id: data.category_id,
       to_account_id: data.to_account_id,
       notes: data.notes,
       reference: data.reference,
@@ -176,11 +197,13 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
         : undefined,
       reconciled_by: data.reconciled_by,
       is_business: data.is_business,
+      business_id: data.business_id,
       reimbursement_type: data.reimbursement_type,
       reimbursement_target: data.reimbursement_target,
       reimbursement_claim_id: data.reimbursement_claim_id,
       has_receipt: data.has_receipt,
       receipt_count: data.receipt_count,
+      receipt_urls: data.receipt_urls || undefined,
       captured_at: data.captured_at instanceof Timestamp ? data.captured_at.toDate() : new Date(data.captured_at),
       capture_delay_days: data.capture_delay_days,
       created_by_device: data.created_by_device,
@@ -204,6 +227,7 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
       account_id: transaction.account_id,
       payee: transaction.payee || null,
       payer: transaction.payer || null,
+      category_id: transaction.category_id || null,
       to_account_id: transaction.to_account_id || null,
       notes: transaction.notes || null,
       reference: transaction.reference || null,
@@ -213,11 +237,13 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
         : null,
       reconciled_by: transaction.reconciled_by || null,
       is_business: transaction.is_business,
-      reimbursement_type: transaction.reimbursement_type,
+      business_id: transaction.business_id || null,
+      reimbursement_type: transaction.reimbursement_type || null,
       reimbursement_target: transaction.reimbursement_target || null,
       reimbursement_claim_id: transaction.reimbursement_claim_id || null,
       has_receipt: transaction.has_receipt,
       receipt_count: transaction.receipt_count,
+      receipt_urls: transaction.receipt_urls || null,
       captured_at: Timestamp.fromDate(transaction.captured_at),
       capture_delay_days: transaction.capture_delay_days,
       created_by_device: transaction.created_by_device,

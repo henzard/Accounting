@@ -54,7 +54,7 @@ Better questions beat better models. You retain judgment, AI provides leverage.
 ## 🤖 For Me (The AI)
 
 ### Before ANY Response
-1. □ Check `MASTER-TODO.md` - What phase?
+1. □ Check `docs/project/project-status.md` - What phase?
 2. □ Check `.cursor/rules/` - What rules apply?
 3. □ Check `docs/` - Any relevant architecture?
 4. □ Verify existing code - Don't assume!
@@ -69,14 +69,14 @@ Better questions beat better models. You retain judgment, AI provides leverage.
 ✅ **ALWAYS**: Reference which rule/doc I'm following
 ✅ **ALWAYS**: State my plan before executing
 ✅ **ALWAYS**: Test after changes
-✅ **ALWAYS**: Update MASTER-TODO.md progress
+✅ **ALWAYS**: Update docs/project/project-status.md progress
 
 ### Decision Framework
 ```
 User asks: "Add feature X"
 
 My response:
-1. "Checking MASTER-TODO.md... this is Phase 2.3"
+1. "Checking docs/project/project-status.md... this is Phase 2.3"
 2. "Checking rules... Clean Architecture requires..."
 3. "Checking docs... data-model.md shows..."
 4. "My plan: Create entity → interface → use case"
@@ -104,7 +104,7 @@ My response:
 - Keep AI aligned with vision
 
 ### AI's Role (Tactical)
-- Follow MASTER-TODO.md roadmap
+- Follow docs/project/project-status.md roadmap
 - Implement according to rules/docs
 - Test frequently
 - Surface issues/questions
@@ -129,7 +129,7 @@ AI: "Testing... ✅ Works. Next: Phase 5.2?"
 | **"Verify"** | Check what actually exists |
 | **"Explain"** | State reasoning with rule references |
 | **"Reset"** | Go back to last working state |
-| **"What phase?"** | Where are we in MASTER-TODO.md? |
+| **"What phase?"** | Where are we in docs/project/project-status.md? |
 
 ---
 
@@ -137,7 +137,7 @@ AI: "Testing... ✅ Works. Next: Phase 5.2?"
 
 **Before Complex Work**:
 ```
-□ Read MASTER-TODO.md (what phase?)
+□ Read docs/project/project-status.md (what phase?)
 □ Read relevant .cursor/rules/ files
 □ Read relevant docs/ files
 □ Verify existing code/structure
@@ -172,5 +172,55 @@ User: Next goal
 
 ---
 
-**Include `@PROMPT-GUIDE.md` in your message when you want me to be extra careful about following this pattern.**
+## 🎨 UX Standards (Phase 5.5.2+)
+
+**Reference**: `docs/design/ux-patterns.md` and `.cursor/rules/34-ux-standards.mdc`
+
+### The 7 Standard Patterns
+
+Every list/management screen MUST include:
+
+1. **Search/Filter Bar** (if 10+ items)
+2. **Collapsible Groups** (if content is grouped)
+3. **Icon Buttons** (✏️🗑️ not "Edit" "Delete")
+4. **Empty States** (always with helpful guidance)
+5. **Count Badges** (on group headers)
+6. **Status Indicators** (if items have states)
+7. **Bulk Selection Mode** (if bulk actions make sense)
+
+### Reference Implementation
+
+**See**: `src/app/budget/manage-categories.tsx` - Perfect example of all 7 patterns
+
+### AI Checklist for New Screens
+
+Before marking a list screen complete:
+
+- [ ] Has search (if needed)
+- [ ] Has collapsible groups (if grouped)
+- [ ] Uses icon buttons
+- [ ] Has empty state
+- [ ] Has count badges
+- [ ] Has status indicators (if applicable)
+- [ ] Has bulk selection (if applicable)
+- [ ] Uses SPACING constants
+- [ ] Has loading state
+- [ ] Has error states
+
+### User Prompt Shortcuts
+
+```
+"Apply standard UX patterns" 
+  → AI adds search, collapsible, icons, empty state, etc.
+
+"Make this consistent with category management"
+  → AI copies patterns from manage-categories.tsx
+
+"Follow UX standards"
+  → AI checks docs/design/ux-patterns.md and applies
+```
+
+---
+
+**Include `@docs/setup/prompt-guide.md` in your message when you want me to be extra careful about following this pattern.**
 

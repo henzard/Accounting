@@ -332,6 +332,80 @@ How to test it
 
 ---
 
+## File Structure Rules
+
+### Root Directory
+
+**CRITICAL**: Only `README.md` should be in the root directory.
+
+**❌ FORBIDDEN in Root**:
+- Temporary documentation files (e.g., `MIGRATION-*.md`, `THEME-*.md`)
+- Work-in-progress summaries (e.g., `PROGRESS.md`, `STATUS.md`)
+- TODO lists (use `docs/` or project management tools)
+- Prompt guides or AI conversation dumps
+- Any other `.md` files except `README.md`
+
+**✅ ALLOWED in Root**:
+- `README.md` - Project overview and quick start
+
+**Rule**: If it's not `README.md`, it belongs in `docs/` or should be deleted.
+
+---
+
+### Temporary Files Policy
+
+**When to Create Temporary Files**:
+- ✅ During complex migrations or refactoring
+- ✅ For tracking work-in-progress on large tasks
+- ✅ For AI assistant context during development
+
+**When to Delete Temporary Files**:
+- ✅ **IMMEDIATELY** after task completion
+- ✅ Before merging PRs
+- ✅ When information is consolidated into permanent docs
+- ✅ When task is abandoned or superseded
+
+**Naming Convention for Temp Files**:
+- Use prefixes: `TEMP-`, `WIP-`, `MIGRATION-`, `STATUS-`
+- Include date: `TEMP-theme-migration-2025-01.md`
+- Makes cleanup obvious
+
+**Cleanup Checklist**:
+Before marking a task complete:
+- [ ] All temporary `.md` files deleted from root
+- [ ] Important info moved to permanent docs in `docs/`
+- [ ] No work-in-progress summaries left behind
+- [ ] Only `README.md` remains in root
+
+---
+
+### Documentation Folder Structure
+
+**Required Structure**:
+```
+docs/
+├── START-HERE.md              # Main entry point (if needed)
+├── PROJECT-BRIEF.md           # Project overview
+├── DOCUMENTATION-INDEX.md     # Index of all docs
+├── architecture/              # System design
+│   ├── data-model.md
+│   └── decisions/            # ADRs only
+├── setup/                     # Setup guides
+├── design/                    # Design system
+├── security/                  # Security specs
+└── migration/                 # Migration guides (permanent only)
+```
+
+**❌ FORBIDDEN in docs/**:
+- Temporary work files
+- AI conversation dumps (e.g., `InitialDiscussion.md`)
+- Creation summaries (e.g., `DOCUMENTATION-CREATION-SUMMARY.md`)
+- Work-in-progress status files
+
+**Rule**: `docs/` is for **permanent, valuable documentation only**.
+
+---
+
 ## Rules Summary
 
 1. **One Source of Truth** - Never duplicate
@@ -341,7 +415,10 @@ How to test it
 5. **Maintain or Delete** - No stale docs
 6. **Update with Code** - Docs in same PR
 7. **Follow Conventions** - Naming, structure, ADRs
+8. **Root Directory Clean** - Only `README.md` in root
+9. **Temporary Files** - Delete immediately after use
+10. **Docs Folder** - Permanent, valuable docs only
 
 ---
 
-*Good documentation is updated documentation.*
+*Good documentation is updated documentation. Clean repos are maintainable repos.*

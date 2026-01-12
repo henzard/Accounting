@@ -1,17 +1,23 @@
-// Typography System for Dave Ramsey Budgeting App
+// Typography System for Premium UI
+// Premium UI Standards: Max 8 text styles, semibold for headlines, 1.4× line height for body
+// Typography Pairing Recommendations (from docs/design/color-theme.md):
+// - Headings: Serif or high-contrast sans (Playfair Display, Canela, Cormorant, or Inter with tight tracking)
+// - Body: Neutral modern sans (Inter, Source Sans 3, IBM Plex Sans)
+// - Letter spacing: Slightly increased on headings
+// - Font weights: Regular, Medium, Semibold only
 
 export const FONTS = {
   // System fonts for best performance on mobile
   regular: 'System',
   medium: 'System',
   semibold: 'System',
-  bold: 'System',
   
-  // If you want to add custom fonts later:
+  // TODO: Add custom fonts for premium feel:
+  // Headings: Playfair Display, Canela, Cormorant, or Inter (tight tracking)
+  // Body: Inter, Source Sans 3, IBM Plex Sans
   // regular: 'Inter-Regular',
   // medium: 'Inter-Medium',
   // semibold: 'Inter-SemiBold',
-  // bold: 'Inter-Bold',
 } as const;
 
 export const FONT_SIZES = {
@@ -28,8 +34,8 @@ export const FONT_SIZES = {
 
 export const LINE_HEIGHTS = {
   tight: 1.25,   // For headings
-  normal: 1.5,   // For body text
-  relaxed: 1.75, // For longer paragraphs
+  normal: 1.4,   // For body text (premium standard: 1.35-1.5×, prefer 1.4×)
+  relaxed: 1.75, // For longer paragraphs (rarely used)
 } as const;
 
 export const FONT_WEIGHTS = {
@@ -48,115 +54,158 @@ export const LETTER_SPACING = {
 
 // ============================================
 // PRE-DEFINED TEXT STYLES
+// Premium UI Standards: Maximum 8 styles
 // ============================================
 
 export const TEXT_STYLES = {
   // ============================================
-  // HEADINGS
+  // PREMIUM SET (8 styles max)
   // ============================================
+  
+  // Display (rare, hero text) - 28-32px range
+  display: {
+    fontSize: 30,           // 28-32 range
+    fontWeight: FONT_WEIGHTS.semibold,
+    lineHeight: 30 * LINE_HEIGHTS.tight, // 37.5px
+    letterSpacing: LETTER_SPACING.tight,
+    fontFamily: FONTS.semibold,
+  },
+  
+  // H1 (page titles) - 22-24px range
   h1: {
-    fontSize: FONT_SIZES['3xl'],      // 30px
-    fontWeight: FONT_WEIGHTS.bold,
-    lineHeight: FONT_SIZES['3xl'] * LINE_HEIGHTS.tight,
+    fontSize: 24,          // 22-24 range (was 30px)
+    fontWeight: FONT_WEIGHTS.semibold, // Changed from bold
+    lineHeight: 24 * LINE_HEIGHTS.tight, // 30px
     letterSpacing: LETTER_SPACING.tight,
-    fontFamily: FONTS.bold,
+    fontFamily: FONTS.semibold,
   },
+  
+  // H2 (section headers) - 18-20px range
   h2: {
-    fontSize: FONT_SIZES['2xl'],      // 24px
-    fontWeight: FONT_WEIGHTS.bold,
-    lineHeight: FONT_SIZES['2xl'] * LINE_HEIGHTS.tight,
+    fontSize: 20,          // 18-20 range (was 24px)
+    fontWeight: FONT_WEIGHTS.semibold, // Changed from bold
+    lineHeight: 20 * LINE_HEIGHTS.tight, // 25px
     letterSpacing: LETTER_SPACING.tight,
-    fontFamily: FONTS.bold,
-  },
-  h3: {
-    fontSize: FONT_SIZES.xl,          // 20px
-    fontWeight: FONT_WEIGHTS.semibold,
-    lineHeight: FONT_SIZES.xl * LINE_HEIGHTS.tight,
-    fontFamily: FONTS.semibold,
-  },
-  h4: {
-    fontSize: FONT_SIZES.lg,          // 18px
-    fontWeight: FONT_WEIGHTS.semibold,
-    lineHeight: FONT_SIZES.lg * LINE_HEIGHTS.normal,
     fontFamily: FONTS.semibold,
   },
   
-  // ============================================
-  // BODY TEXT
-  // ============================================
-  bodyLarge: {
-    fontSize: FONT_SIZES.lg,          // 18px
-    fontWeight: FONT_WEIGHTS.regular,
-    lineHeight: FONT_SIZES.lg * LINE_HEIGHTS.normal,
-    fontFamily: FONTS.regular,
-  },
+  // Body (default text) - 15-16px range
   body: {
-    fontSize: FONT_SIZES.md,          // 16px (base)
+    fontSize: 16,         // 15-16 range
     fontWeight: FONT_WEIGHTS.regular,
-    lineHeight: FONT_SIZES.md * LINE_HEIGHTS.normal,
-    fontFamily: FONTS.regular,
-  },
-  bodySmall: {
-    fontSize: FONT_SIZES.sm,          // 14px
-    fontWeight: FONT_WEIGHTS.regular,
-    lineHeight: FONT_SIZES.sm * LINE_HEIGHTS.normal,
+    lineHeight: 16 * LINE_HEIGHTS.normal, // 22.4px (1.4× for premium feel)
     fontFamily: FONTS.regular,
   },
   
-  // ============================================
-  // UI ELEMENTS
-  // ============================================
-  button: {
-    fontSize: FONT_SIZES.md,          // 16px
-    fontWeight: FONT_WEIGHTS.semibold,
-    lineHeight: FONT_SIZES.md * LINE_HEIGHTS.tight,
-    letterSpacing: LETTER_SPACING.wide,
-    fontFamily: FONTS.semibold,
+  // Body Emphasis - 15-16px range
+  bodyEmphasis: {
+    fontSize: 16,         // 15-16 range
+    fontWeight: FONT_WEIGHTS.medium,
+    lineHeight: 16 * LINE_HEIGHTS.normal, // 22.4px
+    fontFamily: FONTS.medium,
   },
-  buttonSmall: {
-    fontSize: FONT_SIZES.sm,          // 14px
-    fontWeight: FONT_WEIGHTS.semibold,
-    lineHeight: FONT_SIZES.sm * LINE_HEIGHTS.tight,
-    letterSpacing: LETTER_SPACING.wide,
-    fontFamily: FONTS.semibold,
-  },
+  
+  // Caption (helper text) - 12-13px range
   caption: {
-    fontSize: FONT_SIZES.xs,          // 12px
+    fontSize: 13,         // 12-13 range (was 12px)
     fontWeight: FONT_WEIGHTS.regular,
-    lineHeight: FONT_SIZES.xs * LINE_HEIGHTS.normal,
+    lineHeight: 13 * LINE_HEIGHTS.normal, // 18.2px
     fontFamily: FONTS.regular,
   },
-  label: {
-    fontSize: FONT_SIZES.sm,          // 14px
+  
+  // Overline / Label - 11-12px range
+  overline: {
+    fontSize: 12,         // 11-12 range
     fontWeight: FONT_WEIGHTS.medium,
-    lineHeight: FONT_SIZES.sm * LINE_HEIGHTS.tight,
+    lineHeight: 12 * LINE_HEIGHTS.normal, // 16.8px
+    letterSpacing: LETTER_SPACING.wide,
+    textTransform: 'uppercase' as const, // Optional, use sparingly
+    fontFamily: FONTS.medium,
+  },
+  
+  // Button - 16px
+  button: {
+    fontSize: 16,         // 16px
+    fontWeight: FONT_WEIGHTS.medium, // Changed from semibold (can use medium or semibold)
+    lineHeight: 16 * LINE_HEIGHTS.tight, // 20px
+    letterSpacing: LETTER_SPACING.wide,
     fontFamily: FONTS.medium,
   },
   
   // ============================================
-  // FINANCIAL (App-specific)
+  // APP-SPECIFIC (Financial) - Not part of base 8
+  // These are app-specific and don't count toward the 8-style limit
   // ============================================
   currency: {
-    fontSize: FONT_SIZES['2xl'],      // 24px
-    fontWeight: FONT_WEIGHTS.bold,
-    lineHeight: FONT_SIZES['2xl'] * LINE_HEIGHTS.tight,
-    fontFamily: FONTS.bold,
+    fontSize: 24,         // 24px
+    fontWeight: FONT_WEIGHTS.semibold, // Changed from bold
+    lineHeight: 24 * LINE_HEIGHTS.tight,
+    fontFamily: FONTS.semibold,
     letterSpacing: LETTER_SPACING.normal,
+    fontVariant: ['tabular-nums'] as const, // Aligns decimals for instrument-grade feel
   },
   currencyLarge: {
-    fontSize: FONT_SIZES['4xl'],      // 36px
-    fontWeight: FONT_WEIGHTS.bold,
-    lineHeight: FONT_SIZES['4xl'] * LINE_HEIGHTS.tight,
-    fontFamily: FONTS.bold,
+    fontSize: 36,         // 36px
+    fontWeight: FONT_WEIGHTS.semibold, // Changed from bold
+    lineHeight: 36 * LINE_HEIGHTS.tight,
+    fontFamily: FONTS.semibold,
     letterSpacing: LETTER_SPACING.tight,
+    fontVariant: ['tabular-nums'] as const,
   },
   currencySmall: {
-    fontSize: FONT_SIZES.lg,          // 18px
+    fontSize: 18,         // 18px
     fontWeight: FONT_WEIGHTS.semibold,
-    lineHeight: FONT_SIZES.lg * LINE_HEIGHTS.tight,
+    lineHeight: 18 * LINE_HEIGHTS.tight,
+    fontFamily: FONTS.semibold,
+    fontVariant: ['tabular-nums'] as const,
+  },
+} as const;
+
+// ============================================
+// DEPRECATED STYLES (for migration)
+// These are kept temporarily for backward compatibility
+// TODO: Remove after migrating all components
+// ============================================
+/** @deprecated Use TEXT_STYLES.h2 instead */
+export const TEXT_STYLES_DEPRECATED = {
+  h3: {
+    fontSize: 20,
+    fontWeight: FONT_WEIGHTS.semibold,
+    lineHeight: 20 * LINE_HEIGHTS.tight,
     fontFamily: FONTS.semibold,
   },
-};
+  h4: {
+    fontSize: 18,
+    fontWeight: FONT_WEIGHTS.semibold,
+    lineHeight: 18 * LINE_HEIGHTS.normal,
+    fontFamily: FONTS.semibold,
+  },
+  bodyLarge: {
+    fontSize: 18,
+    fontWeight: FONT_WEIGHTS.regular,
+    lineHeight: 18 * LINE_HEIGHTS.normal,
+    fontFamily: FONTS.regular,
+  },
+  bodySmall: {
+    fontSize: 14,
+    fontWeight: FONT_WEIGHTS.regular,
+    lineHeight: 14 * LINE_HEIGHTS.normal,
+    fontFamily: FONTS.regular,
+  },
+  buttonSmall: {
+    fontSize: 14,
+    fontWeight: FONT_WEIGHTS.semibold,
+    lineHeight: 14 * LINE_HEIGHTS.tight,
+    letterSpacing: LETTER_SPACING.wide,
+    fontFamily: FONTS.semibold,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: FONT_WEIGHTS.medium,
+    lineHeight: 14 * LINE_HEIGHTS.tight,
+    fontFamily: FONTS.medium,
+  },
+} as const;
 
 // Helper to create responsive font sizes
 export const responsiveFontSize = (baseSize: number, scale: number = 1) => {

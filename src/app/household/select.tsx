@@ -2,14 +2,15 @@
 // Choose which household to use (for users with multiple households)
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
-import { Card, PrimaryButton, OutlineButton } from '@/presentation/components';
+import { Card, PrimaryButton, OutlineButton, ScreenWrapper, AppText } from '@/presentation/components';
 import { collection, query, where, getDocs, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
 import { Household, createHousehold } from '@/domain/entities';
+import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
 
 export default function SelectHouseholdScreen() {
   const { theme } = useTheme();
@@ -26,14 +27,17 @@ export default function SelectHouseholdScreen() {
   }, [user]);
 
   const loadHouseholds = async () => {
-    if (!user || user.household_ids.length === 0) {
+    if (!user) {
       setLoading(false);
       return;
     }
 
     try {
       console.log('🏠 Loading households for user:', user.id);
+      console.log('📋 User household_ids:', user.household_ids);
 
+      // Query households where user is a member (source of truth is household.member_ids)
+      // This works even if user.household_ids hasn't been updated yet
       const householdsQuery = query(
         collection(db, 'households'),
         where('member_ids', 'array-contains', user.id)
@@ -65,6 +69,7 @@ export default function SelectHouseholdScreen() {
       if (user.default_household_id) {
         setSelectedHouseholdId(user.default_household_id);
       } else if (loadedHouseholds.length === 1) {
+        // Pre-select if only one household (user can still change it)
         setSelectedHouseholdId(loadedHouseholds[0].id);
       }
 
@@ -77,21 +82,28 @@ export default function SelectHouseholdScreen() {
     }
   };
 
-  const handleSelectHousehold = async () => {
-    if (!selectedHouseholdId || !user) {
-      Alert.alert('Error', 'Please select a household');
+  const handleSelectHousehold = async (householdId?: string) => {
+    const idToUse = householdId || selectedHouseholdId;
+    if (!idToUse || !user) {
+      if (!householdId) {
+        Alert.alert('Error', 'Please select a household');
+      }
       return;
     }
 
     setSaving(true);
     try {
-      console.log('🏠 Setting default household:', selectedHouseholdId);
+      console.log('🏠 Setting default household:', idToUse);
 
       // Update user's default household
       await setDoc(
         doc(db, 'users', user.id),
         {
-          default_household_id: selectedHouseholdId,
+          default_household_id: idToUse,
+          // Also ensure household_ids includes this household
+          household_ids: user.household_ids.includes(idToUse) 
+            ? user.household_ids 
+            : [...user.household_ids, idToUse],
           updated_at: serverTimestamp(),
         },
         { merge: true }
@@ -101,7 +113,10 @@ export default function SelectHouseholdScreen() {
 
       // KISS: Update local user state immediately (don't wait for Firestore sync)
       updateUserLocally({
-        default_household_id: selectedHouseholdId,
+        default_household_id: idToUse,
+        household_ids: user.household_ids.includes(idToUse) 
+          ? user.household_ids 
+          : [...user.household_ids, idToUse],
       });
 
       console.log('✅ User updated locally');
@@ -122,201 +137,201 @@ export default function SelectHouseholdScreen() {
 
   if (loading) {
     return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: theme.background.primary,
-        }}
-      >
-        <ActivityIndicator size="large" color={theme.interactive.primary} />
-        <Text
+      <ScreenWrapper>
+        <View
           style={{
-            marginTop: theme.spacing[4],
-            color: theme.text.secondary,
-            fontSize: 16,
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
           }}
         >
-          Loading households...
-        </Text>
-      </View>
+          <ActivityIndicator size="large" color={theme.interactive.primary} />
+          <AppText
+            variant="body"
+            style={{
+              marginTop: SPACING[4],
+              color: theme.text.secondary,
+            }}
+          >
+            Loading households...
+          </AppText>
+        </View>
+      </ScreenWrapper>
     );
   }
 
   // If no households, redirect to create
   if (households.length === 0) {
     return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: theme.background.primary,
-          padding: theme.spacing[6],
-        }}
-      >
-        <Text
+      <ScreenWrapper>
+        <View
           style={{
-            fontSize: 24,
-            fontWeight: 'bold',
-            color: theme.text.primary,
-            marginBottom: theme.spacing[4],
-            textAlign: 'center',
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
           }}
         >
-          No Households Found
-        </Text>
-        <Text
-          style={{
-            fontSize: 16,
-            color: theme.text.secondary,
-            textAlign: 'center',
-            marginBottom: theme.spacing[8],
-          }}
-        >
-          Let's create your first household to get started!
-        </Text>
-        <PrimaryButton
-          title="Create Household"
-          onPress={handleCreateNewHousehold}
-          size="lg"
-        />
-      </View>
+          <AppText
+            variant="h1"
+            style={{
+              color: theme.text.primary,
+              marginBottom: SPACING[4],
+              textAlign: 'center',
+            }}
+          >
+            No Households Found
+          </AppText>
+          <AppText
+            variant="body"
+            style={{
+              color: theme.text.secondary,
+              textAlign: 'center',
+              marginBottom: SPACING[8],
+            }}
+          >
+            Let's create your first household to get started!
+          </AppText>
+          <PrimaryButton
+            title="Create Household"
+            onPress={handleCreateNewHousehold}
+            size="lg"
+          />
+        </View>
+      </ScreenWrapper>
     );
   }
 
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: theme.background.primary }}
-      contentContainerStyle={{ padding: theme.spacing[6] }}
-    >
-      {/* Header */}
-      <View style={{ alignItems: 'center', marginBottom: theme.spacing[8] }}>
-        <View
-          style={{
-            width: 80,
-            height: 80,
-            borderRadius: 40,
-            backgroundColor: theme.interactive.primary,
-            justifyContent: 'center',
-            alignItems: 'center',
-            marginBottom: theme.spacing[4],
-          }}
-        >
-          <Text style={{ fontSize: 40, color: theme.text.inverse }}>🏠</Text>
-        </View>
-        <Text
-          style={{
-            fontSize: 28,
-            fontWeight: 'bold',
-            color: theme.text.primary,
-            marginBottom: theme.spacing[2],
-            textAlign: 'center',
-          }}
-        >
-          Select Household
-        </Text>
-        <Text
-          style={{
-            fontSize: 16,
-            color: theme.text.secondary,
-            textAlign: 'center',
-          }}
-        >
-          Choose which household you want to manage
-        </Text>
-      </View>
-
-      {/* Household List */}
-      <View style={{ marginBottom: theme.spacing[6] }}>
-        {households.map((household) => (
-          <TouchableOpacity
-            key={household.id}
-            onPress={() => setSelectedHouseholdId(household.id)}
-            activeOpacity={0.7}
+    <ScreenWrapper>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ paddingBottom: SPACING[8] }}
+      >
+        {/* Header */}
+        <View style={{ alignItems: 'center', marginBottom: SPACING[8] }}>
+          <View
+            style={{
+              width: 80,
+              height: 80,
+              borderRadius: 40,
+              backgroundColor: theme.interactive.primary,
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginBottom: SPACING[4],
+            }}
           >
-            <Card
-              variant={selectedHouseholdId === household.id ? 'elevated' : 'outlined'}
-              style={{
-                marginBottom: theme.spacing[3],
-                borderWidth: selectedHouseholdId === household.id ? 2 : 1,
-                borderColor: selectedHouseholdId === household.id
-                  ? theme.interactive.primary
-                  : theme.border.default,
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                {/* Selection Indicator */}
-                <View
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: 12,
-                    borderWidth: 2,
-                    borderColor: selectedHouseholdId === household.id
-                      ? theme.interactive.primary
-                      : theme.border.default,
-                    backgroundColor: selectedHouseholdId === household.id
-                      ? theme.interactive.primary
-                      : 'transparent',
-                    marginRight: theme.spacing[3],
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
-                >
-                  {selectedHouseholdId === household.id && (
-                    <Text style={{ color: theme.text.inverse, fontSize: 16 }}>✓</Text>
-                  )}
-                </View>
+            <AppText variant="display" style={{ color: theme.text.inverse }}>🏠</AppText>
+          </View>
+          <AppText
+            variant="display"
+            style={{
+              color: theme.text.primary,
+              marginBottom: SPACING[2],
+              textAlign: 'center',
+            }}
+          >
+            Select Household
+          </AppText>
+          <AppText
+            variant="body"
+            style={{
+              color: theme.text.secondary,
+              textAlign: 'center',
+            }}
+          >
+            Choose which household you want to manage
+          </AppText>
+        </View>
 
-                {/* Household Info */}
-                <View style={{ flex: 1 }}>
-                  <Text
+        {/* Household List */}
+        <View style={{ marginBottom: SPACING[6] }}>
+          {households.map((household) => (
+            <TouchableOpacity
+              key={household.id}
+              onPress={() => setSelectedHouseholdId(household.id)}
+              activeOpacity={0.7}
+            >
+              <Card
+                variant={selectedHouseholdId === household.id ? 'elevated' : 'outlined'}
+                style={{
+                  marginBottom: SPACING[3],
+                  borderWidth: selectedHouseholdId === household.id ? 2 : 1,
+                  borderColor: selectedHouseholdId === household.id
+                    ? theme.interactive.primary
+                    : theme.border.default,
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  {/* Selection Indicator */}
+                  <View
                     style={{
-                      fontSize: 18,
-                      fontWeight: '600',
-                      color: theme.text.primary,
-                      marginBottom: 4,
+                      width: 24,
+                      height: 24,
+                      borderRadius: 12,
+                      borderWidth: 2,
+                      borderColor: selectedHouseholdId === household.id
+                        ? theme.interactive.primary
+                        : theme.border.default,
+                      backgroundColor: selectedHouseholdId === household.id
+                        ? theme.interactive.primary
+                        : 'transparent',
+                      marginRight: SPACING[3],
+                      justifyContent: 'center',
+                      alignItems: 'center',
                     }}
                   >
-                    {household.name}
-                  </Text>
-                  <Text style={{ fontSize: 14, color: theme.text.secondary }}>
-                    Baby Step {household.current_baby_step} • {household.member_ids.length} member
-                    {household.member_ids.length === 1 ? '' : 's'}
-                  </Text>
-                  {household.owner_id === user?.id && (
-                    <Text style={{ fontSize: 12, color: theme.interactive.primary, marginTop: 4 }}>
-                      Owner
-                    </Text>
-                  )}
+                    {selectedHouseholdId === household.id && (
+                      <AppText variant="body" style={{ color: theme.text.inverse }}>✓</AppText>
+                    )}
+                  </View>
+
+                  {/* Household Info */}
+                  <View style={{ flex: 1 }}>
+                    <AppText
+                      variant="h3"
+                      style={{
+                        color: theme.text.primary,
+                        marginBottom: SPACING[1],
+                      }}
+                    >
+                      {household.name}
+                    </AppText>
+                    <AppText variant="caption" style={{ color: theme.text.secondary }}>
+                      Baby Step {household.current_baby_step} • {household.member_ids.length} member
+                      {household.member_ids.length === 1 ? '' : 's'}
+                    </AppText>
+                    {household.owner_id === user?.id && (
+                      <AppText variant="caption" style={{ color: theme.interactive.primary, marginTop: SPACING[1] }}>
+                        Owner
+                      </AppText>
+                    )}
+                  </View>
                 </View>
-              </View>
-            </Card>
-          </TouchableOpacity>
-        ))}
-      </View>
+              </Card>
+            </TouchableOpacity>
+          ))}
+        </View>
 
-      {/* Actions */}
-      <PrimaryButton
-        title={saving ? 'Selecting...' : 'Continue'}
-        onPress={handleSelectHousehold}
-        loading={saving}
-        disabled={!selectedHouseholdId || saving}
-        fullWidth
-        size="lg"
-        style={{ marginBottom: theme.spacing[3] }}
-        testID="continue-button"
-      />
+        {/* Actions */}
+        <PrimaryButton
+          title={saving ? 'Selecting...' : 'Continue'}
+          onPress={handleSelectHousehold}
+          loading={saving}
+          disabled={!selectedHouseholdId || saving}
+          fullWidth
+          size="lg"
+          style={{ marginBottom: SPACING[3] }}
+          testID="continue-button"
+        />
 
-      <OutlineButton
-        title="Create New Household"
-        onPress={handleCreateNewHousehold}
-        fullWidth
-        testID="create-new-household-button"
-      />
-    </ScrollView>
+        <OutlineButton
+          title="Create New Household"
+          onPress={handleCreateNewHousehold}
+          fullWidth
+          testID="create-new-household-button"
+        />
+      </ScrollView>
+    </ScreenWrapper>
   );
 }
 

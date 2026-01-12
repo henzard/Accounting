@@ -10,7 +10,7 @@ import {
   User as FirebaseUser,
 } from 'firebase/auth';
 import { auth, db } from '@/infrastructure/firebase';
-import { doc, setDoc, serverTimestamp, getDocFromServer } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDocFromServer, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { User, createUser } from '@/domain/entities';
 
 interface AuthContextValue {
@@ -54,24 +54,82 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           if (userDoc.exists()) {
             const userData = userDoc.data();
             
-            const appUser = createUser({
-              id: firebaseUser.uid,
-              email: firebaseUser.email || '',
-              name: userData.name,
-              phone: userData.phone,
-              household_ids: userData.household_ids || [],
-              default_household_id: userData.default_household_id,
-              timezone: userData.timezone || 'UTC',
-              currency: userData.currency || 'USD',
-              locale: userData.locale || 'en-US',
-              created_at: userData.created_at?.toDate() || new Date(),
-              updated_at: userData.updated_at?.toDate() || new Date(),
-              last_login_at: new Date(),
-            });
+            // Check if user is actually in any households (source of truth: household.member_ids)
+            // This fixes the case where user was added to household but user document wasn't updated
+            console.log('🔍 Checking for households where user is a member...');
+            const householdsQuery = query(
+              collection(db, 'households'),
+              where('member_ids', 'array-contains', firebaseUser.uid)
+            );
+            const householdsSnapshot = await getDocs(householdsQuery);
+            const actualHouseholdIds = householdsSnapshot.docs.map(doc => doc.id);
             
-            setUser(appUser);
-            console.log('✅ User loaded:', appUser.email, '| Household:', appUser.default_household_id ? 'Yes' : 'No');
-            setFirebaseUser(firebaseUser);
+            // If user is in households but user document doesn't reflect this, update it
+            const userHouseholdIds = userData.household_ids || [];
+            const needsUpdate = actualHouseholdIds.length > 0 && 
+              (actualHouseholdIds.length !== userHouseholdIds.length ||
+               !actualHouseholdIds.every(id => userHouseholdIds.includes(id)) ||
+               (!userData.default_household_id && actualHouseholdIds.length > 0));
+            
+            if (needsUpdate) {
+              console.log(`🔄 User is in ${actualHouseholdIds.length} household(s) but user document is out of sync. Updating...`);
+              
+              const updates: any = {
+                household_ids: actualHouseholdIds,
+                updated_at: serverTimestamp(),
+              };
+              
+              // Set default household if not set
+              if (!userData.default_household_id && actualHouseholdIds.length > 0) {
+                updates.default_household_id = actualHouseholdIds[0];
+                console.log(`✅ Setting default household to: ${actualHouseholdIds[0]}`);
+              }
+              
+              await updateDoc(doc(db, 'users', firebaseUser.uid), updates);
+              
+              // Reload user data after update
+              const updatedUserDoc = await getDocFromServer(doc(db, 'users', firebaseUser.uid));
+              const updatedUserData = updatedUserDoc.data();
+              
+              const appUser = createUser({
+                id: firebaseUser.uid,
+                email: firebaseUser.email || '',
+                name: updatedUserData.name,
+                phone: updatedUserData.phone,
+                household_ids: updatedUserData.household_ids || [],
+                default_household_id: updatedUserData.default_household_id,
+                timezone: updatedUserData.timezone || 'UTC',
+                currency: updatedUserData.currency || 'USD',
+                locale: updatedUserData.locale || 'en-US',
+                created_at: updatedUserData.created_at?.toDate() || new Date(),
+                updated_at: updatedUserData.updated_at?.toDate() || new Date(),
+                last_login_at: new Date(),
+              });
+              
+              setUser(appUser);
+              console.log('✅ User loaded and synced:', appUser.email, '| Household:', appUser.default_household_id ? 'Yes' : 'No');
+              setFirebaseUser(firebaseUser);
+            } else {
+              // User document is in sync, use it as-is
+              const appUser = createUser({
+                id: firebaseUser.uid,
+                email: firebaseUser.email || '',
+                name: userData.name,
+                phone: userData.phone,
+                household_ids: userData.household_ids || [],
+                default_household_id: userData.default_household_id,
+                timezone: userData.timezone || 'UTC',
+                currency: userData.currency || 'USD',
+                locale: userData.locale || 'en-US',
+                created_at: userData.created_at?.toDate() || new Date(),
+                updated_at: userData.updated_at?.toDate() || new Date(),
+                last_login_at: new Date(),
+              });
+              
+              setUser(appUser);
+              console.log('✅ User loaded:', appUser.email, '| Household:', appUser.default_household_id ? 'Yes' : 'No');
+              setFirebaseUser(firebaseUser);
+            }
           } else {
             console.warn('⚠️ User document not found in Firestore');
             setUser(null);
@@ -105,34 +163,115 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       console.log('✅ Firebase user created:', firebaseUser.uid);
       
-      // Create user document in Firestore
-      const newUser = createUser({
-        id: firebaseUser.uid,
+      // Check if user document already exists (from being added to household before signup)
+      console.log('🔍 Checking if user document already exists...');
+      const existingUserDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+      
+      let existingHouseholdIds: string[] = [];
+      let existingDefaultHouseholdId: string | undefined = undefined;
+      
+      if (existingUserDoc.exists()) {
+        // User document already exists - preserve household associations
+        const existingData = existingUserDoc.data();
+        existingHouseholdIds = existingData.household_ids || [];
+        existingDefaultHouseholdId = existingData.default_household_id;
+        console.log(`📋 Found existing user document with ${existingHouseholdIds.length} household(s)`);
+      } else {
+        // New user - check if they were added to any households by email before signing up
+        console.log('🔍 Checking for households where user was added by email...');
+        const emailLowercase = email.toLowerCase();
+        
+        try {
+          // Strategy: Find households where a member user has this email
+          // This handles the case where user was added to household before signing up
+          const householdsSnapshot = await getDocs(collection(db, 'households'));
+          
+          const householdsToAdd: string[] = [];
+          
+          for (const householdDoc of householdsSnapshot.docs) {
+            const householdData = householdDoc.data();
+            const memberIds = householdData.member_ids || [];
+            
+            // Check each member to see if their email matches
+            for (const memberId of memberIds) {
+              try {
+                const memberUserDoc = await getDoc(doc(db, 'users', memberId));
+                if (memberUserDoc.exists()) {
+                  const memberData = memberUserDoc.data();
+                  const memberEmail = (memberData.email || '').toLowerCase();
+                  
+                  if (memberEmail === emailLowercase && memberId !== firebaseUser.uid) {
+                    // Found a household where a member with this email exists
+                    // This means the user was added to this household before signing up
+                    householdsToAdd.push(householdDoc.id);
+                    console.log(`✅ Found household ${householdDoc.id} where user was previously added`);
+                    break; // Found match for this household, move to next
+                  }
+                }
+              } catch (error) {
+                // Skip if we can't load member user
+                console.warn(`⚠️ Could not load member ${memberId}:`, error);
+              }
+            }
+          }
+          
+          if (householdsToAdd.length > 0) {
+            existingHouseholdIds = householdsToAdd;
+            existingDefaultHouseholdId = householdsToAdd[0]; // Set first as default
+            console.log(`📋 Found ${householdsToAdd.length} household(s) user should be added to`);
+          }
+        } catch (error) {
+          console.warn('⚠️ Could not check for existing household associations:', error);
+          // Continue with signup even if check fails
+        }
+      }
+      
+      // Create or update user document in Firestore
+      // Use merge: true to preserve existing household_ids if document already exists
+      const userData: any = {
         email: firebaseUser.email || email,
         name: name,
-        household_ids: [],
+        phone: null,
+        household_ids: existingHouseholdIds.length > 0 ? existingHouseholdIds : [],
+        default_household_id: existingDefaultHouseholdId || null,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
         currency: 'USD',
         locale: Intl.DateTimeFormat().resolvedOptions().locale || 'en-US',
-        created_at: new Date(),
-        updated_at: new Date(),
-      });
-      
-      await setDoc(doc(db, 'users', firebaseUser.uid), {
-        email: newUser.email,
-        name: newUser.name,
-        phone: newUser.phone || null,
-        household_ids: newUser.household_ids,
-        default_household_id: newUser.default_household_id || null,
-        timezone: newUser.timezone,
-        currency: newUser.currency,
-        locale: newUser.locale,
-        created_at: serverTimestamp(),
         updated_at: serverTimestamp(),
         last_login_at: serverTimestamp(),
-      });
+      };
+      
+      // Only set created_at if document doesn't exist
+      if (!existingUserDoc.exists()) {
+        userData.created_at = serverTimestamp();
+      }
+      
+      await setDoc(
+        doc(db, 'users', firebaseUser.uid),
+        userData,
+        { merge: true } // Preserve existing fields like household_ids if document exists
+      );
       
       console.log('✅ User document created in Firestore');
+      
+      // If we found existing household associations, we need to update the households' member_ids
+      // to use the new Firebase Auth UID instead of any old user ID
+      if (existingHouseholdIds.length > 0) {
+        console.log('🔄 Updating household member_ids with new user ID...');
+        const { FirestoreHouseholdRepository } = await import('@/data/repositories/FirestoreHouseholdRepository');
+        const householdRepo = new FirestoreHouseholdRepository();
+        
+        // For each household, ensure this user's ID is in member_ids
+        for (const householdId of existingHouseholdIds) {
+          try {
+            await householdRepo.addMember(householdId, firebaseUser.uid);
+            console.log(`✅ Added user ${firebaseUser.uid} to household ${householdId}`);
+          } catch (error) {
+            console.warn(`⚠️ Could not add user to household ${householdId}:`, error);
+            // Continue with other households
+          }
+        }
+      }
       
       // Auth state listener will update the user state
     } catch (error: any) {

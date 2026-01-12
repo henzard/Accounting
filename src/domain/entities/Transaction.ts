@@ -26,6 +26,9 @@ export interface Transaction {
   payee?: string;
   payer?: string;
   
+  // Budget Category Allocation
+  category_id?: string; // Link to budget category for budget tracking
+  
   // Transfer (if type === 'TRANSFER')
   to_account_id?: string;
   
@@ -40,13 +43,15 @@ export interface Transaction {
   
   // Business Expenses
   is_business: boolean;
+  business_id?: string; // Reference to Business entity (for multi-business support)
   reimbursement_type?: ReimbursementType;
-  reimbursement_target?: string;
+  reimbursement_target?: string; // Denormalized: "Employer: ACME Corp" (derived from business_id or manual)
   reimbursement_claim_id?: string;
   
   // Receipt
   has_receipt: boolean;
   receipt_count: number;
+  receipt_urls?: string[]; // Firebase Storage URLs for receipt photos
   
   // Late Entry Tracking
   captured_at: Date;
@@ -73,6 +78,7 @@ export function createTransaction(params: {
   created_by_device: string;
   payee?: string;
   notes?: string;
+  category_id?: string;
 }): Transaction {
   const now = new Date();
   const captureDelay = Math.floor(
@@ -88,6 +94,7 @@ export function createTransaction(params: {
     currency: 'USD',
     account_id: params.account_id,
     payee: params.payee,
+    category_id: params.category_id,
     notes: params.notes,
     status: 'pending',
     is_business: false,
