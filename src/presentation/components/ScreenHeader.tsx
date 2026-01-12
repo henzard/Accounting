@@ -6,12 +6,16 @@ import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from 'react-nativ
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { ThemeToggleButton } from './ThemeToggleButton';
+import { HouseholdSwitcherButton } from './HouseholdSwitcherButton';
 
 interface ScreenHeaderProps {
   title: string;
   showBack?: boolean;
   onBackPress?: () => void;
   rightAction?: React.ReactNode;
+  showThemeToggle?: boolean;
+  showHouseholdSwitcher?: boolean;
   style?: ViewStyle;
   testID?: string;
 }
@@ -21,6 +25,8 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
   showBack = true,
   onBackPress,
   rightAction,
+  showThemeToggle = true,
+  showHouseholdSwitcher = true,
   style,
   testID,
 }) => {
@@ -78,9 +84,31 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
         </Text>
       </View>
 
-      {/* Right: Action or Spacer */}
+      {/* Right: Household Switcher + Theme Toggle + Action or Spacer */}
       <View style={styles.rightSection}>
-        {rightAction || <View style={styles.rightSpacer} />}
+        <View style={styles.rightActions}>
+          {showHouseholdSwitcher && (
+            <HouseholdSwitcherButton
+              size={20}
+              testID={`${testID}-household-switcher`}
+            />
+          )}
+          {showHouseholdSwitcher && showThemeToggle && (
+            <View style={styles.rightActionSpacer} />
+          )}
+          {showThemeToggle && (
+            <ThemeToggleButton
+              size={20}
+              testID={`${testID}-theme-toggle`}
+            />
+          )}
+          {rightAction && (
+            <View style={(showThemeToggle || showHouseholdSwitcher) ? styles.rightActionSpacer : undefined}>
+              {rightAction}
+            </View>
+          )}
+          {!rightAction && !showThemeToggle && !showHouseholdSwitcher && <View style={styles.rightSpacer} />}
+        </View>
       </View>
     </View>
   );
@@ -108,6 +136,14 @@ const styles = StyleSheet.create({
   rightSection: {
     flex: 1,
     alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  rightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  rightActionSpacer: {
+    marginLeft: 8,
   },
   backButton: {
     flexDirection: 'row',

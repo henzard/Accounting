@@ -5,12 +5,13 @@ import React, { useState } from 'react';
 import {
   View,
   TextInput,
-  Text,
   StyleSheet,
   ViewStyle,
   TextInputProps,
 } from 'react-native';
 import { useTheme } from '@/infrastructure/theme';
+import { AppText } from './styled/app-text';
+import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -50,22 +51,17 @@ export const Input: React.FC<InputProps> = ({
     <View style={[styles.container, fullWidth && { width: '100%' }, containerStyle]}>
       {/* Label */}
       {label && (
-        <Text
-          style={[
-            styles.label,
-            {
-              color: hasError ? theme.status.error : theme.text.secondary,
-              fontSize: 14,
-              fontWeight: '500',
-              marginBottom: theme.spacing[2],
-            },
-          ]}
-        >
-          {label}
+        <View style={{ flexDirection: 'row', alignItems: 'baseline', marginBottom: SPACING[1] }}>
+          <AppText
+            variant="body"
+            color={hasError ? theme.status.error : theme.text.secondary}
+          >
+            {label}
+          </AppText>
           {required && (
-            <Text style={{ color: theme.status.error }}> *</Text>
+            <AppText variant="body" color={theme.status.error}> *</AppText>
           )}
-        </Text>
+        </View>
       )}
 
       {/* Input Container */}
@@ -82,17 +78,23 @@ export const Input: React.FC<InputProps> = ({
               : isFocused
               ? theme.border.focus
               : theme.border.default,
-            borderRadius: theme.borderRadius.md,
-            paddingHorizontal: theme.spacing[3],
-            minHeight: 48,
+            borderRadius: BORDER_RADIUS.sm, // Inputs use sm (12px) per premium standards
+            paddingHorizontal: SPACING[4],
+            minHeight: 50, // Premium standard: 48-52px, using 50px
           },
           disabled && { opacity: 0.6 },
         ]}
       >
         {/* Left Icon */}
         {leftIcon && (
-          <View style={[styles.icon, { marginRight: theme.spacing[2] }]}>
-            {leftIcon}
+          <View style={[styles.icon, { marginRight: SPACING[2] }]}>
+            {typeof leftIcon === 'string' ? (
+              <AppText variant="body" color={theme.text.secondary}>
+                {leftIcon}
+              </AppText>
+            ) : (
+              leftIcon
+            )}
           </View>
         )}
 
@@ -113,7 +115,7 @@ export const Input: React.FC<InputProps> = ({
             {
               flex: 1,
               color: theme.text.primary,
-              fontSize: 16,
+              fontSize: 16, // Premium standard body text size
             },
             style,
           ]}
@@ -122,42 +124,38 @@ export const Input: React.FC<InputProps> = ({
 
         {/* Right Icon */}
         {rightIcon && (
-          <View style={[styles.icon, { marginLeft: theme.spacing[2] }]}>
-            {rightIcon}
+          <View style={[styles.icon, { marginLeft: SPACING[2] }]}>
+            {typeof rightIcon === 'string' ? (
+              <AppText variant="body" color={theme.text.secondary}>
+                {rightIcon}
+              </AppText>
+            ) : (
+              rightIcon
+            )}
           </View>
         )}
       </View>
 
       {/* Error Message */}
       {error && (
-        <Text
-          style={[
-            styles.helperText,
-            {
-              color: theme.status.error,
-              fontSize: 12,
-              marginTop: theme.spacing[1],
-            },
-          ]}
+        <AppText
+          variant="caption"
+          color={theme.status.error}
+          style={{ marginTop: SPACING[1] }}
         >
           {error}
-        </Text>
+        </AppText>
       )}
 
       {/* Helper Text */}
       {!error && helperText && (
-        <Text
-          style={[
-            styles.helperText,
-            {
-              color: theme.text.tertiary,
-              fontSize: 12,
-              marginTop: theme.spacing[1],
-            },
-          ]}
+        <AppText
+          variant="caption"
+          color={theme.text.tertiary}
+          style={{ marginTop: SPACING[1] }}
         >
           {helperText}
-        </Text>
+        </AppText>
       )}
     </View>
   );
@@ -165,10 +163,7 @@ export const Input: React.FC<InputProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 4,
-  },
-  label: {
-    // Themed in component
+    marginBottom: SPACING[1],
   },
   inputContainer: {
     flexDirection: 'row',
@@ -180,9 +175,6 @@ const styles = StyleSheet.create({
   icon: {
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  helperText: {
-    // Themed in component
   },
 });
 

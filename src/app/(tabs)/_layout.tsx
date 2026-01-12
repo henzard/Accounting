@@ -1,11 +1,13 @@
 import { Tabs, useRouter, useSegments } from 'expo-router';
 import React, { useEffect } from 'react';
-import { View, Text, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
+import { ScreenWrapper, AppText } from '@/presentation/components';
+import { SPACING } from '@/shared/constants/spacing';
 
 export default function TabLayout() {
   const { theme } = useTheme();
@@ -45,25 +47,26 @@ export default function TabLayout() {
   // Show loading screen while checking auth
   if (loading) {
     return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: theme.background.primary,
-        }}
-      >
-        <ActivityIndicator size="large" color={theme.interactive.primary} />
-        <Text
+      <ScreenWrapper>
+        <View
           style={{
-            marginTop: theme.spacing[4],
-            color: theme.text.secondary,
-            fontSize: 16,
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
           }}
         >
-          Loading...
-        </Text>
-      </View>
+          <ActivityIndicator size="large" color={theme.interactive.primary} />
+          <AppText
+            variant="body"
+            style={{
+              marginTop: SPACING[4],
+              color: theme.text.secondary,
+            }}
+          >
+            Loading...
+          </AppText>
+        </View>
+      </ScreenWrapper>
     );
   }
 

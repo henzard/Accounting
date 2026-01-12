@@ -1,5 +1,7 @@
-// Button Component - Homebase Budget
-// Themed button with multiple variants
+// Button Component - Premium UI Component Tier
+// Enforces button variant requirement (primary, secondary, destructive)
+// Premium UI Standards: Touchable → Button (variant required)
+// See .cursor/rules/37-premium-ui-standards.mdc for details
 
 import React from 'react';
 import {
@@ -11,8 +13,12 @@ import {
   TextStyle,
 } from 'react-native';
 import { useTheme } from '@/infrastructure/theme';
+import { BUTTON_HEIGHT, BORDER_RADIUS, SPACING } from '@/shared/constants/spacing';
+import { TEXT_STYLES } from '@/shared/constants/typography';
 
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
+// Premium UI Standard: Button variants (primary, secondary, destructive)
+// Note: 'outline' and 'ghost' kept for backward compatibility but not in premium standard
+type ButtonVariant = 'primary' | 'secondary' | 'destructive' | 'outline' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface ButtonProps {
@@ -42,40 +48,39 @@ export const Button: React.FC<ButtonProps> = ({
 }) => {
   const { theme } = useTheme();
 
+  // Premium UI Standard: Button heights 48-52px
   // Size configurations
   const sizeStyles = {
     sm: {
-      paddingVertical: theme.spacing[2],
-      paddingHorizontal: theme.spacing[3],
-      fontSize: 14,
-      minHeight: 32,
+      paddingVertical: SPACING[2], // 8px
+      paddingHorizontal: SPACING[4], // 16px
+      minHeight: BUTTON_HEIGHT.sm, // 48px
     },
     md: {
-      paddingVertical: theme.spacing[3],
-      paddingHorizontal: theme.spacing[4],
-      fontSize: 16,
-      minHeight: 44,
+      paddingVertical: SPACING[3], // 12px
+      paddingHorizontal: SPACING[6], // 24px
+      minHeight: BUTTON_HEIGHT.md, // 50px (premium standard)
     },
     lg: {
-      paddingVertical: theme.spacing[4],
-      paddingHorizontal: theme.spacing[6],
-      fontSize: 18,
-      minHeight: 56,
+      paddingVertical: SPACING[3], // 12px
+      paddingHorizontal: SPACING[8], // 32px
+      minHeight: BUTTON_HEIGHT.lg, // 52px
     },
   };
 
   // Variant styles
   const getVariantStyles = () => {
+    // Premium UI Standard: Border radius 12-14px for buttons
     const baseStyle: ViewStyle = {
-      borderRadius: theme.borderRadius.md,
+      borderRadius: BORDER_RADIUS.sm, // 12px (10-12 range for small controls)
       alignItems: 'center',
       justifyContent: 'center',
       ...sizeStyles[size],
     };
 
+    // Premium UI Standard: Button text uses TEXT_STYLES.button
     const baseTextStyle: TextStyle = {
-      fontSize: sizeStyles[size].fontSize,
-      fontWeight: '600',
+      ...TEXT_STYLES.button,
     };
 
     switch (variant) {
@@ -134,6 +139,21 @@ export const Button: React.FC<ButtonProps> = ({
           text: {
             ...baseTextStyle,
             color: disabled ? theme.text.disabled : theme.interactive.primary,
+          },
+        };
+
+      case 'destructive':
+        // Premium UI Standard: Destructive variant (rare, controlled)
+        return {
+          container: {
+            ...baseStyle,
+            backgroundColor: disabled
+              ? theme.status.error + '40' // 40% opacity
+              : theme.status.error,
+          },
+          text: {
+            ...baseTextStyle,
+            color: theme.text.inverse,
           },
         };
 

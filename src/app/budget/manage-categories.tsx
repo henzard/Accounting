@@ -4,7 +4,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
-  Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
@@ -15,12 +14,13 @@ import {
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
-import { ScreenHeader, Card, PrimaryButton, OutlineButton, SearchableSelect } from '@/presentation/components';
+import { ScreenHeader, Card, PrimaryButton, OutlineButton, SearchableSelect, ScreenWrapper, AppText, Input } from '@/presentation/components';
 import { CategoryGroup } from '@/domain/entities/Budget';
 import { CATEGORY_GROUP_INFO, MasterCategory, getDefaultCategories, DEFAULT_BUDGET_CATEGORIES } from '@/shared/constants/budget-categories';
 import { collection, getDocs, addDoc, deleteDoc, updateDoc, doc, query, where } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
 import { SelectOption } from '@/shared/types';
+import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
 
 export default function ManageCategoriesScreen() {
   const { theme } = useTheme();
@@ -376,20 +376,20 @@ export default function ManageCategoriesScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
+      <ScreenWrapper>
         <ScreenHeader title="Manage Categories" showBack={true} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.interactive.primary} />
-          <Text style={[styles.loadingText, { color: theme.text.secondary }]}>
+          <AppText variant="body" style={{ color: theme.text.secondary, marginTop: SPACING[4] }}>
             Loading categories...
-          </Text>
+          </AppText>
         </View>
-      </View>
+      </ScreenWrapper>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
+    <ScreenWrapper>
       <ScreenHeader
         title="Manage Categories"
         showBack={true}
@@ -399,15 +399,15 @@ export default function ManageCategoriesScreen() {
               setSelectionMode(false);
               setSelectedCategories(new Set());
             }}>
-              <Text style={[styles.resetButton, { color: theme.interactive.primary }]}>
+              <AppText variant="body" style={{ color: theme.interactive.primary }}>
                 Done
-              </Text>
+              </AppText>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity onPress={handleResetToDefaults}>
-              <Text style={[styles.resetButton, { color: theme.status.error }]}>
+              <AppText variant="body" style={{ color: theme.status.error }}>
                 Reset
-              </Text>
+              </AppText>
             </TouchableOpacity>
           )
         }
@@ -415,16 +415,14 @@ export default function ManageCategoriesScreen() {
 
       {/* 2. SEARCH BAR */}
       <View style={[styles.searchContainer, { backgroundColor: theme.background.secondary, borderBottomColor: theme.border.default }]}>
-        <TextInput
-          style={[styles.searchInput, { color: theme.text.primary }]}
+        <Input
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholder="🔍 Search categories..."
-          placeholderTextColor={theme.text.tertiary}
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
-            <Text style={{ color: theme.text.secondary, fontSize: 18 }}>✕</Text>
+            <AppText variant="body" style={{ color: theme.text.secondary }}>✕</AppText>
           </TouchableOpacity>
         )}
       </View>
@@ -432,12 +430,12 @@ export default function ManageCategoriesScreen() {
       {/* 9. BULK ACTIONS BAR (when in selection mode) */}
       {selectionMode && (
         <View style={[styles.bulkActionsBar, { backgroundColor: theme.background.secondary, borderBottomColor: theme.border.default }]}>
-          <View style={{ flexDirection: 'row', gap: 12 }}>
+          <View style={{ flexDirection: 'row', gap: SPACING[3] }}>
             <TouchableOpacity onPress={selectAll}>
-              <Text style={{ color: theme.interactive.primary, fontWeight: '600' }}>Select All</Text>
+              <AppText variant="bodyEmphasis" style={{ color: theme.interactive.primary }}>Select All</AppText>
             </TouchableOpacity>
             <TouchableOpacity onPress={deselectAll}>
-              <Text style={{ color: theme.text.secondary, fontWeight: '600' }}>Deselect All</Text>
+              <AppText variant="bodyEmphasis" style={{ color: theme.text.secondary }}>Deselect All</AppText>
             </TouchableOpacity>
           </View>
           <TouchableOpacity 
@@ -445,9 +443,9 @@ export default function ManageCategoriesScreen() {
             disabled={selectedCategories.size === 0}
             style={{ opacity: selectedCategories.size === 0 ? 0.5 : 1 }}
           >
-            <Text style={{ color: theme.status.error, fontWeight: '600' }}>
+            <AppText variant="bodyEmphasis" style={{ color: theme.status.error }}>
               Delete ({selectedCategories.size})
-            </Text>
+            </AppText>
           </TouchableOpacity>
         </View>
       )}
@@ -456,7 +454,7 @@ export default function ManageCategoriesScreen() {
         {/* ACTION BUTTONS */}
         {!showAddForm && !editingCategory && !selectionMode && hasCategories && (
           <View style={styles.section}>
-            <View style={{ flexDirection: 'row', gap: 12 }}>
+            <View style={{ flexDirection: 'row', gap: SPACING[3] }}>
               <PrimaryButton
                 title="+ Add Category"
                 onPress={() => setShowAddForm(true)}
@@ -474,51 +472,36 @@ export default function ManageCategoriesScreen() {
         {/* Add Category Form */}
         {showAddForm && (
           <Card style={styles.addForm}>
-            <Text style={[styles.formTitle, { color: theme.text.primary }]}>
+            <AppText variant="h2" style={{ color: theme.text.primary, marginBottom: SPACING[4] }}>
               Add New Category
-            </Text>
+            </AppText>
 
-            <Text style={[styles.label, { color: theme.text.secondary }]}>
-              Name
-            </Text>
-            <TextInput
-              style={[styles.input, {
-                backgroundColor: theme.background.secondary,
-                color: theme.text.primary,
-                borderColor: theme.border.default,
-              }]}
+            <Input
+              label="Name"
               value={newCategoryName}
               onChangeText={setNewCategoryName}
               placeholder="e.g., Streaming Services"
-              placeholderTextColor={theme.text.tertiary}
             />
 
-            <Text style={[styles.label, { color: theme.text.secondary }]}>
-              Group
-            </Text>
-            <SearchableSelect
-              label="Category Group"
-              options={categoryGroupOptions}
-              value={newCategoryGroup}
-              onSelect={(value) => setNewCategoryGroup(value as CategoryGroup)}
-              placeholder="Select category group"
-            />
+            <View style={{ marginTop: SPACING[4] }}>
+              <SearchableSelect
+                label="Group"
+                options={categoryGroupOptions}
+                value={newCategoryGroup}
+                onSelect={(value) => setNewCategoryGroup(value as CategoryGroup)}
+                placeholder="Select category group"
+              />
+            </View>
 
-            <Text style={[styles.label, { color: theme.text.secondary }]}>
-              Icon (emoji)
-            </Text>
-            <TextInput
-              style={[styles.input, {
-                backgroundColor: theme.background.secondary,
-                color: theme.text.primary,
-                borderColor: theme.border.default,
-              }]}
-              value={newCategoryIcon}
-              onChangeText={setNewCategoryIcon}
-              placeholder="📦"
-              placeholderTextColor={theme.text.tertiary}
-              maxLength={2}
-            />
+            <View style={{ marginTop: SPACING[4] }}>
+              <Input
+                label="Icon (emoji)"
+                value={newCategoryIcon}
+                onChangeText={setNewCategoryIcon}
+                placeholder="📦"
+                maxLength={2}
+              />
+            </View>
 
             <View style={styles.formButtons}>
               <OutlineButton
@@ -543,51 +526,36 @@ export default function ManageCategoriesScreen() {
         {/* Edit Category Form */}
         {editingCategory && (
           <Card style={styles.addForm}>
-            <Text style={[styles.formTitle, { color: theme.text.primary }]}>
+            <AppText variant="h2" style={{ color: theme.text.primary, marginBottom: SPACING[4] }}>
               Edit Category
-            </Text>
+            </AppText>
 
-            <Text style={[styles.label, { color: theme.text.secondary }]}>
-              Name
-            </Text>
-            <TextInput
-              style={[styles.input, {
-                backgroundColor: theme.background.secondary,
-                color: theme.text.primary,
-                borderColor: theme.border.default,
-              }]}
+            <Input
+              label="Name"
               value={editCategoryName}
               onChangeText={setEditCategoryName}
               placeholder="e.g., Streaming Services"
-              placeholderTextColor={theme.text.tertiary}
             />
 
-            <Text style={[styles.label, { color: theme.text.secondary }]}>
-              Group
-            </Text>
-            <SearchableSelect
-              label="Category Group"
-              options={categoryGroupOptions}
-              value={editCategoryGroup}
-              onSelect={(value) => setEditCategoryGroup(value as CategoryGroup)}
-              placeholder="Select category group"
-            />
+            <View style={{ marginTop: SPACING[4] }}>
+              <SearchableSelect
+                label="Group"
+                options={categoryGroupOptions}
+                value={editCategoryGroup}
+                onSelect={(value) => setEditCategoryGroup(value as CategoryGroup)}
+                placeholder="Select category group"
+              />
+            </View>
 
-            <Text style={[styles.label, { color: theme.text.secondary }]}>
-              Icon (emoji)
-            </Text>
-            <TextInput
-              style={[styles.input, {
-                backgroundColor: theme.background.secondary,
-                color: theme.text.primary,
-                borderColor: theme.border.default,
-              }]}
-              value={editCategoryIcon}
-              onChangeText={setEditCategoryIcon}
-              placeholder="📦"
-              placeholderTextColor={theme.text.tertiary}
-              maxLength={2}
-            />
+            <View style={{ marginTop: SPACING[4] }}>
+              <Input
+                label="Icon (emoji)"
+                value={editCategoryIcon}
+                onChangeText={setEditCategoryIcon}
+                placeholder="📦"
+                maxLength={2}
+              />
+            </View>
 
             <View style={styles.formButtons}>
               <OutlineButton
@@ -608,14 +576,14 @@ export default function ManageCategoriesScreen() {
         {/* 4. EMPTY STATE */}
         {!hasCategories && (
           <View style={styles.emptyState}>
-            <Text style={[styles.emptyIcon, { color: theme.text.tertiary }]}>📋</Text>
-            <Text style={[styles.emptyTitle, { color: theme.text.primary }]}>
+            <AppText variant="display" style={{ color: theme.text.tertiary, marginBottom: SPACING[4] }}>📋</AppText>
+            <AppText variant="h2" style={{ color: theme.text.primary, marginBottom: SPACING[2], textAlign: 'center' }}>
               No Categories Yet
-            </Text>
-            <Text style={[styles.emptyDescription, { color: theme.text.secondary }]}>
+            </AppText>
+            <AppText variant="body" style={{ color: theme.text.secondary, textAlign: 'center', marginBottom: SPACING[6] }}>
               Get started by clicking &rdquo;Reset&rdquo; to load Dave Ramsey&apos;s recommended budget categories, or add your own custom categories.
-            </Text>
-            <View style={{ marginTop: 24, width: '100%', gap: 12 }}>
+            </AppText>
+            <View style={{ marginTop: SPACING[6], width: '100%', gap: SPACING[3] }}>
               <PrimaryButton
                 title="Load Dave Ramsey Categories"
                 onPress={handleResetToDefaults}
@@ -633,13 +601,13 @@ export default function ManageCategoriesScreen() {
         {/* SEARCH NO RESULTS */}
         {hasCategories && !hasFilteredCategories && (
           <View style={styles.emptyState}>
-            <Text style={[styles.emptyIcon, { color: theme.text.tertiary }]}>🔍</Text>
-            <Text style={[styles.emptyTitle, { color: theme.text.primary }]}>
+            <AppText variant="display" style={{ color: theme.text.tertiary, marginBottom: SPACING[4] }}>🔍</AppText>
+            <AppText variant="h2" style={{ color: theme.text.primary, marginBottom: SPACING[2], textAlign: 'center' }}>
               No Results Found
-            </Text>
-            <Text style={[styles.emptyDescription, { color: theme.text.secondary }]}>
+            </AppText>
+            <AppText variant="body" style={{ color: theme.text.secondary, textAlign: 'center' }}>
               No categories match &quot;{searchQuery}&quot;. Try a different search term.
-            </Text>
+            </AppText>
           </View>
         )}
 
@@ -657,18 +625,18 @@ export default function ManageCategoriesScreen() {
                 style={styles.groupHeader}
                 activeOpacity={0.7}
               >
-                <Text style={styles.groupIcon}>{groupInfo.icon}</Text>
-                <Text style={[styles.groupName, { color: theme.text.primary }]}>
+                <AppText variant="h2" style={styles.groupIcon}>{groupInfo.icon}</AppText>
+                <AppText variant="h3" style={{ color: theme.text.primary }}>
                   {groupInfo.name}
-                </Text>
+                </AppText>
                 {/* 5. COUNT BADGE */}
-                <Text style={[styles.groupCount, { color: theme.text.tertiary }]}>
+                <AppText variant="caption" style={{ color: theme.text.tertiary }}>
                   ({groupCategories.length})
-                </Text>
+                </AppText>
                 {/* Collapse indicator */}
-                <Text style={[styles.collapseIcon, { color: theme.text.tertiary }]}>
+                <AppText variant="caption" style={{ color: theme.text.tertiary }}>
                   {isCollapsed ? '▶' : '▼'}
-                </Text>
+                </AppText>
               </TouchableOpacity>
 
               {/* Categories (only show if not collapsed) */}
@@ -691,46 +659,46 @@ export default function ManageCategoriesScreen() {
                             borderColor: isSelected ? theme.interactive.primary : theme.border.default,
                           }]}
                         >
-                          {isSelected && <Text style={{ color: 'white', fontSize: 12 }}>✓</Text>}
+                          {isSelected && <AppText variant="caption" style={{ color: 'white' }}>✓</AppText>}
                         </TouchableOpacity>
                       )}
                       
-                      <Text style={styles.categoryIcon}>{category.icon}</Text>
+                      <AppText variant="body" style={styles.categoryIcon}>{category.icon}</AppText>
                       <View style={{ flex: 1 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                          <Text style={[styles.categoryName, { color: theme.text.primary }]}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[2] }}>
+                          <AppText variant="bodyEmphasis" style={{ color: theme.text.primary }}>
                             {category.name}
-                          </Text>
+                          </AppText>
                           {/* 8. USAGE INDICATOR */}
                           {isUsed && (
                             <View style={[styles.usageBadge, { backgroundColor: theme.status.success + '20' }]}>
-                              <Text style={[styles.usageText, { color: theme.status.success }]}>
+                              <AppText variant="caption" style={{ color: theme.status.success }}>
                                 ● Active
-                              </Text>
+                              </AppText>
                             </View>
                           )}
                         </View>
                         {category.is_default && (
-                          <Text style={[styles.defaultBadge, { color: theme.text.tertiary }]}>
+                          <AppText variant="caption" style={{ color: theme.text.tertiary, marginTop: SPACING[1] }}>
                             Dave Ramsey Default
-                          </Text>
+                          </AppText>
                         )}
                       </View>
                       
                       {/* 3. ICON BUTTONS */}
                       {!category.is_default && !selectionMode && (
-                        <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <View style={{ flexDirection: 'row', gap: SPACING[2] }}>
                           <TouchableOpacity
                             onPress={() => handleStartEdit(category)}
                             style={styles.iconButton}
                           >
-                            <Text style={{ fontSize: 20 }}>✏️</Text>
+                            <AppText variant="body">✏️</AppText>
                           </TouchableOpacity>
                           <TouchableOpacity
                             onPress={() => handleDeleteCategory(category.id, category.name)}
                             style={styles.iconButton}
                           >
-                            <Text style={{ fontSize: 20 }}>🗑️</Text>
+                            <AppText variant="body">🗑️</AppText>
                           </TouchableOpacity>
                         </View>
                       )}
@@ -743,9 +711,9 @@ export default function ManageCategoriesScreen() {
         })}
 
         {/* Bottom spacer */}
-        <View style={{ height: 100 }} />
+        <View style={{ height: SPACING[12] }} />
       </ScrollView>
-    </View>
+    </ScreenWrapper>
   );
 }
 
@@ -762,7 +730,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 16,
+    marginTop: SPACING[4],
     fontSize: 16,
   },
   resetButton: {
@@ -770,33 +738,33 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   section: {
-    paddingHorizontal: 16,
-    marginBottom: 24,
+    paddingHorizontal: SPACING[4],
+    marginBottom: SPACING[6],
   },
   addForm: {
-    margin: 16,
-    padding: 16,
+    margin: SPACING[4],
+    padding: SPACING[4],
   },
   formTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 16,
+    marginBottom: SPACING[4],
   },
   label: {
     fontSize: 14,
-    marginBottom: 8,
-    marginTop: 12,
+    marginBottom: SPACING[2],
+    marginTop: SPACING[3],
   },
   input: {
     borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: BORDER_RADIUS.sm,
+    padding: SPACING[3],
     fontSize: 16,
   },
   formButtons: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 20,
+    gap: SPACING[3],
+    marginTop: SPACING[5],
   },
   groupHeader: {
     flexDirection: 'row',
@@ -813,7 +781,7 @@ const styles = StyleSheet.create({
   },
   groupCount: {
     fontSize: 14,
-    marginLeft: 8,
+    marginLeft: SPACING[2],
   },
   categoryCard: {
     marginBottom: 8,
@@ -864,26 +832,26 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   clearButton: {
-    padding: 8,
+    padding: SPACING[2],
   },
   bulkActionsBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: SPACING[4],
+    paddingVertical: SPACING[3],
     borderBottomWidth: 1,
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 32,
-    paddingVertical: 64,
+    paddingHorizontal: SPACING[8],
+    paddingVertical: SPACING[16],
   },
   emptyIcon: {
     fontSize: 64,
-    marginBottom: 16,
+    marginBottom: SPACING[4],
   },
   emptyTitle: {
     fontSize: 20,
@@ -903,19 +871,19 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 24,
     height: 24,
-    borderRadius: 4,
+    borderRadius: BORDER_RADIUS.sm,
     borderWidth: 2,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: SPACING[3],
   },
   iconButton: {
-    padding: 8,
+    padding: SPACING[2],
   },
   usageBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
+    paddingHorizontal: SPACING[2],
+    paddingVertical: SPACING[1],
+    borderRadius: BORDER_RADIUS.sm,
   },
   usageText: {
     fontSize: 11,

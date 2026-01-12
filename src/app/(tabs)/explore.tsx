@@ -2,12 +2,14 @@
 // User settings, preferences, and navigation to other features
 
 import React, { ComponentProps } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
-import { Card } from '@/presentation/components';
+import { showAlert, showConfirm } from '@/shared/utils/alert';
+import { Card, HouseholdSwitcherButton, ThemeToggleButton, ScreenWrapper, AppText } from '@/presentation/components';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
 
 interface MenuItemProps {
   icon: ComponentProps<typeof IconSymbol>['name'];
@@ -30,13 +32,13 @@ function MenuItem({ icon, label, subtitle, onPress, color }: MenuItemProps) {
         <IconSymbol name={icon} size={24} color={color || theme.interactive.primary} />
       </View>
       <View style={styles.menuContent}>
-        <Text style={[styles.menuLabel, { color: theme.text.primary }]}>
+        <AppText variant="bodyEmphasis" style={{ marginBottom: SPACING[1] }}>
           {label}
-        </Text>
+        </AppText>
         {subtitle && (
-          <Text style={[styles.menuSubtitle, { color: theme.text.secondary }]}>
+          <AppText variant="caption" color={theme.text.secondary}>
             {subtitle}
-          </Text>
+          </AppText>
         )}
       </View>
       <IconSymbol name="chevron.right" size={20} color={theme.text.tertiary} />
@@ -50,55 +52,63 @@ export default function MoreScreen() {
   const router = useRouter();
 
   const handleSignOut = async () => {
-    Alert.alert(
+    showConfirm(
       'Sign Out',
       'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await signOut();
-              router.replace('/login');
-            } catch (error) {
-              console.error('❌ Sign out failed:', error);
-              Alert.alert('Error', 'Failed to sign out');
-            }
-          },
-        },
-      ]
+      async () => {
+        try {
+          await signOut();
+          router.replace('/login');
+        } catch (error) {
+          console.error('❌ Sign out failed:', error);
+          showAlert('Error', 'Failed to sign out');
+        }
+      }
     );
   };
 
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: theme.background.primary }]}
-      contentContainerStyle={styles.content}
-    >
-      {/* User Info Card */}
-      <Card style={styles.userCard}>
-        <View style={[styles.avatarContainer, { backgroundColor: theme.interactive.primary }]}>
-          <Text style={[styles.avatarText, { color: theme.text.inverse }]}>
-            {user?.name?.charAt(0).toUpperCase() || 'U'}
-          </Text>
+    <ScreenWrapper>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.content}
+      >
+        {/* Header with Household Switcher and Theme Toggle */}
+        <View style={[styles.header, { borderBottomColor: theme.border.default }]}>
+          <View style={styles.headerTop}>
+            <AppText variant="h1">
+              More
+            </AppText>
+            <View style={styles.headerRight}>
+              <HouseholdSwitcherButton size={20} testID="more-household-switcher" />
+              <View style={{ marginLeft: SPACING[2] }} />
+              <ThemeToggleButton size={20} testID="more-theme-toggle" />
+            </View>
+          </View>
         </View>
-        <View style={styles.userInfo}>
-          <Text style={[styles.userName, { color: theme.text.primary }]}>
-            {user?.name || 'User'}
-          </Text>
-          <Text style={[styles.userEmail, { color: theme.text.secondary }]}>
-            {user?.email}
-          </Text>
-        </View>
-      </Card>
 
-      {/* Financial Section */}
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.text.secondary }]}>
-          FINANCIAL
-        </Text>
+        {/* User Info Card */}
+        <Card style={styles.userCard}>
+          <View style={[styles.avatarContainer, { backgroundColor: theme.interactive.primary }]}>
+            <AppText variant="h2" color={theme.text.inverse}>
+              {user?.name?.charAt(0).toUpperCase() || 'U'}
+            </AppText>
+          </View>
+          <View style={styles.userInfo}>
+            <AppText variant="h2" style={{ marginBottom: SPACING[1] }}>
+              {user?.name || 'User'}
+            </AppText>
+            <AppText variant="caption" color={theme.text.secondary}>
+              {user?.email}
+            </AppText>
+          </View>
+        </Card>
+
+        {/* Financial Section */}
+        <View style={styles.section}>
+          <AppText variant="overline" color={theme.text.secondary} style={{ marginBottom: SPACING[2], marginLeft: SPACING[1] }}>
+            FINANCIAL
+          </AppText>
         
         <Card>
           <MenuItem
@@ -116,14 +126,41 @@ export default function MoreScreen() {
             subtitle="Track your financial journey"
             onPress={() => router.push('/baby-steps/select')}
           />
+          
+          <View style={[styles.divider, { backgroundColor: theme.border.default }]} />
+          
+          <MenuItem
+            icon="dollarsign.circle.fill"
+            label="Debt Snowball"
+            subtitle="Pay off debts smallest first"
+            onPress={() => router.push('/debts')}
+          />
+          
+          <View style={[styles.divider, { backgroundColor: theme.border.default }]} />
+          
+          <MenuItem
+            icon="briefcase.fill"
+            label="Businesses"
+            subtitle="Manage businesses and employers"
+            onPress={() => router.push('/businesses')}
+          />
+          
+          <View style={[styles.divider, { backgroundColor: theme.border.default }]} />
+          
+          <MenuItem
+            icon="doc.text.fill"
+            label="Reimbursement Claims"
+            subtitle="Track expense claims and reimbursements"
+            onPress={() => router.push('/claims')}
+          />
         </Card>
       </View>
 
       {/* Settings Section */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.text.secondary }]}>
+        <AppText variant="overline" color={theme.text.secondary} style={{ marginBottom: SPACING[2], marginLeft: SPACING[1] }}>
           SETTINGS
-        </Text>
+        </AppText>
         
         <Card>
           <MenuItem
@@ -132,14 +169,23 @@ export default function MoreScreen() {
             subtitle="Budget period, currency, timezone"
             onPress={() => router.push('/household/settings')}
           />
+          
+          <View style={[styles.divider, { backgroundColor: theme.border.default }]} />
+          
+          <MenuItem
+            icon="house.fill"
+            label="Manage Households"
+            subtitle="View, switch, or delete households"
+            onPress={() => router.push('/household/manage')}
+          />
         </Card>
       </View>
 
       {/* About Section */}
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.text.secondary }]}>
+        <AppText variant="overline" color={theme.text.secondary} style={{ marginBottom: SPACING[2], marginLeft: SPACING[1] }}>
           ABOUT
-        </Text>
+        </AppText>
         
         <Card>
           <MenuItem
@@ -147,7 +193,7 @@ export default function MoreScreen() {
             label="App Version"
             subtitle="1.0.0 (Phase 5.6)"
             onPress={() => {
-              Alert.alert('Homebase Budget', 'Version 1.0.0\nDave Ramsey Budget Tracker\n\nPhase 5.6: Transaction Entry Complete');
+              showAlert('Homebase Budget', 'Version 1.0.0\nDave Ramsey Budget Tracker\n\nPhase 5.6: Transaction Entry Complete');
             }}
             color={theme.status.info}
           />
@@ -159,29 +205,41 @@ export default function MoreScreen() {
         onPress={handleSignOut}
         style={[styles.signOutButton, { backgroundColor: theme.status.errorBackground }]}
       >
-        <Text style={[styles.signOutText, { color: theme.status.error }]}>
+        <AppText variant="button" color={theme.status.error}>
           Sign Out
-        </Text>
+        </AppText>
       </TouchableOpacity>
 
       {/* Spacer for bottom tab */}
-      <View style={{ height: 40 }} />
-    </ScrollView>
+      <View style={{ height: SPACING[10] }} />
+      </ScrollView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   content: {
-    padding: 20,
-    paddingTop: 60,
+    padding: SPACING[5], // ScreenWrapper already has padding, but this is for content spacing
+  },
+  header: {
+    paddingTop: SPACING[12] + 20, // Account for safe area
+    paddingHorizontal: SPACING[5], // ScreenWrapper padding
+    paddingBottom: SPACING[5],
+    borderBottomWidth: 1,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   userCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: SPACING[6],
   },
   avatarContainer: {
     width: 60,
@@ -189,37 +247,18 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
-  },
-  avatarText: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    marginRight: SPACING[4],
   },
   userInfo: {
     flex: 1,
   },
-  userName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  userEmail: {
-    fontSize: 14,
-  },
   section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginBottom: 8,
-    marginLeft: 4,
-    letterSpacing: 0.5,
+    marginBottom: SPACING[6],
   },
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: SPACING[3],
   },
   iconContainer: {
     width: 40,
@@ -227,31 +266,19 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: SPACING[3],
   },
   menuContent: {
     flex: 1,
   },
-  menuLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  menuSubtitle: {
-    fontSize: 13,
-  },
   divider: {
     height: 1,
-    marginVertical: 4,
+    marginVertical: SPACING[1],
   },
   signOutButton: {
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: SPACING[4],
+    borderRadius: BORDER_RADIUS.sm,
     alignItems: 'center',
-    marginTop: 8,
-  },
-  signOutText: {
-    fontSize: 16,
-    fontWeight: '600',
+    marginTop: SPACING[2],
   },
 });

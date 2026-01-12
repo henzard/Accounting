@@ -10,14 +10,12 @@ import {
 } from 'firebase/firestore';
 import { Household } from '@/domain/entities';
 import { IHouseholdRepository } from '@/domain/repositories';
-import { getFirestoreDb } from '@/infrastructure/firebase';
+import { db } from '@/infrastructure/firebase';
 
 export class FirestoreHouseholdRepository implements IHouseholdRepository {
   private readonly COLLECTION = 'households';
 
   async getHouseholdById(householdId: string): Promise<Household | null> {
-    const db = getFirestoreDb();
-    
     try {
       const docRef = doc(db, this.COLLECTION, householdId);
       const docSnap = await getDoc(docRef);
@@ -26,7 +24,7 @@ export class FirestoreHouseholdRepository implements IHouseholdRepository {
         return null;
       }
 
-      return this.firestoreToHousehold(docSnap.data());
+      return this.firestoreToHousehold(docSnap.id, docSnap.data());
     } catch (error) {
       console.error('Error getting household:', error);
       throw error;
@@ -34,8 +32,6 @@ export class FirestoreHouseholdRepository implements IHouseholdRepository {
   }
 
   async createHousehold(household: Household): Promise<void> {
-    const db = getFirestoreDb();
-
     try {
       const docRef = doc(db, this.COLLECTION, household.id);
       const firestoreData = this.householdToFirestore(household);
@@ -49,8 +45,6 @@ export class FirestoreHouseholdRepository implements IHouseholdRepository {
   }
 
   async updateHousehold(householdId: string, updates: Partial<Household>): Promise<void> {
-    const db = getFirestoreDb();
-
     try {
       const docRef = doc(db, this.COLLECTION, householdId);
       
@@ -128,21 +122,22 @@ export class FirestoreHouseholdRepository implements IHouseholdRepository {
   // HELPER METHODS
   // ============================================
 
-  private firestoreToHousehold(data: any): Household {
+  private firestoreToHousehold(id: string, data: any): Household {
     return {
-      id: data.id,
+      id: id,
       name: data.name,
       owner_id: data.owner_id,
       member_ids: data.member_ids || [],
-      timezone: data.timezone,
-      currency: data.currency,
-      current_baby_step: data.current_baby_step,
+      timezone: data.timezone || 'UTC',
+      currency: data.currency || 'USD',
+      budget_period_start_day: data.budget_period_start_day || 1,
+      current_baby_step: data.current_baby_step || 1,
       baby_step_started_at: data.baby_step_started_at 
         ? (data.baby_step_started_at instanceof Timestamp ? data.baby_step_started_at.toDate() : new Date(data.baby_step_started_at))
         : undefined,
       created_at: data.created_at instanceof Timestamp ? data.created_at.toDate() : new Date(data.created_at),
       updated_at: data.updated_at instanceof Timestamp ? data.updated_at.toDate() : new Date(data.updated_at),
-      created_by: data.created_by,
+      created_by: data.created_by || data.owner_id,
     };
   }
 

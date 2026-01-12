@@ -1,11 +1,10 @@
 // Transactions Screen - List all transactions with real-time updates
 // Follows UX Standards: search, date grouping, empty state
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   ScrollView, 
   View, 
-  Text, 
   TextInput, 
   TouchableOpacity, 
   ActivityIndicator,
@@ -13,9 +12,12 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
-import { Card, ScreenHeader } from '@/presentation/components';
+import { Card, ScreenHeader, ScreenWrapper, AppText, PrimaryButton } from '@/presentation/components';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
 import { FirestoreTransactionRepository } from '@/data/repositories/FirestoreTransactionRepository';
 import { Transaction } from '@/domain/entities/Transaction';
 import { formatCurrency, CurrencyCode } from '@/shared/utils/currency';
@@ -68,8 +70,11 @@ export default function TransactionsScreen() {
   const transactionRepo = new FirestoreTransactionRepository();
   
   // Load transactions
-  const loadTransactions = async () => {
-    if (!user?.default_household_id) return;
+  const loadTransactions = useCallback(async () => {
+    if (!user?.default_household_id) {
+      setLoading(false);
+      return;
+    }
     
     try {
       setLoading(true);
@@ -87,20 +92,22 @@ export default function TransactionsScreen() {
       console.error('❌ Failed to load transactions:', error);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, [user?.default_household_id]);
   
   // Pull to refresh
   const handleRefresh = async () => {
     setRefreshing(true);
     await loadTransactions();
-    setRefreshing(false);
   };
   
-  // Initial load
-  useEffect(() => {
-    loadTransactions();
-  }, [user?.default_household_id]);
+  // Reload when screen comes into focus (e.g., after adding/deleting)
+  useFocusEffect(
+    useCallback(() => {
+      loadTransactions();
+    }, [loadTransactions])
+  );
   
   // Filter transactions by search
   const filteredTransactions = transactions.filter(txn => {
@@ -109,6 +116,7 @@ export default function TransactionsScreen() {
     return (
       txn.payee?.toLowerCase().includes(query) ||
       txn.notes?.toLowerCase().includes(query) ||
+      // Search in formatted amount (convert cents to display format for search)
       formatCurrency(txn.amount, householdCurrency).toLowerCase().includes(query)
     );
   });
@@ -119,65 +127,59 @@ export default function TransactionsScreen() {
   // Empty state
   if (!loading && transactions.length === 0) {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.background.primary }}>
+      <ScreenWrapper>
         <ScreenHeader 
           title="Transactions" 
           rightAction={
-            <TouchableOpacity onPress={() => router.push('/transactions/add')}>
-              <Text style={{ color: theme.interactive.primary, fontSize: 24, fontWeight: 'bold' }}>
-                +
-              </Text>
+            <TouchableOpacity 
+              onPress={() => router.push('/transactions/add')}
+              style={styles.addButton}
+            >
+              <IconSymbol name="plus" size={20} color={theme.interactive.primary} />
             </TouchableOpacity>
           }
         />
         
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 }}>
-          <Text style={{ fontSize: 48, marginBottom: 16 }}>💸</Text>
-          <Text style={{ fontSize: 20, fontWeight: '600', color: theme.text.primary, marginBottom: 8 }}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING[8] }}>
+          <AppText variant="display" style={{ marginBottom: SPACING[4] }}>💸</AppText>
+          <AppText variant="h2" style={{ marginBottom: SPACING[2] }}>
             No Transactions Yet
-          </Text>
-          <Text style={{ fontSize: 16, color: theme.text.secondary, textAlign: 'center', marginBottom: 24 }}>
+          </AppText>
+          <AppText variant="body" color={theme.text.secondary} style={{ textAlign: 'center', marginBottom: SPACING[6] }}>
             Start tracking your spending by adding your first transaction
-          </Text>
-          <TouchableOpacity
+          </AppText>
+          <PrimaryButton
+            title="Add Transaction"
             onPress={() => router.push('/transactions/add')}
-            style={{
-              backgroundColor: theme.interactive.primary,
-              paddingVertical: 12,
-              paddingHorizontal: 32,
-              borderRadius: 8,
-            }}
-          >
-            <Text style={{ color: '#FFFFFF', fontSize: 16, fontWeight: '600' }}>
-              Add Transaction
-            </Text>
-          </TouchableOpacity>
+            size="lg"
+          />
         </View>
-      </View>
+      </ScreenWrapper>
     );
   }
   
   // Loading state
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.background.primary }}>
+      <ScreenWrapper>
         <ScreenHeader title="Transactions" />
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color={theme.interactive.primary} />
         </View>
-      </View>
+      </ScreenWrapper>
     );
   }
   
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background.primary }}>
+    <ScreenWrapper>
       <ScreenHeader 
         title="Transactions" 
         rightAction={
-          <TouchableOpacity onPress={() => router.push('/transactions/add')}>
-            <Text style={{ color: theme.interactive.primary, fontSize: 24, fontWeight: 'bold' }}>
-              +
-            </Text>
+          <TouchableOpacity 
+            onPress={() => router.push('/transactions/add')}
+            style={styles.addButton}
+          >
+            <IconSymbol name="plus" size={20} color={theme.interactive.primary} />
           </TouchableOpacity>
         }
       />
@@ -194,7 +196,7 @@ export default function TransactionsScreen() {
       >
         {/* Search Bar */}
         {transactions.length >= 10 && (
-          <View style={{ padding: 16 }}>
+          <View style={{ padding: SPACING[4] }}>
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -203,9 +205,9 @@ export default function TransactionsScreen() {
               style={{
                 backgroundColor: theme.background.secondary,
                 color: theme.text.primary,
-                paddingVertical: 12,
-                paddingHorizontal: 16,
-                borderRadius: 8,
+                paddingVertical: SPACING[3],
+                paddingHorizontal: SPACING[4],
+                borderRadius: BORDER_RADIUS.sm,
                 fontSize: 16,
               }}
             />
@@ -213,19 +215,13 @@ export default function TransactionsScreen() {
         )}
         
         {/* Grouped Transactions */}
-        <View style={{ padding: 16 }}>
+        <View style={{ padding: SPACING[4] }}>
           {Array.from(groupedTransactions.entries()).map(([group, groupTransactions]) => (
-            <View key={group} style={{ marginBottom: 24 }}>
+            <View key={group} style={{ marginBottom: SPACING[6] }}>
               {/* Date Group Header */}
-              <Text style={{
-                fontSize: 14,
-                fontWeight: '600',
-                color: theme.text.secondary,
-                marginBottom: 8,
-                textTransform: 'uppercase',
-              }}>
+              <AppText variant="overline" color={theme.text.secondary} style={{ marginBottom: SPACING[2] }}>
                 {group}
-              </Text>
+              </AppText>
               
               {/* Transactions in Group */}
               {groupTransactions.map((transaction) => (
@@ -234,37 +230,31 @@ export default function TransactionsScreen() {
                   href={`/transactions/${transaction.id}`}
                   asChild
                 >
-                  <TouchableOpacity style={{ marginBottom: 8 }}>
+                  <TouchableOpacity style={{ marginBottom: SPACING[2] }}>
                     <Card padding="md">
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <View style={{ flex: 1 }}>
-                          <Text style={{ 
-                            color: theme.text.primary, 
-                            fontSize: 16, 
-                            fontWeight: '600',
-                            marginBottom: 4,
-                          }}>
+                          <AppText variant="bodyEmphasis" style={{ marginBottom: SPACING[1] }}>
                             {transaction.payee || 'Transaction'}
-                          </Text>
-                          <Text style={{ color: theme.text.secondary, fontSize: 14 }}>
+                          </AppText>
+                          <AppText variant="caption" color={theme.text.secondary}>
                             {transaction.date.toLocaleDateString('en-US', { 
                               month: 'short', 
                               day: 'numeric',
                               year: transaction.date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
                             })}
                             {transaction.notes && ` • ${transaction.notes.substring(0, 30)}${transaction.notes.length > 30 ? '...' : ''}`}
-                          </Text>
+                          </AppText>
                         </View>
                         
-                        <Text style={{ 
-                          color: transaction.type === 'INCOME' ? theme.financial.income : theme.financial.expense,
-                          fontSize: 18, 
-                          fontWeight: '600',
-                          marginLeft: 16,
-                        }}>
+                        <AppText 
+                          variant="h2"
+                          color={transaction.type === 'INCOME' ? theme.financial.income : theme.financial.expense}
+                          style={{ marginLeft: SPACING[4] }}
+                        >
                           {transaction.type === 'INCOME' ? '+' : '-'}
                           {formatCurrency(transaction.amount, householdCurrency)}
-                        </Text>
+                        </AppText>
                       </View>
                     </Card>
                   </TouchableOpacity>
@@ -275,15 +265,25 @@ export default function TransactionsScreen() {
           
           {/* No Search Results */}
           {filteredTransactions.length === 0 && searchQuery && (
-            <View style={{ padding: 32, alignItems: 'center' }}>
-              <Text style={{ fontSize: 48, marginBottom: 16 }}>🔍</Text>
-              <Text style={{ fontSize: 16, color: theme.text.secondary, textAlign: 'center' }}>
+            <View style={{ padding: SPACING[8], alignItems: 'center' }}>
+              <AppText variant="display" style={{ marginBottom: SPACING[4] }}>🔍</AppText>
+              <AppText variant="body" color={theme.text.secondary} style={{ textAlign: 'center' }}>
                 No transactions match "{searchQuery}"
-              </Text>
+              </AppText>
             </View>
           )}
         </View>
       </ScrollView>
-    </View>
+    </ScreenWrapper>
   );
 }
+
+const styles = StyleSheet.create({
+  addButton: {
+    width: 44, // Premium UI: Minimum 44×44px touch target
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});

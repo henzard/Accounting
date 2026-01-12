@@ -9,14 +9,12 @@ import {
 } from 'firebase/firestore';
 import { User } from '@/domain/entities';
 import { IUserRepository } from '@/domain/repositories';
-import { getFirestoreDb } from '@/infrastructure/firebase';
+import { db } from '@/infrastructure/firebase';
 
 export class FirestoreUserRepository implements IUserRepository {
   private readonly COLLECTION = 'users';
 
   async getUserById(userId: string): Promise<User | null> {
-    const db = getFirestoreDb();
-    
     try {
       const docRef = doc(db, this.COLLECTION, userId);
       const docSnap = await getDoc(docRef);
@@ -37,8 +35,6 @@ export class FirestoreUserRepository implements IUserRepository {
   }
 
   async createUser(user: User): Promise<void> {
-    const db = getFirestoreDb();
-
     try {
       const docRef = doc(db, this.COLLECTION, user.id);
       const firestoreData = this.userToFirestore(user);
@@ -52,8 +48,6 @@ export class FirestoreUserRepository implements IUserRepository {
   }
 
   async updateUser(userId: string, updates: Partial<User>): Promise<void> {
-    const db = getFirestoreDb();
-
     try {
       const docRef = doc(db, this.COLLECTION, userId);
       
@@ -95,14 +89,18 @@ export class FirestoreUserRepository implements IUserRepository {
 
     const updatedHouseholds = [...user.household_ids, householdId];
     
+    // Set as default if:
+    // 1. This is the first household, OR
+    // 2. User doesn't have a default household set
+    const shouldSetDefault = user.household_ids.length === 0 || !user.default_household_id;
+    
     await this.updateUser(userId, {
       household_ids: updatedHouseholds,
-      // Set as default if this is the first household
-      default_household_id: user.household_ids.length === 0 ? householdId : user.default_household_id,
+      default_household_id: shouldSetDefault ? householdId : user.default_household_id,
       updated_at: new Date(),
     });
     
-    console.log(`✅ Household ${householdId} added to user ${userId}`);
+    console.log(`✅ Household ${householdId} added to user ${userId}${shouldSetDefault ? ' (set as default)' : ''}`);
   }
 
   // ============================================

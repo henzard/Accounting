@@ -5,7 +5,6 @@ import React, { useState, useCallback } from 'react';
 import { TextInput } from 'react-native';
 import {
   View,
-  Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
@@ -15,7 +14,8 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
-import { ScreenHeader, Card, AmountInput, PrimaryButton } from '@/presentation/components';
+import { ScreenHeader, Card, AmountInput, PrimaryButton, ScreenWrapper, AppText } from '@/presentation/components';
+import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
 import { Budget, BudgetCategory, createBudget, createBudgetCategory, calculateRemainingToBudget, getBudgetMonthName, calculateBudgetPeriod } from '@/domain/entities';
 import { FirestoreBudgetRepository } from '@/data/repositories/FirestoreBudgetRepository';
 import { getDefaultCategories, CATEGORY_GROUP_INFO } from '@/shared/constants/budget-categories';
@@ -286,20 +286,20 @@ export default function BudgetScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
+      <ScreenWrapper>
         <ScreenHeader title="Budget" showBack={true} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.interactive.primary} />
-          <Text style={[styles.loadingText, { color: theme.text.secondary }]}>
+          <AppText variant="body" color={theme.text.secondary} style={{ marginTop: SPACING[4] }}>
             Loading budget...
-          </Text>
+          </AppText>
         </View>
-      </View>
+      </ScreenWrapper>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
+    <ScreenWrapper>
       {/* Header */}
       <ScreenHeader
         title="Budget"
@@ -322,29 +322,29 @@ export default function BudgetScreen() {
             style={styles.navButton}
             testID="prev-month-button"
           >
-            <Text style={[styles.navButtonText, { color: theme.interactive.primary }]}>
+            <AppText variant="body" color={theme.interactive.primary}>
               ← Prev
-            </Text>
+            </AppText>
           </TouchableOpacity>
 
           <View style={styles.monthDisplay}>
-            <Text style={[styles.monthText, { color: theme.text.primary }]}>
+            <AppText variant="h2">
               {getBudgetMonthName(selectedMonth, selectedYear)}
-            </Text>
+            </AppText>
             {/* Show "Today" badge if current month */}
             {selectedMonth === new Date().getMonth() + 1 && selectedYear === new Date().getFullYear() && (
               <View style={[styles.todayBadge, { backgroundColor: theme.status.infoBackground }]}>
-                <Text style={[styles.todayBadgeText, { color: theme.status.info }]}>
+                <AppText variant="caption" color={theme.status.info}>
                   Today
-                </Text>
+                </AppText>
               </View>
             )}
             {/* Quick jump to current month */}
             {(selectedMonth !== new Date().getMonth() + 1 || selectedYear !== new Date().getFullYear()) && (
               <TouchableOpacity onPress={goToCurrentMonth} style={styles.todayButton}>
-                <Text style={[styles.todayButtonText, { color: theme.interactive.primary }]}>
+                <AppText variant="body" color={theme.interactive.primary}>
                   Go to Today
-                </Text>
+                </AppText>
               </TouchableOpacity>
             )}
           </View>
@@ -354,9 +354,9 @@ export default function BudgetScreen() {
             style={styles.navButton}
             testID="next-month-button"
           >
-            <Text style={[styles.navButtonText, { color: theme.interactive.primary }]}>
+            <AppText variant="body" color={theme.interactive.primary}>
               Next →
-            </Text>
+            </AppText>
           </TouchableOpacity>
         </View>
 
@@ -367,28 +367,26 @@ export default function BudgetScreen() {
             ? theme.status.successBackground
             : theme.status.warningBackground,
         }}>
-          <Text style={[styles.statusTitle, {
-            color: isZeroBased ? theme.status.success : theme.status.warning,
-          }]}>
+          <AppText variant="h2" color={isZeroBased ? theme.status.success : theme.status.warning} style={{ marginBottom: SPACING[1] }}>
             {isZeroBased ? '✅ Zero-Based Budget!' : '⚠️ Budget Incomplete'}
-          </Text>
-          <Text style={[styles.statusSubtitle, { color: theme.text.secondary }]}>
+          </AppText>
+          <AppText variant="body" color={theme.text.secondary}>
             {isZeroBased
               ? 'Every dollar has a job! 🎉'
               : `${formatCurrency(Math.abs(remaining) / 100, householdCurrency)} ${remaining > 0 ? 'left to budget' : 'over budget'}`
             }
-          </Text>
+          </AppText>
         </Card>
 
         {/* Income Section */}
         <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text.primary }]}>
+          <AppText variant="h2" style={{ marginBottom: SPACING[3] }}>
             💰 Income
-          </Text>
+          </AppText>
           <Card>
-            <Text style={[styles.label, { color: theme.text.secondary }]}>
+            <AppText variant="body" color={theme.text.secondary} style={{ marginBottom: SPACING[2] }}>
               Planned Income
-            </Text>
+            </AppText>
             <AmountInput
               value={plannedIncomeInCents}
               onChangeValue={setPlannedIncomeInCents}
@@ -410,7 +408,7 @@ export default function BudgetScreen() {
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
-                <Text style={{ color: theme.text.secondary, fontSize: 18 }}>✕</Text>
+                <AppText variant="body" color={theme.text.secondary}>✕</AppText>
               </TouchableOpacity>
             )}
           </View>
@@ -435,29 +433,30 @@ export default function BudgetScreen() {
                   const groupTotal = groupCategories.reduce((sum, cat) => sum + cat.planned_amount, 0);
                   
                   return (
-                    <View key={groupKey} style={{ marginBottom: 16 }}>
+                    <View key={groupKey} style={{ marginBottom: SPACING[4] }}>
                       {/* COLLAPSIBLE GROUP HEADER */}
                       <TouchableOpacity 
                         onPress={() => toggleGroupCollapse(groupKey)}
                         style={[styles.groupHeader, { backgroundColor: theme.background.secondary, borderBottomColor: theme.border.default }]}
                         activeOpacity={0.7}
                       >
-                        <Text style={styles.groupIcon}>{groupInfo.icon}</Text>
+                        <AppText variant="body" style={styles.groupIcon}>{groupInfo.icon}</AppText>
                         <View style={{ flex: 1 }}>
-                          <Text style={[styles.groupName, { color: theme.text.primary }]}>
-                            {groupInfo.name}
-                            {/* COUNT BADGE */}
-                            <Text style={[styles.countBadge, { color: theme.text.tertiary }]}>
-                              {' '}({groupCategories.length})
-                            </Text>
-                          </Text>
-                          <Text style={[styles.groupTotal, { color: theme.text.secondary }]}>
+                          <View style={{ flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap' }}>
+                            <AppText variant="h2">
+                              {groupInfo.name}
+                            </AppText>
+                            <AppText variant="caption" color={theme.text.tertiary} style={{ marginLeft: SPACING[1] }}>
+                              ({groupCategories.length})
+                            </AppText>
+                          </View>
+                          <AppText variant="bodyEmphasis" color={theme.text.secondary} style={{ marginTop: SPACING[1] }}>
                             {formatCurrency(groupTotal, householdCurrency)}
-                          </Text>
+                          </AppText>
                         </View>
-                        <Text style={[styles.collapseIcon, { color: theme.text.tertiary }]}>
+                        <AppText variant="body" color={theme.text.tertiary}>
                           {isCollapsed ? '▶' : '▼'}
-                        </Text>
+                        </AppText>
                       </TouchableOpacity>
 
                       {/* CATEGORY CARDS (only show if not collapsed) */}
@@ -467,25 +466,25 @@ export default function BudgetScreen() {
                         return (
                           <Card key={category.id} style={styles.categoryCard}>
                             <View style={styles.categoryHeader}>
-                              <Text style={styles.categoryIcon}>{category.icon}</Text>
+                              <AppText variant="body" style={styles.categoryIcon}>{category.icon}</AppText>
                               <View style={{ flex: 1 }}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                                  <Text style={[styles.categoryName, { color: theme.text.primary }]}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[2], flexWrap: 'wrap' }}>
+                                  <AppText variant="bodyEmphasis">
                                     {category.name}
-                                  </Text>
+                                  </AppText>
                                   {/* FUNDING STATUS INDICATOR */}
                                   {fundingStatus === 'funded' && (
                                     <View style={[styles.statusBadge, { backgroundColor: theme.status.success + '20' }]}>
-                                      <Text style={[styles.statusText, { color: theme.status.success }]}>
+                                      <AppText variant="caption" color={theme.status.success}>
                                         ● Funded
-                                      </Text>
+                                      </AppText>
                                     </View>
                                   )}
                                   {fundingStatus === 'partial' && (
                                     <View style={[styles.statusBadge, { backgroundColor: theme.status.warning + '20' }]}>
-                                      <Text style={[styles.statusText, { color: theme.status.warning }]}>
+                                      <AppText variant="caption" color={theme.status.warning}>
                                         ● Partial
-                                      </Text>
+                                      </AppText>
                                     </View>
                                   )}
                                 </View>
@@ -506,44 +505,55 @@ export default function BudgetScreen() {
                 {/* NO RESULTS STATE */}
                 {filteredCategories.length === 0 && budget?.categories.length > 0 && (
                   <View style={styles.emptyState}>
-                    <Text style={[styles.emptyIcon, { color: theme.text.tertiary }]}>🔍</Text>
-                    <Text style={[styles.emptyTitle, { color: theme.text.primary }]}>
+                    <AppText variant="display" color={theme.text.tertiary} style={{ marginBottom: SPACING[2] }}>🔍</AppText>
+                    <AppText variant="h2" style={{ marginBottom: SPACING[2] }}>
                       No Results Found
-                    </Text>
-                    <Text style={[styles.emptyDescription, { color: theme.text.secondary }]}>
+                    </AppText>
+                    <AppText variant="body" color={theme.text.secondary}>
                       No categories match &quot;{searchQuery}&quot;. Try a different search term.
-                    </Text>
+                    </AppText>
                   </View>
                 )}
               </>
             );
           })()}
 
-          {/* Manage Categories Button */}
-          <TouchableOpacity
-            onPress={() => router.push('/budget/manage-categories')}
-            style={[styles.manageCategoriesButton, {
-              backgroundColor: theme.background.secondary,
-              borderColor: theme.border.default,
-            }]}
-          >
-            <Text style={[styles.manageCategoriesText, { color: theme.interactive.primary }]}>
-              ⚙️ Manage Categories
-            </Text>
-          </TouchableOpacity>
+          {/* Action Buttons */}
+          <View style={styles.actionButtonsContainer}>
+            <TouchableOpacity
+              onPress={() => router.push('/budget/categories')}
+              style={[styles.actionButton, {
+                backgroundColor: theme.interactive.primary,
+                borderColor: theme.interactive.primary,
+              }]}
+            >
+              <AppText variant="button" color={theme.text.inverse}>
+                📊 Track Categories
+              </AppText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => router.push('/budget/manage-categories')}
+              style={[styles.actionButton, {
+                backgroundColor: theme.background.secondary,
+                borderColor: theme.border.default,
+                marginRight: 0,
+              }]}
+            >
+              <AppText variant="button" color={theme.interactive.primary}>
+                ⚙️ Manage Categories
+              </AppText>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Bottom spacer */}
-        <View style={{ height: 100 }} />
+        <View style={{ height: SPACING[12] + SPACING[4] }} />
       </ScrollView>
-    </View>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   scrollView: {
     flex: 1,
   },
@@ -552,185 +562,110 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-  },
   // Month navigation
   monthNav: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingHorizontal: SPACING[4],
+    paddingVertical: SPACING[4],
     borderBottomWidth: 1,
   },
   navButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  navButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    paddingHorizontal: SPACING[3],
+    paddingVertical: SPACING[2],
   },
   monthDisplay: {
     alignItems: 'center',
     flex: 1,
   },
-  monthText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
   todayBadge: {
-    marginTop: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  todayBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
+    marginTop: SPACING[1],
+    paddingHorizontal: SPACING[2],
+    paddingVertical: SPACING[1],
+    borderRadius: BORDER_RADIUS.sm,
   },
   todayButton: {
-    marginTop: 4,
-    paddingVertical: 4,
-  },
-  todayButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
+    marginTop: SPACING[1],
+    paddingVertical: SPACING[1],
   },
   // Status card
   statusCard: {
-    margin: 16,
-    padding: 20,
+    margin: SPACING[4],
+    padding: SPACING[5],
     alignItems: 'center',
   },
-  statusTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  statusSubtitle: {
-    fontSize: 14,
-  },
   section: {
-    paddingHorizontal: 16,
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 12,
-  },
-  label: {
-    fontSize: 14,
-    marginBottom: 8,
+    paddingHorizontal: SPACING[4],
+    marginBottom: SPACING[6],
   },
   categoryCard: {
-    marginBottom: 12,
+    marginBottom: SPACING[3],
   },
   categoryHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: SPACING[3],
   },
   categoryIcon: {
     fontSize: 24,
-    marginRight: 12,
+    marginRight: SPACING[3],
   },
-  categoryName: {
-    fontSize: 16,
-    fontWeight: '600',
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    marginTop: SPACING[4],
+    marginBottom: SPACING[2],
   },
-  categoryGroup: {
-    fontSize: 12,
-    marginTop: 2,
-  },
-  manageCategoriesButton: {
-    marginTop: 16,
-    padding: 16,
-    borderRadius: 8,
+  actionButton: {
+    flex: 1,
+    paddingVertical: SPACING[3],
+    paddingHorizontal: SPACING[4],
+    borderRadius: BORDER_RADIUS.sm,
     borderWidth: 1,
     alignItems: 'center',
-  },
-  manageCategoriesText: {
-    fontSize: 16,
-    fontWeight: '600',
+    justifyContent: 'center',
+    marginRight: SPACING[1],
   },
   // NEW UX ENHANCEMENT STYLES
   searchContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: SPACING[4],
+    paddingVertical: SPACING[3],
     borderBottomWidth: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: SPACING[2],
   },
   searchInput: {
     flex: 1,
     fontSize: 16,
-    paddingVertical: 8,
+    paddingVertical: SPACING[2],
   },
   clearButton: {
-    padding: 8,
+    padding: SPACING[2],
   },
   groupHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: SPACING[4],
+    paddingVertical: SPACING[3],
     borderBottomWidth: 1,
-    marginBottom: 8,
+    marginBottom: SPACING[2],
   },
   groupIcon: {
     fontSize: 24,
-    marginRight: 12,
-  },
-  groupName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  groupTotal: {
-    fontSize: 14,
-    marginTop: 2,
-  },
-  countBadge: {
-    fontSize: 14,
-  },
-  collapseIcon: {
-    fontSize: 14,
-    marginLeft: 8,
+    marginRight: SPACING[3],
   },
   statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '600',
+    paddingHorizontal: SPACING[2],
+    paddingVertical: SPACING[1],
+    borderRadius: BORDER_RADIUS.sm,
   },
   emptyState: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 32,
-    paddingVertical: 64,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  emptyDescription: {
-    fontSize: 14,
-    textAlign: 'center',
-    lineHeight: 20,
+    paddingHorizontal: SPACING[8],
+    paddingVertical: SPACING[12] + SPACING[4], // 48 + 16 = 64px (not in 8pt grid, but acceptable for empty state)
   },
 });
 

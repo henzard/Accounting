@@ -1,0 +1,368 @@
+# Web Alert Compatibility
+
+## ⚠️ CRITICAL: Alert.alert Does NOT Work on Web
+
+**React Native's `Alert.alert()` does not display on web platforms.** It silently fails, making errors invisible to users.
+
+---
+
+## The Problem
+
+```typescript
+// ❌ BAD: This will NOT show on web
+Alert.alert('Error', 'Something went wrong');
+// User sees nothing, error is silently ignored
+```
+
+**Why**: React Native's `Alert` component is designed for native platforms (iOS/Android). On web, it has no implementation, so alerts are silently ignored.
+
+---
+
+## The Solution: Use Web-Compatible Alert Utilities
+
+**ALWAYS use the alert utilities from `@/shared/utils/alert` instead of `Alert.alert` directly.**
+
+### Import the Utilities
+
+```typescript
+import { showAlert, showConfirm } from '@/shared/utils/alert';
+```
+
+### Available Functions
+
+#### 1. `showAlert(title, message?, buttons?)`
+
+**Purpose**: Display a simple alert dialog.
+
+**On Web**: Uses `window.alert()` (simple, no button customization)  
+**On Native**: Uses `Alert.alert()` (full button support)
+
+**Usage**:
+```typescript
+// Simple alert
+showAlert('Error', 'Failed to save transaction');
+
+// Alert with callback (works on native, limited on web)
+showAlert('Success', 'Transaction saved!', [
+  { text: 'OK', onPress: () => router.back() }
+]);
+```
+
+#### 2. `showConfirm(title, message, onConfirm, onCancel?)`
+
+**Purpose**: Display a confirmation dialog (Yes/No, Delete/Cancel, etc.).
+
+**On Web**: Uses `window.confirm()`  
+**On Native**: Uses `Alert.alert()` with Cancel/Confirm buttons
+
+**Usage**:
+```typescript
+// Confirmation dialog
+showConfirm(
+  'Delete Transaction?',
+  'Are you sure you want to delete this transaction? This action cannot be undone.',
+  async () => {
+    // User confirmed - perform delete
+    await deleteTransaction(id);
+    router.back();
+  },
+  () => {
+    // User cancelled - optional
+    console.log('Delete cancelled');
+  }
+);
+```
+
+---
+
+## Migration Guide
+
+### Before (❌ BAD)
+
+```typescript
+import { Alert } from 'react-native';
+
+// Simple alert
+Alert.alert('Error', 'Failed to load data');
+
+// Confirmation
+Alert.alert(
+  'Delete Item?',
+  'Are you sure?',
+  [
+    { text: 'Cancel', style: 'cancel' },
+    {
+      text: 'Delete',
+      style: 'destructive',
+      onPress: async () => {
+        await deleteItem();
+      },
+    },
+  ]
+);
+```
+
+### After (✅ GOOD)
+
+```typescript
+import { showAlert, showConfirm } from '@/shared/utils/alert';
+
+// Simple alert
+showAlert('Error', 'Failed to load data');
+
+// Confirmation
+showConfirm(
+  'Delete Item?',
+  'Are you sure?',
+  async () => {
+    await deleteItem();
+  }
+);
+```
+
+---
+
+## When to Use Which Function
+
+### Use `showAlert` for:
+- ✅ Error messages
+- ✅ Success notifications
+- ✅ Informational messages
+- ✅ Validation errors
+- ✅ Simple "OK" dialogs
+
+**Examples**:
+```typescript
+// Error
+showAlert('Error', 'Failed to save transaction');
+
+// Success
+showAlert('Success', 'Transaction saved successfully');
+
+// Validation
+showAlert('Validation Error', 'Please enter an amount greater than zero');
+```
+
+### Use `showConfirm` for:
+- ✅ Delete confirmations
+- ✅ Destructive actions
+- ✅ "Are you sure?" dialogs
+- ✅ Any action that requires user confirmation
+
+**Examples**:
+```typescript
+// Delete confirmation
+showConfirm(
+  'Delete Transaction?',
+  'This action cannot be undone.',
+  async () => await deleteTransaction(id)
+);
+
+// Sign out confirmation
+showConfirm(
+  'Sign Out?',
+  'Are you sure you want to sign out?',
+  async () => await signOut()
+);
+```
+
+---
+
+## Platform-Specific Behavior
+
+### Web Platform
+- **`showAlert`**: Uses `window.alert()` - simple, blocking dialog
+- **`showConfirm`**: Uses `window.confirm()` - returns boolean
+- **Limitations**: 
+  - No custom button text (always "OK" or "OK/Cancel")
+  - No button styling
+  - Buttons with `onPress` callbacks are executed after alert closes (with small delay)
+
+### Native Platforms (iOS/Android)
+- **`showAlert`**: Uses `Alert.alert()` - full native dialog support
+- **`showConfirm`**: Uses `Alert.alert()` with Cancel/Confirm buttons
+- **Features**:
+  - Custom button text
+  - Button styling (cancel, destructive)
+  - Full callback support
+
+---
+
+## Common Patterns
+
+### Pattern 1: Error Handling
+
+```typescript
+try {
+  await saveTransaction(transaction);
+  showAlert('Success', 'Transaction saved');
+  router.back();
+} catch (error) {
+  console.error('Failed to save:', error);
+  showAlert('Error', error.message || 'Failed to save transaction');
+}
+```
+
+### Pattern 2: Validation
+
+```typescript
+const handleSave = async () => {
+  if (!name.trim()) {
+    showAlert('Validation Error', 'Please enter a name');
+    return;
+  }
+
+  if (amount <= 0) {
+    showAlert('Validation Error', 'Amount must be greater than zero');
+    return;
+  }
+
+  // Proceed with save...
+};
+```
+
+### Pattern 3: Delete Confirmation
+
+```typescript
+const handleDelete = async (id: string) => {
+  showConfirm(
+    'Delete Item?',
+    'This action cannot be undone.',
+    async () => {
+      try {
+        await deleteItem(id);
+        showAlert('Success', 'Item deleted');
+        loadItems();
+      } catch (error) {
+        showAlert('Error', 'Failed to delete item');
+      }
+    }
+  );
+};
+```
+
+### Pattern 4: Sign Out
+
+```typescript
+const handleSignOut = async () => {
+  showConfirm(
+    'Sign Out?',
+    'Are you sure you want to sign out?',
+    async () => {
+      try {
+        await signOut();
+        router.replace('/login');
+      } catch (error) {
+        showAlert('Error', 'Failed to sign out');
+      }
+    }
+  );
+};
+```
+
+---
+
+## Rules & Guidelines
+
+### ✅ DO
+
+- ✅ **Always import from `@/shared/utils/alert`**
+- ✅ **Use `showAlert` for simple messages**
+- ✅ **Use `showConfirm` for confirmations**
+- ✅ **Test on web to verify alerts appear**
+- ✅ **Provide clear, actionable error messages**
+
+### ❌ DON'T
+
+- ❌ **Never use `Alert.alert` directly**
+- ❌ **Never use `window.alert` or `window.confirm` directly** (use utilities instead)
+- ❌ **Don't assume alerts work on web without testing**
+- ❌ **Don't use `Alert.alert` with complex button arrays on web** (they won't work as expected)
+
+---
+
+## Testing Checklist
+
+Before marking a feature complete:
+
+- [ ] All error messages use `showAlert` or `showConfirm`
+- [ ] No `Alert.alert` calls remain in the codebase
+- [ ] Alerts display correctly on web (test in browser)
+- [ ] Alerts display correctly on native (test on device/emulator)
+- [ ] Confirmation dialogs work on both platforms
+- [ ] Error messages are clear and actionable
+
+---
+
+## Finding Remaining Alert.alert Calls
+
+To find remaining `Alert.alert` calls that need to be fixed:
+
+```powershell
+# PowerShell
+Get-ChildItem -Path 'src' -Recurse -Filter '*.tsx' | Select-String -Pattern 'Alert\.alert'
+
+# Or use grep tool
+grep -r "Alert\.alert" src/
+```
+
+---
+
+## Implementation Details
+
+The alert utilities are located at:
+- **File**: `src/shared/utils/alert.ts`
+- **Exports**: `showAlert`, `showConfirm`
+- **Dependencies**: `react-native` (for `Alert` and `Platform`)
+
+**How it works**:
+1. Checks `Platform.OS === 'web'`
+2. If web: Uses `window.alert`/`window.confirm`
+3. If native: Uses `Alert.alert` with full button support
+4. Handles callbacks appropriately for each platform
+
+---
+
+## Examples from Codebase
+
+### ✅ Good Examples
+
+```typescript
+// src/app/transactions/[id].tsx
+showConfirm(
+  'Delete Transaction',
+  'Are you sure you want to delete this transaction? This action cannot be undone.',
+  () => performDelete(),
+  () => console.log('Delete cancelled')
+);
+
+// src/app/debts/index.tsx
+showConfirm(
+  'Mark as Paid Off?',
+  `Are you sure you've paid off "${debt.name}"?`,
+  async () => {
+    await markDebtPaidOff(debt);
+    showAlert('🎉 Debt Paid Off!', 'Congratulations!');
+  }
+);
+
+// src/app/claims/add.tsx
+showAlert('Error', 'Failed to save claim');
+```
+
+---
+
+## Summary
+
+**Golden Rule**: **Never use `Alert.alert` directly. Always use `showAlert` or `showConfirm` from `@/shared/utils/alert`.**
+
+This ensures:
+- ✅ Alerts work on web AND native
+- ✅ Consistent user experience across platforms
+- ✅ No silent failures on web
+- ✅ Better error visibility for users
+
+---
+
+**Last Updated**: 2025-01-XX  
+**Status**: Active Standard - Apply to ALL new code and migrate existing code

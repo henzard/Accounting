@@ -5,7 +5,6 @@ import React, { useState, useEffect } from 'react';
 import {
   ScrollView,
   View,
-  Text,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
@@ -16,6 +15,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
+import { showAlert } from '@/shared/utils/alert';
 import {
   ScreenHeader,
   AmountInput,
@@ -24,12 +24,17 @@ import {
   Card,
   PrimaryButton,
   OutlineButton,
+  ScreenWrapper,
+  AppText,
 } from '@/presentation/components';
+import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
 import { FirestoreTransactionRepository } from '@/data/repositories/FirestoreTransactionRepository';
 import { FirestoreAccountRepository } from '@/data/repositories/FirestoreAccountRepository';
 import { FirestoreBudgetRepository } from '@/data/repositories/FirestoreBudgetRepository';
-import { Transaction, TransactionType, createTransaction } from '@/domain/entities/Transaction';
+import { FirestoreBusinessRepository } from '@/data/repositories/FirestoreBusinessRepository';
+import { Transaction, TransactionType, ReimbursementType, createTransaction } from '@/domain/entities/Transaction';
 import { Account } from '@/domain/entities/Account';
+import { Business } from '@/domain/entities/Business';
 import { MasterCategory } from '@/shared/constants/budget-categories';
 import { SelectOption } from '@/shared/types';
 import { doc, getDoc } from 'firebase/firestore';
@@ -50,10 +55,16 @@ export default function AddTransactionScreen() {
   const [payee, setPayee] = useState('');
   const [notes, setNotes] = useState('');
   const [transactionDate, setTransactionDate] = useState(new Date());
+  
+  // Business expense state
+  const [isBusiness, setIsBusiness] = useState(false);
+  const [selectedBusinessId, setSelectedBusinessId] = useState<string>('');
+  const [reimbursementType, setReimbursementType] = useState<'REIMBURSABLE' | 'BUSINESS_OWNED' | undefined>(undefined);
 
   // Data state
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<MasterCategory[]>([]);
+  const [businesses, setBusinesses] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [householdCurrency, setHouseholdCurrency] = useState<CurrencyCode>('USD');
@@ -61,6 +72,7 @@ export default function AddTransactionScreen() {
   const accountRepo = new FirestoreAccountRepository();
   const transactionRepo = new FirestoreTransactionRepository();
   const budgetRepo = new FirestoreBudgetRepository();
+  const businessRepo = new FirestoreBusinessRepository();
 
   // Load accounts and categories
   useEffect(() => {
@@ -86,9 +98,13 @@ export default function AddTransactionScreen() {
         // Load categories
         const cats = await budgetRepo.getMasterCategoriesByHousehold(user.default_household_id);
         setCategories(cats);
+
+        // Load businesses
+        const biz = await businessRepo.getBusinessesByHousehold(user.default_household_id);
+        setBusinesses(biz);
       } catch (error) {
         console.error('❌ Failed to load data:', error);
-        Alert.alert('Error', 'Failed to load accounts and categories');
+        showAlert('Error', 'Failed to load accounts and categories');
       } finally {
         setLoading(false);
       }
@@ -119,6 +135,19 @@ export default function AddTransactionScreen() {
       subtitle: cat.group,
     }));
 
+  // Transform businesses for SearchableSelect
+  const businessOptions: SelectOption[] = businesses.map((business) => ({
+    label: business.name,
+    value: business.id,
+    subtitle: business.type === 'EMPLOYER' ? 'Employer' : business.type === 'CLIENT' ? 'Client' : 'Own Business',
+  }));
+
+  // Reimbursement type options
+  const reimbursementTypeOptions: SelectOption[] = [
+    { label: 'Reimbursable', value: 'REIMBURSABLE', subtitle: 'Will be reimbursed by employer/client' },
+    { label: 'Business Owned', value: 'BUSINESS_OWNED', subtitle: 'Own business expense (tax deduction)' },
+  ];
+
   // Validate form
   const validateForm = (): string | null => {
     if (amountInCents <= 0) {
@@ -141,17 +170,27 @@ export default function AddTransactionScreen() {
     // Validate
     const error = validateForm();
     if (error) {
-      Alert.alert('Validation Error', error);
+      showAlert('Validation Error', error);
       return;
     }
 
     if (!user) {
-      Alert.alert('Error', 'User not authenticated');
+      showAlert('Error', 'User not authenticated');
       return;
     }
 
     setSaving(true);
     try {
+      // Get business info if selected
+      let businessName: string | undefined;
+      let selectedBusiness: Business | undefined;
+      if (isBusiness && selectedBusinessId) {
+        selectedBusiness = businesses.find(b => b.id === selectedBusinessId);
+        if (selectedBusiness) {
+          businessName = selectedBusiness.name;
+        }
+      }
+
       // Create transaction
       const transaction = createTransaction({
         id: uuidv4(),
@@ -166,6 +205,17 @@ export default function AddTransactionScreen() {
         created_by: user.id,
         created_by_device: 'mobile-app', // TODO: Get actual device ID
       });
+
+      // Set business expense fields
+      transaction.is_business = isBusiness;
+      if (isBusiness && selectedBusinessId && selectedBusiness) {
+        transaction.business_id = selectedBusinessId;
+        const typeLabel = selectedBusiness.type === 'EMPLOYER' ? 'Employer' : selectedBusiness.type === 'CLIENT' ? 'Client' : 'Business';
+        transaction.reimbursement_target = businessName ? `${typeLabel}: ${businessName}` : undefined;
+      }
+      if (isBusiness && reimbursementType) {
+        transaction.reimbursement_type = reimbursementType as ReimbursementType;
+      }
 
       // Save to Firestore
       await transactionRepo.createTransaction(transaction);
@@ -206,12 +256,11 @@ export default function AddTransactionScreen() {
         }
       }
 
-      Alert.alert('Success', 'Transaction added successfully', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      // Navigate back immediately after successful save
+      router.back();
     } catch (error) {
       console.error('❌ Failed to save transaction:', error);
-      Alert.alert('Error', 'Failed to save transaction');
+      showAlert('Error', 'Failed to save transaction');
     } finally {
       setSaving(false);
     }
@@ -219,85 +268,80 @@ export default function AddTransactionScreen() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.background.primary }}>
+      <ScreenWrapper>
         <ScreenHeader title="Add Transaction" showBack />
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color={theme.interactive.primary} />
         </View>
-      </View>
+      </ScreenWrapper>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: theme.background.primary }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScreenHeader title="Add Transaction" showBack />
+    <ScreenWrapper>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScreenHeader title="Add Transaction" showBack />
 
-      <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
-        <View style={{ padding: 16 }}>
-          {/* Transaction Type Toggle */}
-          <Card padding="md" style={{ marginBottom: 16 }}>
-            <Text style={{ color: theme.text.secondary, fontSize: 14, marginBottom: 8 }}>
-              Transaction Type
-            </Text>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <TouchableOpacity
-                onPress={() => {
-                  setType('EXPENSE');
-                  setSelectedCategoryId(''); // Reset category
-                }}
-                style={{
-                  flex: 1,
-                  paddingVertical: 12,
-                  paddingHorizontal: 16,
-                  borderRadius: 8,
-                  backgroundColor: type === 'EXPENSE' ? theme.financial.expense : theme.background.secondary,
-                  borderWidth: 2,
-                  borderColor: type === 'EXPENSE' ? theme.financial.expense : theme.border.default,
-                }}
-              >
-                <Text
+        <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
+          <View style={{ padding: SPACING[4] }}>
+            {/* Transaction Type Toggle */}
+            <Card padding="md" style={{ marginBottom: SPACING[4] }}>
+              <AppText variant="body" color={theme.text.secondary} style={{ marginBottom: SPACING[2] }}>
+                Transaction Type
+              </AppText>
+              <View style={{ flexDirection: 'row', gap: SPACING[2] }}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setType('EXPENSE');
+                    setSelectedCategoryId(''); // Reset category
+                  }}
                   style={{
-                    color: type === 'EXPENSE' ? '#FFFFFF' : theme.text.primary,
-                    fontSize: 16,
-                    fontWeight: '600',
-                    textAlign: 'center',
+                    flex: 1,
+                    paddingVertical: SPACING[3],
+                    paddingHorizontal: SPACING[4],
+                    borderRadius: BORDER_RADIUS.sm,
+                    backgroundColor: type === 'EXPENSE' ? theme.financial.expense : theme.background.secondary,
+                    borderWidth: 2,
+                    borderColor: type === 'EXPENSE' ? theme.financial.expense : theme.border.default,
                   }}
                 >
-                  Expense
-                </Text>
-              </TouchableOpacity>
+                  <AppText
+                    variant="button"
+                    color={type === 'EXPENSE' ? '#FFFFFF' : theme.text.primary}
+                    style={{ textAlign: 'center' }}
+                  >
+                    Expense
+                  </AppText>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                onPress={() => {
-                  setType('INCOME');
-                  setSelectedCategoryId(''); // Reset category
-                }}
-                style={{
-                  flex: 1,
-                  paddingVertical: 12,
-                  paddingHorizontal: 16,
-                  borderRadius: 8,
-                  backgroundColor: type === 'INCOME' ? theme.financial.income : theme.background.secondary,
-                  borderWidth: 2,
-                  borderColor: type === 'INCOME' ? theme.financial.income : theme.border.default,
-                }}
-              >
-                <Text
+                <TouchableOpacity
+                  onPress={() => {
+                    setType('INCOME');
+                    setSelectedCategoryId(''); // Reset category
+                  }}
                   style={{
-                    color: type === 'INCOME' ? '#FFFFFF' : theme.text.primary,
-                    fontSize: 16,
-                    fontWeight: '600',
-                    textAlign: 'center',
+                    flex: 1,
+                    paddingVertical: SPACING[3],
+                    paddingHorizontal: SPACING[4],
+                    borderRadius: BORDER_RADIUS.sm,
+                    backgroundColor: type === 'INCOME' ? theme.financial.income : theme.background.secondary,
+                    borderWidth: 2,
+                    borderColor: type === 'INCOME' ? theme.financial.income : theme.border.default,
                   }}
                 >
-                  Income
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </Card>
+                  <AppText
+                    variant="button"
+                    color={type === 'INCOME' ? '#FFFFFF' : theme.text.primary}
+                    style={{ textAlign: 'center' }}
+                  >
+                    Income
+                  </AppText>
+                </TouchableOpacity>
+              </View>
+            </Card>
 
           {/* Amount */}
           <AmountInput
@@ -321,7 +365,7 @@ export default function AddTransactionScreen() {
           <SearchableSelect
             label="Account *"
             value={selectedAccountId}
-            onChange={setSelectedAccountId}
+            onSelect={setSelectedAccountId}
             options={accountOptions}
             placeholder="Select account"
           />
@@ -330,7 +374,7 @@ export default function AddTransactionScreen() {
           <SearchableSelect
             label="Category *"
             value={selectedCategoryId}
-            onChange={setSelectedCategoryId}
+            onSelect={setSelectedCategoryId}
             options={categoryOptions}
             placeholder={`Select ${type.toLowerCase()} category`}
           />
@@ -345,18 +389,126 @@ export default function AddTransactionScreen() {
             numberOfLines={3}
           />
 
+          {/* Business Expense Section - Only for EXPENSE type */}
+          {type === 'EXPENSE' && (
+            <Card padding="md" style={{ marginBottom: SPACING[4] }}>
+              <AppText variant="body" color={theme.text.secondary} style={{ marginBottom: SPACING[3] }}>
+                Business Expense
+              </AppText>
+              
+              {/* Is Business Toggle */}
+              <TouchableOpacity
+                onPress={() => {
+                  setIsBusiness(!isBusiness);
+                  if (!isBusiness) {
+                    // When enabling, set default reimbursement type if business selected
+                    if (selectedBusinessId) {
+                      const selectedBusiness = businesses.find(b => b.id === selectedBusinessId);
+                      if (selectedBusiness) {
+                        setReimbursementType(selectedBusiness.default_reimbursement_type);
+                      }
+                    }
+                  } else {
+                    // When disabling, clear business fields
+                    setSelectedBusinessId('');
+                    setReimbursementType(undefined);
+                  }
+                }}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingVertical: SPACING[2],
+                  marginBottom: isBusiness ? SPACING[3] : 0,
+                }}
+              >
+                <AppText variant="body">This is a business expense</AppText>
+                <View
+                  style={{
+                    width: 50,
+                    height: 30,
+                    borderRadius: 15,
+                    backgroundColor: isBusiness ? theme.interactive.primary : theme.border.default,
+                    justifyContent: 'center',
+                    paddingHorizontal: 2,
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: 13,
+                      backgroundColor: '#FFFFFF',
+                      transform: [{ translateX: isBusiness ? 20 : 0 }],
+                    }}
+                  />
+                </View>
+              </TouchableOpacity>
+
+              {/* Business Selector - Show if isBusiness is true */}
+              {isBusiness && (
+                <>
+                  {businesses.length > 0 ? (
+                    <SearchableSelect
+                      label="Business/Employer *"
+                      value={selectedBusinessId}
+                      onSelect={(value) => {
+                        setSelectedBusinessId(value);
+                        // Auto-set reimbursement type from business default
+                        const selectedBusiness = businesses.find(b => b.id === value);
+                        if (selectedBusiness) {
+                          setReimbursementType(selectedBusiness.default_reimbursement_type);
+                        }
+                      }}
+                      options={businessOptions}
+                      placeholder="Select business or employer"
+                      style={{ marginBottom: SPACING[3] }}
+                    />
+                  ) : (
+                    <TouchableOpacity
+                      onPress={() => router.push('/businesses/add')}
+                      style={{
+                        padding: SPACING[3],
+                        borderRadius: BORDER_RADIUS.sm,
+                        borderWidth: 1,
+                        borderColor: theme.border.default,
+                        borderStyle: 'dashed',
+                        marginBottom: SPACING[3],
+                      }}
+                    >
+                      <AppText variant="body" color={theme.interactive.primary} style={{ textAlign: 'center' }}>
+                        + Add Business/Employer
+                      </AppText>
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Reimbursement Type - Show if business selected */}
+                  {selectedBusinessId && (
+                    <SearchableSelect
+                      label="Reimbursement Type *"
+                      value={reimbursementType || ''}
+                      onSelect={(value) => setReimbursementType(value as 'REIMBURSABLE' | 'BUSINESS_OWNED')}
+                      options={reimbursementTypeOptions}
+                      placeholder="Select reimbursement type"
+                    />
+                  )}
+                </>
+              )}
+            </Card>
+          )}
+
           {/* Date - Future: Add date picker */}
-          <Card padding="md" style={{ marginBottom: 16 }}>
-            <Text style={{ color: theme.text.secondary, fontSize: 14, marginBottom: 4 }}>
+          <Card padding="md" style={{ marginBottom: SPACING[4] }}>
+            <AppText variant="body" color={theme.text.secondary} style={{ marginBottom: SPACING[1] }}>
               Date
-            </Text>
-            <Text style={{ color: theme.text.primary, fontSize: 16 }}>
+            </AppText>
+            <AppText variant="body">
               {transactionDate.toLocaleDateString('en-US', {
                 month: 'long',
                 day: 'numeric',
                 year: 'numeric',
               })}
-            </Text>
+            </AppText>
           </Card>
 
           {/* Save Button */}
@@ -375,11 +527,12 @@ export default function AddTransactionScreen() {
             disabled={saving}
             fullWidth
             size="lg"
-            style={{ marginTop: 12 }}
+            style={{ marginTop: SPACING[3] }}
           />
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </ScreenWrapper>
   );
 }
 

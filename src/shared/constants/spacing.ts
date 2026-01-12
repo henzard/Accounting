@@ -1,29 +1,32 @@
 // Spacing System for Homebase Budget App
-// Based on 4px base unit for consistent spacing
+// Premium UI Standards: Strict 8pt grid system
+// Allowed values ONLY: 4, 8, 12, 16, 20, 24, 32, 40, 48
+// See .cursor/rules/37-premium-ui-standards.mdc for details
 
 export const SPACING = {
   0: 0,      // No spacing
-  1: 4,      // Tiny
-  2: 8,      // Small
-  3: 12,     // Medium-small
-  4: 16,     // Medium (base)
-  5: 20,     // Medium-large
-  6: 24,     // Large
-  8: 32,     // Extra large
-  10: 40,    // 2x extra large
-  12: 48,    // 3x extra large
-  16: 64,    // Huge
-  20: 80,    // Extra huge
+  1: 4,      // 0.5 × 8 - Tiny
+  2: 8,      // 1 × 8 - Small
+  3: 12,     // 1.5 × 8 - Medium-small
+  4: 16,     // 2 × 8 - Medium (base)
+  5: 20,     // 2.5 × 8 - Medium-large
+  6: 24,     // 3 × 8 - Large
+  8: 32,     // 4 × 8 - Extra large
+  10: 40,    // 5 × 8 - 2x extra large
+  12: 48,    // 6 × 8 - 3x extra large
+  // Note: SPACING[16] = 64 and SPACING[20] = 80 removed - not in 8pt grid
+  // Use SPACING[8] = 32 or SPACING[10] = 40 instead
 } as const;
 
+// Premium UI Standards: Consistent and moderate border radius
+// Small controls: 10-12, Cards: 14-16, Sheets/Modals: 18-24
 export const BORDER_RADIUS = {
   none: 0,
-  sm: 4,     // Small elements (tags, badges)
-  md: 8,     // Cards, inputs
-  lg: 12,    // Larger cards
-  xl: 16,    // Prominent elements
-  '2xl': 24, // Very rounded
+  sm: 12,    // Small controls (10-12 range) - buttons, inputs
+  md: 16,    // Cards (14-16 range) - default card radius
+  lg: 20,    // Sheets/Modals (18-24 range) - modals, bottom sheets
   full: 9999, // Fully rounded (circles, pills)
+  // Note: xl and 2xl removed - use lg (20) for all large rounded elements
 } as const;
 
 export const BORDER_WIDTH = {
@@ -55,18 +58,18 @@ export const COMPONENT_SPACING = {
   lg: SPACING[4],   // 16px - comfortable spacing
 } as const;
 
-// Button heights
+// Premium UI Standards: Buttons should be 48-52px height
 export const BUTTON_HEIGHT = {
-  sm: 32,
-  md: 44,   // Default (good touch target)
-  lg: 56,
+  sm: 48,   // Compact (48-52 range)
+  md: 50,   // Default (48-52 range) - premium standard
+  lg: 52,   // Large (48-52 range)
 } as const;
 
-// Input heights
+// Premium UI Standards: Inputs should be 48-52px height (match button height)
 export const INPUT_HEIGHT = {
-  sm: 36,
-  md: 48,   // Default
-  lg: 56,
+  sm: 48,   // Compact (48-52 range)
+  md: 50,   // Default (48-52 range) - premium standard
+  lg: 52,   // Large (48-52 range)
 } as const;
 
 // Icon sizes

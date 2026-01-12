@@ -63,7 +63,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
     <View>
       {/* Trigger Input */}
       <TouchableOpacity onPress={() => setModalVisible(true)} activeOpacity={0.7}>
-        <View pointerEvents="none">
+        <View style={{ pointerEvents: 'none' }}>
           <Input
             label={label}
             value={displayValue}

@@ -17,6 +17,7 @@ const MAPPING = {
   'house.fill': 'home',
   'paperplane.fill': 'send',
   'chevron.left.forwardslash.chevron.right': 'code',
+  'chevron.left': 'chevron-left',
   'chevron.right': 'chevron-right',
   'chart.pie.fill': 'pie-chart',
   'gearshape.fill': 'settings',
@@ -24,6 +25,12 @@ const MAPPING = {
   'info.circle.fill': 'info',
   'list.bullet': 'format-list-bulleted',
   'ellipsis.circle.fill': 'more-horiz',
+  'sun.max': 'wb-sunny',
+  'moon': 'dark-mode',
+  'plus': 'add',
+  'plus.circle.fill': 'add-circle',
+  'pencil': 'edit',
+  'trash': 'delete',
 } as IconMapping;
 
 /**

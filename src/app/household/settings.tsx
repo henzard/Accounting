@@ -4,7 +4,6 @@
 import React, { useState, useCallback } from 'react';
 import {
   View,
-  Text,
   ScrollView,
   TouchableOpacity,
   StyleSheet,
@@ -14,10 +13,11 @@ import {
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
-import { ScreenHeader, Card, PrimaryButton, SearchableSelect } from '@/presentation/components';
+import { ScreenHeader, Card, PrimaryButton, SearchableSelect, ScreenWrapper, AppText } from '@/presentation/components';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
 import { SelectOption } from '@/shared/types';
+import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
 
 export default function HouseholdSettingsScreen() {
   const { theme } = useTheme();
@@ -107,44 +107,52 @@ export default function HouseholdSettingsScreen() {
 
   if (loading) {
     return (
-      <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
+      <ScreenWrapper>
         <ScreenHeader title="Household Settings" showBack={true} />
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={theme.interactive.primary} />
-          <Text style={[styles.loadingText, { color: theme.text.secondary }]}>
+          <AppText variant="body" style={{ color: theme.text.secondary, marginTop: SPACING[4] }}>
             Loading settings...
-          </Text>
+          </AppText>
         </View>
-      </View>
+      </ScreenWrapper>
     );
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.background.primary }]}>
+    <ScreenWrapper>
       <ScreenHeader title="Household Settings" showBack={true} />
 
       <ScrollView style={styles.scrollView}>
         {/* Household Name */}
         <Card style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text.primary }]}>
+          <AppText variant="h2" style={{ color: theme.text.primary, marginBottom: SPACING[2] }}>
             Household
-          </Text>
+          </AppText>
           <View style={styles.infoRow}>
-            <Text style={[styles.label, { color: theme.text.secondary }]}>Name</Text>
-            <Text style={[styles.value, { color: theme.text.primary }]}>{householdName}</Text>
+            <AppText variant="bodyEmphasis" style={{ color: theme.text.secondary }}>Name</AppText>
+            <AppText variant="body" style={{ color: theme.text.primary }}>{householdName}</AppText>
           </View>
+          <TouchableOpacity
+            onPress={() => router.push('/household/members')}
+            style={[styles.linkButton, { borderColor: theme.border.default, marginTop: SPACING[3] }]}
+          >
+            <AppText variant="bodyEmphasis" style={{ color: theme.interactive.primary }}>
+              Manage Members →
+            </AppText>
+          </TouchableOpacity>
         </Card>
 
         {/* Budget Period */}
         <Card style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text.primary }]}>
+          <AppText variant="h2" style={{ color: theme.text.primary, marginBottom: SPACING[2] }}>
             💰 Budget Period
-          </Text>
-          <Text style={[styles.sectionDescription, { color: theme.text.secondary }]}>
+          </AppText>
+          <AppText variant="body" style={{ color: theme.text.secondary, marginBottom: SPACING[4] }}>
             Choose which day your budget period starts. This is useful if you get paid mid-month (e.g., 15th or 20th).
-          </Text>
+          </AppText>
 
-          <View style={{ marginTop: 16 }}>
+          <View style={{ marginTop: SPACING[4] }}>
             <SearchableSelect
               label="Budget Period Start Day"
               value={String(budgetPeriodStartDay)}
@@ -159,42 +167,42 @@ export default function HouseholdSettingsScreen() {
             backgroundColor: theme.status.infoBackground,
             borderColor: theme.status.info,
           }]}>
-            <Text style={[styles.previewLabel, { color: theme.status.info }]}>
+            <AppText variant="bodyEmphasis" style={{ color: theme.status.info, marginBottom: SPACING[2] }}>
               📅 Budget Period Preview
-            </Text>
-            <Text style={[styles.previewText, { color: theme.text.primary }]}>
+            </AppText>
+            <AppText variant="body" style={{ color: theme.text.primary }}>
               {budgetPeriodStartDay === 1
                 ? 'Calendar month: 1st to last day of month'
                 : `Custom period: ${budgetPeriodStartDay}th of one month to ${budgetPeriodStartDay - 1}${getDaySuffix(budgetPeriodStartDay - 1)} of next month`}
-            </Text>
+            </AppText>
             {budgetPeriodStartDay !== 1 && (
-              <Text style={[styles.previewExample, { color: theme.text.secondary }]}>
+              <AppText variant="caption" style={{ color: theme.text.secondary, marginTop: SPACING[1] }}>
                 Example: Dec {budgetPeriodStartDay} → Jan {budgetPeriodStartDay - 1}
-              </Text>
+              </AppText>
             )}
           </View>
         </Card>
 
         {/* Baby Steps */}
         <Card style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme.text.primary }]}>
+          <AppText variant="h2" style={{ color: theme.text.primary, marginBottom: SPACING[2] }}>
             📊 Dave Ramsey Baby Steps
-          </Text>
+          </AppText>
           <View style={styles.infoRow}>
-            <Text style={[styles.label, { color: theme.text.secondary }]}>
+            <AppText variant="bodyEmphasis" style={{ color: theme.text.secondary }}>
               Current Baby Step
-            </Text>
-            <Text style={[styles.value, { color: theme.text.primary }]}>
+            </AppText>
+            <AppText variant="body" style={{ color: theme.text.primary }}>
               Step {currentBabyStep}
-            </Text>
+            </AppText>
           </View>
           <TouchableOpacity
             onPress={() => router.push('/baby-steps/select')}
             style={[styles.linkButton, { borderColor: theme.border.default }]}
           >
-            <Text style={[styles.linkButtonText, { color: theme.interactive.primary }]}>
+            <AppText variant="bodyEmphasis" style={{ color: theme.interactive.primary }}>
               Change Baby Step →
-            </Text>
+            </AppText>
           </TouchableOpacity>
         </Card>
 
@@ -209,9 +217,9 @@ export default function HouseholdSettingsScreen() {
         </View>
 
         {/* Bottom spacer */}
-        <View style={{ height: 100 }} />
+        <View style={{ height: SPACING[12] }} />
       </ScrollView>
-    </View>
+    </ScreenWrapper>
   );
 }
 
@@ -224,9 +232,6 @@ function getDaySuffix(day: number): string {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
   scrollView: {
     flex: 1,
   },
@@ -235,66 +240,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-  },
   section: {
-    margin: 16,
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  sectionDescription: {
-    fontSize: 14,
-    lineHeight: 20,
+    margin: SPACING[4],
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '500',
-  },
-  value: {
-    fontSize: 16,
+    paddingVertical: SPACING[3],
   },
   previewBox: {
-    marginTop: 16,
-    padding: 16,
-    borderRadius: 8,
+    marginTop: SPACING[4],
+    padding: SPACING[4],
+    borderRadius: BORDER_RADIUS.md,
     borderWidth: 1,
-  },
-  previewLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  previewText: {
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  previewExample: {
-    fontSize: 12,
-    marginTop: 4,
-    fontStyle: 'italic',
   },
   linkButton: {
-    marginTop: 12,
-    padding: 12,
+    marginTop: SPACING[3],
+    padding: SPACING[3],
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: BORDER_RADIUS.md,
     alignItems: 'center',
-  },
-  linkButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
   },
 });
 

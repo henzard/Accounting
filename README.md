@@ -107,6 +107,13 @@ This app requires Firebase for data storage and authentication.
 - **[ADR 002](docs/architecture/decisions/002-offline-first-strategy.md)** - Offline approach
 - **[ADR 003](docs/architecture/decisions/003-append-only-transactions.md)** - Financial integrity
 
+### 🎨 Design & UI
+- **[Premium UI Standards](.cursor/rules/37-premium-ui-standards.mdc)** - Design system rules
+- **[Color Theme](docs/design/color-theme.md)** - "Polished Luxury" light & "Midnight Precision" dark
+- **[Typography Pairing](docs/design/typography-pairing.md)** - Font recommendations
+- **[Component Tiers](docs/design/component-tiers-guide.md)** - Enforced component hierarchy
+- **[Typography Migration](docs/migration/typography-migration.md)** - Migration guide
+
 ### 🔒 Security
 - **[Firebase Setup](docs/setup/firebase-setup.md)** - Secure configuration
 - **[Security Rules](.cursor/rules/12-security-rules.mdc)** - Public repo guidelines
@@ -301,11 +308,24 @@ See: [Security Rules](.cursor/rules/12-security-rules.mdc)
 
 - **TypeScript strict mode** - No `any` types
 - **Clean Architecture** - Respect layer boundaries
+- **Premium UI Standards** - 8pt grid, 8 text styles max, component tiers
 - **Test after changes** - Run `npm run android` frequently
 - **Path aliases** - Use `@/domain`, `@/data`, etc.
 - **Conventional commits** - `feat:`, `fix:`, `docs:`, etc.
 
 See: [`.cursor/rules/`](.cursor/rules/) for complete guidelines
+
+### Design Standards
+
+This app follows **Premium UI/UX Standards** for a luxury, expensive feel:
+
+- **8pt Grid System** - Strict spacing (4, 8, 12, 16, 20, 24, 32, 40, 48 only)
+- **Typography** - Maximum 8 text styles, semibold headlines, 1.4× body line height
+- **Colors** - Neutrals dominate (85-95%), no pure black/white, gold accent (1-3%)
+- **Component Tiers** - Enforced variants (AppText, Surface, Button)
+- **Motion** - Micro-animations only (150-220ms), no bouncy transitions
+
+See: [Premium UI Standards](.cursor/rules/37-premium-ui-standards.mdc) for complete rules
 
 ---
 

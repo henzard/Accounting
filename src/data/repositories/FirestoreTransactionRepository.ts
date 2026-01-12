@@ -8,6 +8,7 @@ import {
   getDocs,
   setDoc,
   updateDoc,
+  deleteDoc,
   query,
   where,
   limit,
@@ -123,6 +124,22 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
   }
 
   /**
+   * Delete a transaction
+   * Works offline - queues for sync when online
+   */
+  async deleteTransaction(transactionId: string): Promise<void> {
+    try {
+      const docRef = doc(db, this.COLLECTION, transactionId);
+      await deleteDoc(docRef);
+      
+      console.log(`✅ Transaction ${transactionId} deleted (will sync when online)`);
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Subscribe to real-time transaction updates
    * Updates automatically when online
    */
@@ -180,6 +197,7 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
         : undefined,
       reconciled_by: data.reconciled_by,
       is_business: data.is_business,
+      business_id: data.business_id,
       reimbursement_type: data.reimbursement_type,
       reimbursement_target: data.reimbursement_target,
       reimbursement_claim_id: data.reimbursement_claim_id,
@@ -218,6 +236,7 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
         : null,
       reconciled_by: transaction.reconciled_by || null,
       is_business: transaction.is_business,
+      business_id: transaction.business_id || null,
       reimbursement_type: transaction.reimbursement_type,
       reimbursement_target: transaction.reimbursement_target || null,
       reimbursement_claim_id: transaction.reimbursement_claim_id || null,

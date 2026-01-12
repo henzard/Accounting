@@ -13,8 +13,8 @@
 - **Phase 2**: Domain Layer (Business Logic) ✅ (Complete)
 - **Phase 3**: Data Layer (Firebase Integration) ✅ (Complete)
 - **Phase 4**: Presentation Layer (Basic UI) ✅ (Complete)
-- **Phase 5**: MVP Features (Core Functionality) 🔄 (Current - Phase 5.1)
-- **Phase 6**: Polish & Production Ready
+- **Phase 5**: MVP Features (Core Functionality) ✅ (Complete - All sub-phases 5.1-5.9)
+- **Phase 6**: Polish & Production Ready 🔄 (Current - Phase 6.2)
 
 ---
 
@@ -425,11 +425,12 @@ Theme system complete with Homebase branding. Core UI components built (Button, 
 
 ---
 
-## Phase 5: MVP Features (Core Functionality) 🔄 IN PROGRESS
+## Phase 5: MVP Features (Core Functionality) ✅ COMPLETE
 
 Building core features: authentication, household management, transactions, budgets, and debt tracking.
 
-**Current**: Phase 5.6 - Transaction Entry
+**Status**: ✅ All MVP features complete (5.1-5.9)  
+**Next**: Phase 6 - Polish & Production Ready
 
 ### 5.1: Authentication Flow (1 hour) ✅ COMPLETE
 
@@ -838,75 +839,136 @@ Building core features: authentication, household management, transactions, budg
 
 ---
 
-### 5.7: Category Tracking (Envelopes) (2 hours)
+### 5.7: Category Tracking (Envelopes) (2 hours) ✅ COMPLETE
 
-- [ ] Create Category List screen
-- [ ] Show planned vs actual per category
-- [ ] Show progress bar
-- [ ] Color code (good/warning/overspent)
-- [ ] **Test app runs**, categories update live
+- [x] Create Category List screen
+- [x] Show planned vs actual per category
+- [x] Show progress bar
+- [x] Color code (good/warning/overspent)
+- [x] **Test app runs**, categories update live
 
-**Exit Criteria**: Can track category spending
+**Exit Criteria**: Can track category spending ✅ VERIFIED  
+**Status**: COMPLETE
+
+**What was built:**
+- `budget/categories.tsx` - Category tracking screen with planned vs actual amounts
+- Progress bars for each category
+- Color coding (green = good, yellow = warning, red = overspent)
+- Collapsible category groups
+- Search functionality
+- Navigation from budget screen
 
 ---
 
-### 5.8: Debt Snowball (3 hours)
+### 5.8: Debt Snowball (3 hours) ✅ COMPLETE
 
-- [ ] Create Debt List screen
-- [ ] Create Add Debt screen
-- [ ] Implement Debt Snowball ordering
+- [x] Create Debt List screen
+- [x] Create Add Debt screen
+- [x] Implement Debt Snowball ordering
   - Sort by balance (smallest first)
   - Mark focus debt
-  - **Test app runs**, see snowball order
+  - **Test app runs**, see snowball order ✅
 
-- [ ] Show payoff projection
-- [ ] Mark debt as paid off
+- [x] Show payoff projection
+- [x] Mark debt as paid off
   - Celebration animation
   - Roll to next debt
-  - **Test app runs**, snowball works
+  - **Test app runs**, snowball works ✅
 
-**Exit Criteria**: Debt snowball functional
+**Exit Criteria**: Debt snowball functional ✅ VERIFIED  
+**Status**: COMPLETE
 
----
-
-### 5.9: Dashboard/Home Screen (2 hours)
-
-- [ ] Create Dashboard screen
-- [ ] Show current Baby Step
-- [ ] Show current month budget status
-- [ ] Show recent transactions
-- [ ] Show debt progress (if in Step 2)
-- [ ] **Test app runs**, dashboard shows data
-
-**Exit Criteria**: Dashboard summarizes financial status
+**What was built:**
+- `debts/index.tsx` - Debt list screen with snowball ordering
+- `debts/add.tsx` - Add debt screen with all fields
+- Snowball calculation logic (smallest balance first)
+- Focus debt highlighting
+- Payoff projections
+- Mark as paid off functionality
+- Navigation from More/Settings tab
 
 ---
 
-## Phase 6: Polish & Testing
+### 5.9: Dashboard/Home Screen (2 hours) ✅ COMPLETE
 
-### 6.0: Household Management (2 hours) **NEW**
+- [x] Create Dashboard screen
+- [x] Show current Baby Step
+- [x] Show current month budget status
+- [x] Show recent transactions
+- [x] Show debt progress (if in Step 2)
+- [x] **Test app runs**, dashboard shows data ✅
 
-- [ ] Add "Manage Households" to More/Settings tab
-- [ ] Create household management screen
+**Exit Criteria**: Dashboard summarizes financial status ✅ VERIFIED  
+**Status**: COMPLETE
+
+**What was built:**
+- Transformed home screen into financial dashboard
+- Baby Steps progress display
+- Current month budget summary (planned income, expenses, remaining)
+- Recent transactions (last 5)
+- Debt snowball progress (if in Baby Step 2)
+- Quick actions (Add Transaction, View Budget)
+- Household switcher and theme toggle in header
+- Pull-to-refresh functionality
+
+---
+
+## Phase 6: Polish & Testing 🔄 IN PROGRESS
+
+### 6.0: Household Management (2 hours) ✅ COMPLETE
+
+- [x] Add "Manage Households" to More/Settings tab
+- [x] Create household management screen
   - List all user's households
   - Show which is default
   - Delete household (with confirmation)
   - Switch default household
   - Edit household name/settings
-- [ ] Test deleting test households
-- [ ] **Test app runs**, household management works
+- [x] Test deleting test households
+- [x] **Test app runs**, household management works ✅
 
-**Exit Criteria**: Can view, delete, and manage households
+**Exit Criteria**: Can view, delete, and manage households ✅ VERIFIED  
+**Status**: COMPLETE
+
+**What was built:**
+- `household/manage.tsx` - Full household management screen
+- List all households user belongs to (queries by `member_ids`)
+- Default household indicator
+- Switch default household
+- Edit household name
+- Delete household (with safety checks)
+- Household switcher button in all headers
+- Theme toggle button in all headers
+- Household members management screen
+- Add/remove members functionality
 
 ---
 
-### 6.1: Business Expense Tracking (3 hours)
+### 6.1: Business Expense Tracking (3 hours) ✅ COMPLETE
 
-- [ ] Add "Business Expense" toggle to transaction
-- [ ] Add reimbursement fields
-- [ ] Create Claims screen
-- [ ] Create claim workflow
-- [ ] **Test app runs**, reimbursements work
+- [x] Add "Business Expense" toggle to transaction
+- [x] Add reimbursement fields
+- [x] Create Claims screen
+- [x] Create claim workflow
+- [x] **Test app runs**, reimbursements work ✅
+
+**Exit Criteria**: Business expense tracking functional ✅ VERIFIED  
+**Status**: COMPLETE
+
+**What was built:**
+- `Business` entity - Track multiple businesses/employers
+- `ReimbursementClaim` entity - Track reimbursement claims
+- `businesses/index.tsx` - List and manage businesses
+- `businesses/add.tsx` - Add new business
+- `businesses/edit.tsx` - Edit business
+- `claims/index.tsx` - List reimbursement claims
+- `claims/add.tsx` - Create new claim from business expenses
+- `claims/[id].tsx` - View claim details
+- Transaction integration - Mark transactions as business expenses
+- Business selector in transaction form
+- Reimbursement type selector
+- Claim creation workflow
+- Transaction linking to claims
 
 ---
 
@@ -1044,16 +1106,19 @@ npm run android
 
 ## 🚀 Current Status
 
-**You are here**: Phase 5.5 - Monthly Budget Creation
+**You are here**: Phase 6.2 - Receipt Photos
 
 **What's Complete**:
-- ✅ Phase 0-4: All infrastructure, domain, data, Firebase, theme, components, navigation
-- ✅ Phase 5.1-5.4: Authentication, Households, Baby Steps, Accounts
-- ✅ UI component library with Homebase branding
+- ✅ Phase 0-5: All infrastructure, domain, data, Firebase, theme, components, navigation, MVP features
+- ✅ Phase 5.1-5.9: Authentication, Households, Baby Steps, Accounts, Budgets, Transactions, Category Tracking, Debt Snowball, Dashboard
+- ✅ Phase 6.0-6.1: Household Management, Business Expense Tracking
+- ✅ UI component library with premium design standards
 - ✅ Firebase tested and working (offline + online)
-- ✅ Multi-currency support with conversion
+- ✅ Multi-currency support
+- ✅ Theme system (light/dark mode)
+- ✅ Household switcher and theme toggle on all screens
 
-**Next step**: Build monthly budget creation (zero-based budgeting)
+**Next step**: Phase 6.2 - Receipt Photos (integrate expo-image-picker, upload to Firebase Storage)
 
 **To verify app works**:
 ```powershell
@@ -1063,5 +1128,5 @@ npm run android
 
 ---
 
-**Remember**: We're **building MVP features**! Account management complete. Next: Budget creation. 💰
+**Remember**: MVP features are complete! Now polishing and adding production-ready features. 📸
 

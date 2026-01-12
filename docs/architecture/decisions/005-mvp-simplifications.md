@@ -144,7 +144,7 @@ This confirms our simplifications went too far. User is correct.
 
 **Next Steps**:
 1. Document this ADR ✅
-2. Update MASTER-TODO.md to break out Phase 5.5.1-5.5.6
+2. Update docs/project/project-status.md to break out Phase 5.5.1-5.5.6
 3. Decide: Fix now or after Phase 5.6 (Transactions)?
 
 **Recommendation**: Fix **Critical** items (5.5.1, 5.5.2) BEFORE Phase 5.6, defer rest.

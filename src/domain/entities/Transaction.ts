@@ -43,8 +43,9 @@ export interface Transaction {
   
   // Business Expenses
   is_business: boolean;
+  business_id?: string; // Reference to Business entity (for multi-business support)
   reimbursement_type?: ReimbursementType;
-  reimbursement_target?: string;
+  reimbursement_target?: string; // Denormalized: "Employer: ACME Corp" (derived from business_id or manual)
   reimbursement_claim_id?: string;
   
   // Receipt

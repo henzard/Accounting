@@ -54,7 +54,7 @@ Better questions beat better models. You retain judgment, AI provides leverage.
 ## 🤖 For Me (The AI)
 
 ### Before ANY Response
-1. □ Check `MASTER-TODO.md` - What phase?
+1. □ Check `docs/project/project-status.md` - What phase?
 2. □ Check `.cursor/rules/` - What rules apply?
 3. □ Check `docs/` - Any relevant architecture?
 4. □ Verify existing code - Don't assume!
@@ -69,14 +69,14 @@ Better questions beat better models. You retain judgment, AI provides leverage.
 ✅ **ALWAYS**: Reference which rule/doc I'm following
 ✅ **ALWAYS**: State my plan before executing
 ✅ **ALWAYS**: Test after changes
-✅ **ALWAYS**: Update MASTER-TODO.md progress
+✅ **ALWAYS**: Update docs/project/project-status.md progress
 
 ### Decision Framework
 ```
 User asks: "Add feature X"
 
 My response:
-1. "Checking MASTER-TODO.md... this is Phase 2.3"
+1. "Checking docs/project/project-status.md... this is Phase 2.3"
 2. "Checking rules... Clean Architecture requires..."
 3. "Checking docs... data-model.md shows..."
 4. "My plan: Create entity → interface → use case"
@@ -104,7 +104,7 @@ My response:
 - Keep AI aligned with vision
 
 ### AI's Role (Tactical)
-- Follow MASTER-TODO.md roadmap
+- Follow docs/project/project-status.md roadmap
 - Implement according to rules/docs
 - Test frequently
 - Surface issues/questions
@@ -129,7 +129,7 @@ AI: "Testing... ✅ Works. Next: Phase 5.2?"
 | **"Verify"** | Check what actually exists |
 | **"Explain"** | State reasoning with rule references |
 | **"Reset"** | Go back to last working state |
-| **"What phase?"** | Where are we in MASTER-TODO.md? |
+| **"What phase?"** | Where are we in docs/project/project-status.md? |
 
 ---
 
@@ -137,7 +137,7 @@ AI: "Testing... ✅ Works. Next: Phase 5.2?"
 
 **Before Complex Work**:
 ```
-□ Read MASTER-TODO.md (what phase?)
+□ Read docs/project/project-status.md (what phase?)
 □ Read relevant .cursor/rules/ files
 □ Read relevant docs/ files
 □ Verify existing code/structure
@@ -222,5 +222,5 @@ Before marking a list screen complete:
 
 ---
 
-**Include `@PROMPT-GUIDE.md` in your message when you want me to be extra careful about following this pattern.**
+**Include `@docs/setup/prompt-guide.md` in your message when you want me to be extra careful about following this pattern.**
 

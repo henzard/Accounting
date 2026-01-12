@@ -4,19 +4,20 @@
 import React, { useState, useEffect } from 'react';
 import {
   View,
-  Text,
   ScrollView,
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  StyleSheet,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
 import { BABY_STEPS, sanitizeBabyStep, isValidBabyStep } from '@/shared/constants/baby-steps';
-import { PrimaryButton, OutlineButton, Card, ScreenHeader } from '@/presentation/components';
+import { PrimaryButton, OutlineButton, Card, ScreenHeader, ScreenWrapper, AppText } from '@/presentation/components';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
+import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
 
 export default function BabyStepsSelectScreen() {
   const { theme } = useTheme();
@@ -111,45 +112,41 @@ export default function BabyStepsSelectScreen() {
 
   if (loading) {
     return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: theme.background.primary,
-        }}
-      >
-        <ActivityIndicator size="large" color={theme.interactive.primary} />
-      </View>
+      <ScreenWrapper>
+        <View
+          style={{
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
+          <ActivityIndicator size="large" color={theme.interactive.primary} />
+        </View>
+      </ScreenWrapper>
     );
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: theme.background.primary }}>
+    <ScreenWrapper>
       {/* Header */}
       <ScreenHeader title="Select Baby Step" showBack={true} />
 
       {/* Subtitle */}
       <View
         style={{
-          paddingHorizontal: theme.spacing[4],
-          paddingVertical: theme.spacing[3],
+          paddingHorizontal: SPACING[4],
+          paddingVertical: SPACING[3],
         }}
       >
-        <Text
-          style={{
-            fontSize: 14,
-            color: theme.text.secondary,
-          }}
-        >
+        <AppText variant="caption" style={{ color: theme.text.secondary }}>
           Which Baby Step are you currently working on?
-        </Text>
+        </AppText>
       </View>
 
       {/* Steps List */}
       <ScrollView
         style={{ flex: 1 }}
-        contentContainerStyle={{ padding: theme.spacing[4] }}
+        contentContainerStyle={{ padding: SPACING[4] }}
       >
         {BABY_STEPS.map((step) => {
           const isSelected = selectedStep === step.step;
@@ -161,7 +158,7 @@ export default function BabyStepsSelectScreen() {
               key={step.step}
               onPress={() => setSelectedStep(step.step)}
               activeOpacity={0.7}
-              style={{ marginBottom: theme.spacing[3] }}
+              style={{ marginBottom: SPACING[3] }}
             >
               <Card
                 style={{
@@ -188,23 +185,22 @@ export default function BabyStepsSelectScreen() {
                         : theme.background.tertiary,
                       justifyContent: 'center',
                       alignItems: 'center',
-                      marginRight: theme.spacing[3],
+                      marginRight: SPACING[3],
                     }}
                   >
                     {isCompleted ? (
-                      <Text style={{ color: 'white', fontSize: 18 }}>✓</Text>
+                      <AppText variant="body" style={{ color: 'white' }}>✓</AppText>
                     ) : (
-                      <Text
+                      <AppText
+                        variant="h3"
                         style={{
                           color: isSelected
                             ? theme.text.inverse
                             : theme.text.secondary,
-                          fontSize: 18,
-                          fontWeight: 'bold',
                         }}
                       >
                         {step.step}
-                      </Text>
+                      </AppText>
                     )}
                   </View>
 
@@ -214,54 +210,51 @@ export default function BabyStepsSelectScreen() {
                       style={{
                         flexDirection: 'row',
                         alignItems: 'center',
-                        marginBottom: 4,
+                        marginBottom: SPACING[1],
                       }}
                     >
-                      <Text
+                      <AppText
+                        variant="bodyEmphasis"
                         style={{
-                          fontSize: 16,
-                          fontWeight: '600',
                           color: theme.text.primary,
                           flex: 1,
                         }}
                       >
                         {step.shortTitle}
-                      </Text>
-                      <Text style={{ fontSize: 24, marginLeft: 8 }}>
+                      </AppText>
+                      <AppText variant="h2" style={{ marginLeft: SPACING[2] }}>
                         {step.icon}
-                      </Text>
+                      </AppText>
                     </View>
 
-                    <Text
+                    <AppText
+                      variant="caption"
                       style={{
-                        fontSize: 13,
                         color: theme.text.secondary,
-                        lineHeight: 18,
                       }}
                     >
                       {step.description}
-                    </Text>
+                    </AppText>
 
                     {isCurrent && (
                       <View
                         style={{
-                          marginTop: theme.spacing[2],
+                          marginTop: SPACING[2],
                           backgroundColor: theme.status.infoBackground,
-                          paddingHorizontal: 8,
-                          paddingVertical: 4,
-                          borderRadius: 4,
+                          paddingHorizontal: SPACING[2],
+                          paddingVertical: SPACING[1],
+                          borderRadius: BORDER_RADIUS.sm,
                           alignSelf: 'flex-start',
                         }}
                       >
-                        <Text
+                        <AppText
+                          variant="overline"
                           style={{
-                            fontSize: 11,
                             color: theme.status.info,
-                            fontWeight: '600',
                           }}
                         >
                           CURRENT STEP
-                        </Text>
+                        </AppText>
                       </View>
                     )}
                   </View>
@@ -275,11 +268,11 @@ export default function BabyStepsSelectScreen() {
       {/* Bottom Buttons */}
       <View
         style={{
-          padding: theme.spacing[4],
-          borderTopWidth: 1,
+          padding: SPACING[4],
+          borderTopWidth: StyleSheet.hairlineWidth,
           borderTopColor: theme.border.default,
           backgroundColor: theme.surface.default,
-          gap: theme.spacing[3],
+          gap: SPACING[3],
         }}
       >
         <PrimaryButton
@@ -296,7 +289,7 @@ export default function BabyStepsSelectScreen() {
           fullWidth
         />
       </View>
-    </View>
+    </ScreenWrapper>
   );
 }
 

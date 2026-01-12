@@ -5,16 +5,17 @@ import React, { useState, useEffect } from 'react';
 import {
   ScrollView,
   View,
-  Text,
   TouchableOpacity,
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
+  StyleSheet,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
+import { showAlert, showConfirm } from '@/shared/utils/alert';
 import {
   ScreenHeader,
   AmountInput,
@@ -23,16 +24,22 @@ import {
   Card,
   PrimaryButton,
   OutlineButton,
-  GhostButton,
+  Button,
+  ScreenWrapper,
+  AppText,
 } from '@/presentation/components';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
 import { FirestoreTransactionRepository } from '@/data/repositories/FirestoreTransactionRepository';
 import { FirestoreAccountRepository } from '@/data/repositories/FirestoreAccountRepository';
 import { FirestoreBudgetRepository } from '@/data/repositories/FirestoreBudgetRepository';
-import { Transaction, TransactionType } from '@/domain/entities/Transaction';
+import { FirestoreBusinessRepository } from '@/data/repositories/FirestoreBusinessRepository';
+import { Transaction, TransactionType, ReimbursementType } from '@/domain/entities/Transaction';
 import { Account } from '@/domain/entities/Account';
+import { Business } from '@/domain/entities/Business';
 import { MasterCategory } from '@/shared/constants/budget-categories';
 import { SelectOption } from '@/shared/types';
-import { doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
 import { formatCurrency, CurrencyCode } from '@/shared/utils/currency';
 
@@ -41,7 +48,8 @@ export default function TransactionDetailScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const params = useLocalSearchParams();
-  const transactionId = params.id as string;
+  // Handle both string and array formats from expo-router
+  const transactionId = Array.isArray(params.id) ? params.id[0] : (params.id as string);
 
   // View/Edit mode
   const [isEditing, setIsEditing] = useState(false);
@@ -50,6 +58,7 @@ export default function TransactionDetailScreen() {
   const [transaction, setTransaction] = useState<Transaction | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Edit form state
   const [type, setType] = useState<TransactionType>('EXPENSE');
@@ -58,15 +67,22 @@ export default function TransactionDetailScreen() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [payee, setPayee] = useState('');
   const [notes, setNotes] = useState('');
+  
+  // Business expense state
+  const [isBusiness, setIsBusiness] = useState(false);
+  const [selectedBusinessId, setSelectedBusinessId] = useState<string>('');
+  const [reimbursementType, setReimbursementType] = useState<ReimbursementType>('NONE');
 
   // Data state
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<MasterCategory[]>([]);
+  const [businesses, setBusinesses] = useState<Business[]>([]);
   const [householdCurrency, setHouseholdCurrency] = useState<CurrencyCode>('USD');
 
   const transactionRepo = new FirestoreTransactionRepository();
   const accountRepo = new FirestoreAccountRepository();
   const budgetRepo = new FirestoreBudgetRepository();
+  const businessRepo = new FirestoreBusinessRepository();
 
   // Load transaction
   useEffect(() => {
@@ -85,7 +101,7 @@ export default function TransactionDetailScreen() {
         // Load transaction
         const txn = await transactionRepo.getTransaction(transactionId);
         if (!txn) {
-          Alert.alert('Error', 'Transaction not found');
+          showAlert('Error', 'Transaction not found');
           router.back();
           return;
         }
@@ -97,16 +113,24 @@ export default function TransactionDetailScreen() {
         setSelectedCategoryId(txn.category_id || '');
         setPayee(txn.payee || '');
         setNotes(txn.notes || '');
+        
+        // Set business expense fields
+        setIsBusiness(txn.is_business || false);
+        setSelectedBusinessId(txn.business_id || '');
+        setReimbursementType(txn.reimbursement_type || 'NONE');
 
-        // Load accounts and categories
+        // Load accounts, categories, and businesses
         const accts = await accountRepo.getAccountsByHousehold(user.default_household_id);
         setAccounts(accts);
 
         const cats = await budgetRepo.getMasterCategoriesByHousehold(user.default_household_id);
         setCategories(cats);
+        
+        const biz = await businessRepo.getBusinessesByHousehold(user.default_household_id);
+        setBusinesses(biz);
       } catch (error) {
         console.error('❌ Failed to load transaction:', error);
-        Alert.alert('Error', 'Failed to load transaction');
+        showAlert('Error', 'Failed to load transaction');
       } finally {
         setLoading(false);
       }
@@ -119,7 +143,7 @@ export default function TransactionDetailScreen() {
   const accountOptions: SelectOption[] = accounts.map((account) => ({
     label: account.name,
     value: account.id,
-    subtitle: account.account_type,
+    subtitle: account.type,
   }));
 
   const categoryOptions: SelectOption[] = categories
@@ -136,17 +160,29 @@ export default function TransactionDetailScreen() {
       subtitle: cat.group,
     }));
 
+  const businessOptions: SelectOption[] = businesses.map((biz) => ({
+    label: biz.name,
+    value: biz.id,
+    subtitle: biz.type.replace('_', ' '),
+  }));
+
+  const reimbursementTypeOptions: SelectOption[] = [
+    { label: 'None', value: 'NONE' },
+    { label: 'Reimbursable', value: 'REIMBURSABLE' },
+    { label: 'Business Owned', value: 'BUSINESS_OWNED' },
+  ];
+
   // Save edits
   const handleSave = async () => {
     if (!transaction || !user) return;
 
     if (amountInCents <= 0) {
-      Alert.alert('Validation Error', 'Please enter an amount greater than zero');
+      showAlert('Validation Error', 'Please enter an amount greater than zero');
       return;
     }
 
     if (!selectedAccountId || !selectedCategoryId || !payee.trim()) {
-      Alert.alert('Validation Error', 'Please fill in all required fields');
+      showAlert('Validation Error', 'Please fill in all required fields');
       return;
     }
 
@@ -168,6 +204,26 @@ export default function TransactionDetailScreen() {
         notes: notes.trim() || undefined,
         updated_at: new Date(),
       };
+
+      // Update business expense fields
+      updatedTransaction.is_business = isBusiness;
+      if (isBusiness && selectedBusinessId) {
+        updatedTransaction.business_id = selectedBusinessId;
+        const selectedBusiness = businesses.find((b) => b.id === selectedBusinessId);
+        if (selectedBusiness) {
+          const typeLabel = selectedBusiness.type === 'EMPLOYER' ? 'Employer' : selectedBusiness.type === 'CLIENT' ? 'Client' : 'Business';
+          updatedTransaction.reimbursement_target = `${typeLabel}: ${selectedBusiness.name}`;
+        }
+      } else {
+        updatedTransaction.business_id = undefined;
+        updatedTransaction.reimbursement_target = undefined;
+      }
+      
+      if (isBusiness && reimbursementType && reimbursementType !== 'NONE') {
+        updatedTransaction.reimbursement_type = reimbursementType;
+      } else {
+        updatedTransaction.reimbursement_type = 'NONE';
+      }
 
       await transactionRepo.updateTransaction(updatedTransaction);
       console.log('✅ Transaction updated:', transaction.id);
@@ -218,10 +274,10 @@ export default function TransactionDetailScreen() {
 
       setTransaction(updatedTransaction);
       setIsEditing(false);
-      Alert.alert('Success', 'Transaction updated successfully');
+      showAlert('Success', 'Transaction updated successfully');
     } catch (error) {
       console.error('❌ Failed to update transaction:', error);
-      Alert.alert('Error', 'Failed to update transaction');
+      showAlert('Error', 'Failed to update transaction');
     } finally {
       setSaving(false);
     }
@@ -229,78 +285,148 @@ export default function TransactionDetailScreen() {
 
   // Delete transaction
   const handleDelete = async () => {
-    if (!transaction || !user) return;
+    console.log('🔴 DELETE BUTTON CLICKED');
+    console.log('🔴 Transaction:', transaction?.id);
+    console.log('🔴 User:', user?.id);
+    
+    if (!transaction || !user) {
+      console.log('🔴 Validation failed: missing transaction or user');
+      showAlert(
+        'Cannot Delete',
+        'Transaction or user information is missing. Please refresh and try again.'
+      );
+      return;
+    }
 
-    Alert.alert(
+    // Check if transaction is part of a reimbursement claim
+    if (transaction.reimbursement_claim_id) {
+      console.log('🔴 Validation failed: transaction is part of claim:', transaction.reimbursement_claim_id);
+      showAlert(
+        'Cannot Delete',
+        'This transaction is part of a reimbursement claim and cannot be deleted. Remove it from the claim first.'
+      );
+      return;
+    }
+
+    // Check if user has permission (must be household member)
+    if (!user.default_household_id || transaction.household_id !== user.default_household_id) {
+      console.log('🔴 Validation failed: permission denied', {
+        userHousehold: user.default_household_id,
+        transactionHousehold: transaction.household_id
+      });
+      showAlert(
+        'Permission Denied',
+        'You do not have permission to delete this transaction. It belongs to a different household.'
+      );
+      return;
+    }
+
+    console.log('🔴 All validations passed, showing delete confirmation');
+
+    // Use showConfirm for web-compatible confirmation
+    showConfirm(
       'Delete Transaction',
       'Are you sure you want to delete this transaction? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              // Remove from budget first
-              if (transaction.category_id) {
-                const now = new Date();
-                const budget = await budgetRepo.getBudgetByMonth(
-                  user.default_household_id!,
-                  now.getMonth() + 1,
-                  now.getFullYear()
-                );
-
-                if (budget) {
-                  const catIndex = budget.categories.findIndex(
-                    (c) => c.category_id === transaction.category_id
-                  );
-                  if (catIndex >= 0) {
-                    const currentActual = budget.categories[catIndex].actual_amount || 0;
-                    await budgetRepo.updateCategoryActualAmount(
-                      budget.id,
-                      transaction.category_id,
-                      currentActual - transaction.amount
-                    );
-                  }
-                }
-              }
-
-              // Delete transaction
-              await deleteDoc(doc(db, 'transactions', transaction.id));
-              console.log('✅ Transaction deleted:', transaction.id);
-
-              Alert.alert('Success', 'Transaction deleted', [
-                { text: 'OK', onPress: () => router.back() },
-              ]);
-            } catch (error) {
-              console.error('❌ Failed to delete transaction:', error);
-              Alert.alert('Error', 'Failed to delete transaction');
-            }
-          },
-        },
-      ]
+      () => {
+        console.log('🔴 Delete confirmed, starting deletion...');
+        performDelete();
+      },
+      () => {
+        console.log('🔴 Delete cancelled by user');
+      }
     );
+  };
+
+  const performDelete = async () => {
+    if (!transaction || !user) return;
+    
+    setDeleting(true);
+    try {
+      console.log('🗑️ Starting delete process for transaction:', transaction.id);
+      
+      // Remove from budget first
+      if (transaction.category_id) {
+        console.log('📊 Removing from budget category:', transaction.category_id);
+        const now = new Date();
+        const budget = await budgetRepo.getBudgetByMonth(
+          user.default_household_id!,
+          now.getMonth() + 1,
+          now.getFullYear()
+        );
+
+        if (budget) {
+          const catIndex = budget.categories.findIndex(
+            (c) => c.category_id === transaction.category_id
+          );
+          if (catIndex >= 0) {
+            const currentActual = budget.categories[catIndex].actual_amount || 0;
+            const newActual = currentActual - transaction.amount;
+            console.log('📊 Updating budget category:', { currentActual, transactionAmount: transaction.amount, newActual });
+            await budgetRepo.updateCategoryActualAmount(
+              budget.id,
+              transaction.category_id,
+              newActual
+            );
+            console.log('✅ Budget category updated');
+          } else {
+            console.warn('⚠️ Category not found in budget:', transaction.category_id);
+          }
+        } else {
+          console.warn('⚠️ Budget not found for current month');
+        }
+      } else {
+        console.log('ℹ️ No category to remove from budget');
+      }
+
+      // Delete transaction using repository
+      console.log('🗑️ Deleting transaction from Firestore:', transaction.id);
+      await transactionRepo.deleteTransaction(transaction.id);
+      console.log('✅ Transaction deleted successfully:', transaction.id);
+
+      // Navigate back immediately after successful delete
+      router.back();
+    } catch (error: any) {
+      console.error('❌ Failed to delete transaction:', error);
+      console.error('❌ Error details:', JSON.stringify(error, null, 2));
+      
+      // Provide specific error messages based on error type
+      let errorMessage = 'Failed to delete transaction.';
+      
+      if (error?.code === 'permission-denied') {
+        errorMessage = 'You do not have permission to delete this transaction. It may be part of a reimbursement claim or you may not have access to this household.';
+      } else if (error?.code === 'unavailable') {
+        errorMessage = 'Network error. The transaction will be deleted when you are back online.';
+      } else if (error?.code === 'not-found') {
+        errorMessage = 'Transaction not found. It may have already been deleted.';
+      } else if (error?.message) {
+        errorMessage = `Failed to delete: ${error.message}`;
+      }
+      
+      showAlert('Delete Failed', errorMessage);
+    } finally {
+      setDeleting(false);
+    }
   };
 
   if (loading) {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.background.primary }}>
+      <ScreenWrapper>
         <ScreenHeader title="Transaction" showBack />
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color={theme.interactive.primary} />
         </View>
-      </View>
+      </ScreenWrapper>
     );
   }
 
   if (!transaction) {
     return (
-      <View style={{ flex: 1, backgroundColor: theme.background.primary }}>
+      <ScreenWrapper>
         <ScreenHeader title="Transaction" showBack />
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 }}>
-          <Text style={{ fontSize: 16, color: theme.text.secondary }}>Transaction not found</Text>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING[8] }}>
+          <AppText variant="body" color={theme.text.secondary}>Transaction not found</AppText>
         </View>
-      </View>
+      </ScreenWrapper>
     );
   }
 
@@ -308,87 +434,133 @@ export default function TransactionDetailScreen() {
   if (!isEditing) {
     const account = accounts.find((a) => a.id === transaction.account_id);
     const category = categories.find((c) => c.id === transaction.category_id);
+    const business = businesses.find((b) => b.id === transaction.business_id);
 
     return (
-      <View style={{ flex: 1, backgroundColor: theme.background.primary }}>
+      <ScreenWrapper>
         <ScreenHeader
           title="Transaction"
           showBack
           rightAction={
-            <TouchableOpacity onPress={() => setIsEditing(true)}>
-              <Text style={{ color: theme.interactive.primary, fontSize: 16, fontWeight: '600' }}>
-                Edit
-              </Text>
+            <TouchableOpacity 
+              onPress={() => setIsEditing(true)}
+              style={styles.editButton}
+            >
+              <IconSymbol name="pencil" size={20} color={theme.interactive.primary} />
             </TouchableOpacity>
           }
         />
 
         <ScrollView style={{ flex: 1 }}>
-          <View style={{ padding: 16 }}>
+          <View style={{ padding: SPACING[4] }}>
             {/* Amount Card */}
-            <Card padding="lg" style={{ marginBottom: 16, alignItems: 'center' }}>
-              <Text style={{ fontSize: 48, fontWeight: 'bold', color: transaction.type === 'INCOME' ? theme.financial.income : theme.financial.expense }}>
+            <Card padding="lg" style={{ marginBottom: SPACING[4], alignItems: 'center' }}>
+              <AppText 
+                variant="display" 
+                color={transaction.type === 'INCOME' ? theme.financial.income : theme.financial.expense}
+                style={{ fontVariant: ['tabular-nums'] }}
+              >
                 {transaction.type === 'INCOME' ? '+' : '-'}
                 {formatCurrency(transaction.amount, householdCurrency)}
-              </Text>
-              <Text style={{ fontSize: 14, color: theme.text.secondary, marginTop: 8 }}>
+              </AppText>
+              <AppText variant="caption" color={theme.text.secondary} style={{ marginTop: SPACING[2] }}>
                 {transaction.type === 'INCOME' ? 'Income' : 'Expense'}
-              </Text>
+              </AppText>
             </Card>
 
             {/* Details */}
-            <Card padding="md" style={{ marginBottom: 16 }}>
-              <View style={{ marginBottom: 16 }}>
-                <Text style={{ fontSize: 12, color: theme.text.tertiary, marginBottom: 4 }}>PAYEE</Text>
-                <Text style={{ fontSize: 16, color: theme.text.primary }}>{transaction.payee || '—'}</Text>
+            <Card padding="md" style={{ marginBottom: SPACING[4] }}>
+              <View style={{ marginBottom: SPACING[4] }}>
+                <AppText variant="overline" color={theme.text.tertiary} style={{ marginBottom: SPACING[1] }}>PAYEE</AppText>
+                <AppText variant="body">{transaction.payee || '—'}</AppText>
               </View>
 
-              <View style={{ marginBottom: 16 }}>
-                <Text style={{ fontSize: 12, color: theme.text.tertiary, marginBottom: 4 }}>ACCOUNT</Text>
-                <Text style={{ fontSize: 16, color: theme.text.primary }}>{account?.name || '—'}</Text>
+              <View style={{ marginBottom: SPACING[4] }}>
+                <AppText variant="overline" color={theme.text.tertiary} style={{ marginBottom: SPACING[1] }}>ACCOUNT</AppText>
+                <AppText variant="body">{account?.name || '—'}</AppText>
               </View>
 
-              <View style={{ marginBottom: 16 }}>
-                <Text style={{ fontSize: 12, color: theme.text.tertiary, marginBottom: 4 }}>CATEGORY</Text>
-                <Text style={{ fontSize: 16, color: theme.text.primary }}>{category?.name || '—'}</Text>
+              <View style={{ marginBottom: SPACING[4] }}>
+                <AppText variant="overline" color={theme.text.tertiary} style={{ marginBottom: SPACING[1] }}>CATEGORY</AppText>
+                <AppText variant="body">{category?.name || '—'}</AppText>
               </View>
 
-              <View style={{ marginBottom: 16 }}>
-                <Text style={{ fontSize: 12, color: theme.text.tertiary, marginBottom: 4 }}>DATE</Text>
-                <Text style={{ fontSize: 16, color: theme.text.primary }}>
+              <View style={{ marginBottom: SPACING[4] }}>
+                <AppText variant="overline" color={theme.text.tertiary} style={{ marginBottom: SPACING[1] }}>DATE</AppText>
+                <AppText variant="body">
                   {transaction.date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                </Text>
+                </AppText>
               </View>
+
+              {transaction.is_business && (
+                <>
+                  <View style={{ marginBottom: SPACING[4] }}>
+                    <AppText variant="overline" color={theme.text.tertiary} style={{ marginBottom: SPACING[1] }}>BUSINESS</AppText>
+                    <AppText variant="body">{business?.name || transaction.reimbursement_target || '—'}</AppText>
+                  </View>
+
+                  {transaction.reimbursement_type && transaction.reimbursement_type !== 'NONE' && (
+                    <View style={{ marginBottom: SPACING[4] }}>
+                      <AppText variant="overline" color={theme.text.tertiary} style={{ marginBottom: SPACING[1] }}>REIMBURSEMENT TYPE</AppText>
+                      <AppText variant="body">
+                        {transaction.reimbursement_type === 'REIMBURSABLE' ? 'Reimbursable' : 'Business Owned'}
+                      </AppText>
+                    </View>
+                  )}
+
+                  {transaction.reimbursement_claim_id && (
+                    <View style={{ marginBottom: SPACING[4] }}>
+                      <AppText variant="overline" color={theme.text.tertiary} style={{ marginBottom: SPACING[1] }}>CLAIM</AppText>
+                      <AppText variant="body" color={theme.interactive.primary}>
+                        Part of reimbursement claim
+                      </AppText>
+                    </View>
+                  )}
+                </>
+              )}
 
               {transaction.notes && (
                 <View>
-                  <Text style={{ fontSize: 12, color: theme.text.tertiary, marginBottom: 4 }}>NOTES</Text>
-                  <Text style={{ fontSize: 16, color: theme.text.primary }}>{transaction.notes}</Text>
+                  <AppText variant="overline" color={theme.text.tertiary} style={{ marginBottom: SPACING[1] }}>NOTES</AppText>
+                  <AppText variant="body">{transaction.notes}</AppText>
                 </View>
               )}
             </Card>
 
             {/* Delete Button */}
-            <GhostButton
-              title="Delete Transaction"
-              onPress={handleDelete}
+            <Button
+              title={deleting ? 'Deleting...' : 'Delete Transaction'}
+              onPress={() => {
+                console.log('🔴🔴🔴 DELETE BUTTON PRESSED 🔴🔴🔴');
+                console.log('🔴 handleDelete function:', typeof handleDelete);
+                console.log('🔴 Transaction:', transaction?.id);
+                console.log('🔴 User:', user?.id);
+                if (handleDelete) {
+                  handleDelete();
+                } else {
+                  console.error('🔴 ERROR: handleDelete is not a function!');
+                  showAlert('Error', 'Delete handler is not available');
+                }
+              }}
+              variant="destructive"
               fullWidth
               size="lg"
-              style={{ borderColor: theme.status.error }}
-              textStyle={{ color: theme.status.error }}
+              disabled={deleting}
+              loading={deleting}
             />
           </View>
         </ScrollView>
-      </View>
+      </ScreenWrapper>
     );
   }
 
   // Edit Mode
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: theme.background.primary }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <ScreenWrapper>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
       <ScreenHeader
         title="Edit Transaction"
         showBack
@@ -396,43 +568,51 @@ export default function TransactionDetailScreen() {
       />
 
       <ScrollView style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
-        <View style={{ padding: 16 }}>
+        <View style={{ padding: SPACING[4] }}>
           {/* Transaction Type */}
-          <Card padding="md" style={{ marginBottom: 16 }}>
-            <Text style={{ color: theme.text.secondary, fontSize: 14, marginBottom: 8 }}>
+          <Card padding="md" style={{ marginBottom: SPACING[4] }}>
+            <AppText variant="body" color={theme.text.secondary} style={{ marginBottom: SPACING[2] }}>
               Transaction Type
-            </Text>
-            <View style={{ flexDirection: 'row', gap: 8 }}>
+            </AppText>
+            <View style={{ flexDirection: 'row', gap: SPACING[2] }}>
               <TouchableOpacity
                 onPress={() => setType('EXPENSE')}
                 style={{
                   flex: 1,
-                  paddingVertical: 12,
-                  borderRadius: 8,
+                  paddingVertical: SPACING[3],
+                  borderRadius: BORDER_RADIUS.sm,
                   backgroundColor: type === 'EXPENSE' ? theme.financial.expense : theme.background.secondary,
                   borderWidth: 2,
                   borderColor: type === 'EXPENSE' ? theme.financial.expense : theme.border.default,
                 }}
               >
-                <Text style={{ color: type === 'EXPENSE' ? '#FFFFFF' : theme.text.primary, fontSize: 16, fontWeight: '600', textAlign: 'center' }}>
+                <AppText 
+                  variant="button" 
+                  color={type === 'EXPENSE' ? '#FFFFFF' : theme.text.primary}
+                  style={{ textAlign: 'center' }}
+                >
                   Expense
-                </Text>
+                </AppText>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => setType('INCOME')}
                 style={{
                   flex: 1,
-                  paddingVertical: 12,
-                  borderRadius: 8,
+                  paddingVertical: SPACING[3],
+                  borderRadius: BORDER_RADIUS.sm,
                   backgroundColor: type === 'INCOME' ? theme.financial.income : theme.background.secondary,
                   borderWidth: 2,
                   borderColor: type === 'INCOME' ? theme.financial.income : theme.border.default,
                 }}
               >
-                <Text style={{ color: type === 'INCOME' ? '#FFFFFF' : theme.text.primary, fontSize: 16, fontWeight: '600', textAlign: 'center' }}>
+                <AppText 
+                  variant="button" 
+                  color={type === 'INCOME' ? '#FFFFFF' : theme.text.primary}
+                  style={{ textAlign: 'center' }}
+                >
                   Income
-                </Text>
+                </AppText>
               </TouchableOpacity>
             </View>
           </Card>
@@ -449,7 +629,7 @@ export default function TransactionDetailScreen() {
           <SearchableSelect
             label="Account *"
             value={selectedAccountId}
-            onChange={setSelectedAccountId}
+            onSelect={setSelectedAccountId}
             options={accountOptions}
             placeholder="Select account"
           />
@@ -457,7 +637,7 @@ export default function TransactionDetailScreen() {
           <SearchableSelect
             label="Category *"
             value={selectedCategoryId}
-            onChange={setSelectedCategoryId}
+            onSelect={setSelectedCategoryId}
             options={categoryOptions}
             placeholder="Select category"
           />
@@ -470,6 +650,79 @@ export default function TransactionDetailScreen() {
             multiline
             numberOfLines={3}
           />
+
+          {/* Business Expense Section */}
+          <View style={{ height: SPACING[4] }} />
+          <Card padding="md" style={{ marginBottom: SPACING[4] }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: SPACING[3] }}>
+              <AppText variant="h2">Business Expense</AppText>
+              <TouchableOpacity
+                onPress={() => {
+                  setIsBusiness(!isBusiness);
+                  if (!isBusiness) {
+                    // When enabling, set default reimbursement type if business is selected
+                    if (selectedBusinessId) {
+                      const selectedBusiness = businesses.find((b) => b.id === selectedBusinessId);
+                      if (selectedBusiness?.default_reimbursement_type) {
+                        setReimbursementType(selectedBusiness.default_reimbursement_type);
+                      }
+                    }
+                  } else {
+                    // When disabling, clear business fields
+                    setSelectedBusinessId('');
+                    setReimbursementType('NONE');
+                  }
+                }}
+                style={{
+                  width: 50,
+                  height: 30,
+                  borderRadius: 15,
+                  backgroundColor: isBusiness ? theme.interactive.primary : theme.border.default,
+                  justifyContent: 'center',
+                  paddingHorizontal: 2,
+                }}
+              >
+                <View
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 13,
+                    backgroundColor: '#FFFFFF',
+                    alignSelf: isBusiness ? 'flex-end' : 'flex-start',
+                  }}
+                />
+              </TouchableOpacity>
+            </View>
+
+            {isBusiness && (
+              <>
+                <SearchableSelect
+                  label="Business/Employer"
+                  value={selectedBusinessId}
+                  onSelect={(value) => {
+                    setSelectedBusinessId(value);
+                    // Set default reimbursement type when business is selected
+                    const selectedBusiness = businesses.find((b) => b.id === value);
+                    if (selectedBusiness?.default_reimbursement_type) {
+                      setReimbursementType(selectedBusiness.default_reimbursement_type);
+                    }
+                  }}
+                  options={businessOptions}
+                  placeholder="Select business or employer"
+                />
+
+                <View style={{ height: SPACING[3] }} />
+
+                <SearchableSelect
+                  label="Reimbursement Type"
+                  value={reimbursementType}
+                  onSelect={(value) => setReimbursementType(value as ReimbursementType)}
+                  options={reimbursementTypeOptions}
+                  placeholder="Select reimbursement type"
+                />
+              </>
+            )}
+          </Card>
 
           <PrimaryButton
             title={saving ? 'Saving...' : 'Save Changes'}
@@ -486,11 +739,21 @@ export default function TransactionDetailScreen() {
             disabled={saving}
             fullWidth
             size="lg"
-            style={{ marginTop: 12 }}
+            style={{ marginTop: SPACING[3] }}
           />
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </ScreenWrapper>
   );
 }
 
+const styles = StyleSheet.create({
+  editButton: {
+    width: 44, // Premium UI: Minimum 44×44px touch target
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+});
