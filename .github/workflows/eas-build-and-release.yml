@@ -57,44 +57,45 @@ jobs:
           echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
           echo "Android build ID: $BUILD_ID"
 
-      - name: Build iOS IPA
-        working-directory: ./src
-        id: ios-build
-        run: |
-          BUILD_OUTPUT=$(eas build --platform ios --profile production --non-interactive --no-wait --json 2>&1)
-          # Try to extract build ID from JSON (could be array or single object)
-          BUILD_ID=$(echo "$BUILD_OUTPUT" | jq -r 'if type == "array" then .[0].id else .id end' 2>/dev/null || echo "")
-          # Fallback: extract from URL if JSON parsing fails (format: .../builds/3128e966-7624-435b-a9e7-e6df68a59c57)
-          if [ -z "$BUILD_ID" ] || [ "$BUILD_ID" = "null" ] || [ "$BUILD_ID" = "" ]; then
-            BUILD_ID=$(echo "$BUILD_OUTPUT" | grep -o 'builds/[a-f0-9-]\{36\}' | head -1 | sed 's|builds/||')
-          fi
-          if [ -z "$BUILD_ID" ]; then
-            echo "❌ Failed to extract build ID from output:"
-            echo "$BUILD_OUTPUT"
-            exit 1
-          fi
-          echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
-          echo "iOS build ID: $BUILD_ID"
+      # iOS builds skipped for now
+      # - name: Build iOS IPA
+      #   working-directory: ./src
+      #   id: ios-build
+      #   run: |
+      #     BUILD_OUTPUT=$(eas build --platform ios --profile production --non-interactive --no-wait --json 2>&1)
+      #     BUILD_ID=$(echo "$BUILD_OUTPUT" | jq -r 'if type == "array" then .[0].id else .id end' 2>/dev/null || echo "")
+      #     if [ -z "$BUILD_ID" ] || [ "$BUILD_ID" = "null" ] || [ "$BUILD_ID" = "" ]; then
+      #       BUILD_ID=$(echo "$BUILD_OUTPUT" | grep -o 'builds/[a-f0-9-]\{36\}' | head -1 | sed 's|builds/||')
+      #     fi
+      #     if [ -z "$BUILD_ID" ]; then
+      #       echo "❌ Failed to extract build ID from output:"
+      #       echo "$BUILD_OUTPUT"
+      #       exit 1
+      #     fi
+      #     echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
+      #     echo "iOS build ID: $BUILD_ID"
 
       - name: Wait for Android build
         working-directory: ./src
         run: |
           eas build:wait --id ${{ steps.android-build.outputs.build_id }} --timeout 1800
 
-      - name: Wait for iOS build
-        working-directory: ./src
-        run: |
-          eas build:wait --id ${{ steps.ios-build.outputs.build_id }} --timeout 1800
+      # iOS builds skipped for now
+      # - name: Wait for iOS build
+      #   working-directory: ./src
+      #   run: |
+      #     eas build:wait --id ${{ steps.ios-build.outputs.build_id }} --timeout 1800
 
       - name: Download Android build
         working-directory: ./src
         run: |
           eas build:download --id ${{ steps.android-build.outputs.build_id }} --platform android --output ./android-build.apk
 
-      - name: Download iOS build
-        working-directory: ./src
-        run: |
-          eas build:download --id ${{ steps.ios-build.outputs.build_id }} --platform ios --output ./ios-build.ipa
+      # iOS builds skipped for now
+      # - name: Download iOS build
+      #   working-directory: ./src
+      #   run: |
+      #     eas build:download --id ${{ steps.ios-build.outputs.build_id }} --platform ios --output ./ios-build.ipa
 
       - name: Extract version from tag
         id: get_version
@@ -115,7 +116,7 @@ jobs:
           body_path: docs/release-notes.md
           files: |
             src/android-build.apk
-            src/ios-build.ipa
+            # src/ios-build.ipa  # iOS builds skipped for now
           draft: false
           prerelease: false
         env:
