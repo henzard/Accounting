@@ -1,0 +1,112 @@
+name: Create GitHub Release from EAS Build
+
+# This workflow creates a GitHub release after an EAS Workflow build completes
+# It triggers when a version tag is pushed and waits for the EAS build to complete
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v1.0.0
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required to create releases
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for tags
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Wait for EAS build to complete
+        working-directory: ./src
+        run: |
+          # Extract version from tag (e.g., v1.2.6 -> 1.2.6)
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "Waiting for EAS build for version $VERSION..."
+          
+          # Wait for build to appear and complete
+          MAX_ATTEMPTS=120  # 30 minutes max
+          ATTEMPT=0
+          BUILD_ID=""
+          
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            # Get latest build for this version
+            BUILD_LIST=$(eas build:list --platform android --limit 5 --json 2>/dev/null || echo "[]")
+            
+            # Try to find build matching this version
+            BUILD_ID=$(echo "$BUILD_LIST" | jq -r ".[] | select(.appVersion == \"$VERSION\" or .appVersion == \"$VERSION.0\") | .id" 2>/dev/null | head -1)
+            
+            if [ -n "$BUILD_ID" ] && [ "$BUILD_ID" != "null" ]; then
+              BUILD_STATUS=$(echo "$BUILD_LIST" | jq -r ".[] | select(.id == \"$BUILD_ID\") | .status" 2>/dev/null)
+              
+              if [ "$BUILD_STATUS" = "finished" ]; then
+                echo "✅ Build completed: $BUILD_ID"
+                echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
+                exit 0
+              elif [ "$BUILD_STATUS" = "errored" ] || [ "$BUILD_STATUS" = "canceled" ]; then
+                echo "❌ Build failed with status: $BUILD_STATUS"
+                exit 1
+              fi
+            fi
+            
+            ATTEMPT=$((ATTEMPT + 1))
+            if [ $((ATTEMPT % 4)) -eq 0 ]; then
+              echo "   Still waiting... (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+            fi
+            sleep 15
+          done
+          
+          echo "❌ Timeout waiting for build"
+          exit 1
+
+      - name: Download Android build
+        working-directory: ./src
+        run: |
+          BUILD_ID="${{ steps.wait-build.outputs.build_id }}"
+          if [ -z "$BUILD_ID" ]; then
+            echo "❌ No build ID found"
+            exit 1
+          fi
+          echo "Downloading build $BUILD_ID..."
+          eas build:download --id $BUILD_ID --platform android --output ./android-build.apk
+
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+          else
+            VERSION=$(node -p "require('./src/package.json').version")
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.get_version.outputs.tag }}
+          name: Release ${{ steps.get_version.outputs.version }}
+          body_path: docs/release-notes.md
+          files: |
+            src/android-build.apk
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
