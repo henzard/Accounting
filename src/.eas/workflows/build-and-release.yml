@@ -1,0 +1,34 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v1.0.0
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  build_android:
+    name: Build Android APK
+    type: build
+    params:
+      platform: android
+      profile: production
+
+  download_android:
+    name: Download Android Build
+    type: download-build
+    depends-on: build_android
+    params:
+      build-id: ${{ jobs.build_android.outputs.build-id }}
+      path: ./android-build.apk
+
+  create_release:
+    name: Create GitHub Release
+    type: github-release
+    depends-on: download_android
+    params:
+      tag: ${{ github.ref_name }}
+      name: Release ${{ github.ref_name }}
+      body-path: ../../docs/release-notes.md
+      files:
+        - ./android-build.apk

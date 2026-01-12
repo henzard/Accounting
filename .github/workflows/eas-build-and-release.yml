@@ -69,28 +69,46 @@ jobs:
         run: |
           BUILD_ID="${{ steps.android-build.outputs.build_id }}"
           echo "⏳ Waiting for build $BUILD_ID to complete..."
-          MAX_ATTEMPTS=120  # 30 minutes max (120 * 15 seconds)
+          echo "📋 Build URL: https://expo.dev/accounts/henzardkruger/projects/Accounting/builds/$BUILD_ID"
+          MAX_ATTEMPTS=240  # 60 minutes max (240 * 15 seconds = 3600 seconds)
           ATTEMPT=0
           
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
-            BUILD_STATUS=$(eas build:list --platform android --limit 1 --json 2>/dev/null | jq -r ".[] | select(.id == \"$BUILD_ID\") | .status" 2>/dev/null || echo "")
+            # Get build status - try multiple methods
+            BUILD_LIST=$(eas build:list --platform android --limit 10 --json 2>/dev/null || echo "[]")
+            BUILD_STATUS=$(echo "$BUILD_LIST" | jq -r ".[] | select(.id == \"$BUILD_ID\") | .status" 2>/dev/null || echo "")
+            
+            # If not found in list, try getting specific build
+            if [ -z "$BUILD_STATUS" ] || [ "$BUILD_STATUS" = "null" ]; then
+              BUILD_INFO=$(eas build:view "$BUILD_ID" --json 2>/dev/null || echo "{}")
+              BUILD_STATUS=$(echo "$BUILD_INFO" | jq -r '.status' 2>/dev/null || echo "")
+            fi
             
             if [ "$BUILD_STATUS" = "finished" ]; then
               echo "✅ Build completed successfully!"
               exit 0
             elif [ "$BUILD_STATUS" = "errored" ] || [ "$BUILD_STATUS" = "canceled" ]; then
               echo "❌ Build failed with status: $BUILD_STATUS"
+              echo "📋 Check build details: https://expo.dev/accounts/henzardkruger/projects/Accounting/builds/$BUILD_ID"
               exit 1
+            elif [ -n "$BUILD_STATUS" ] && [ "$BUILD_STATUS" != "null" ]; then
+              # Build is in progress (in-progress, pending, etc.)
+              if [ $((ATTEMPT % 8)) -eq 0 ]; then
+                echo "   Status: $BUILD_STATUS (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+              fi
+            else
+              # Status unknown, but build might still be processing
+              if [ $((ATTEMPT % 8)) -eq 0 ]; then
+                echo "   Waiting for build to appear... (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+              fi
             fi
             
             ATTEMPT=$((ATTEMPT + 1))
-            if [ $((ATTEMPT % 4)) -eq 0 ]; then
-              echo "   Still waiting... (attempt $ATTEMPT/$MAX_ATTEMPTS)"
-            fi
             sleep 15
           done
           
-          echo "❌ Build timeout after 30 minutes"
+          echo "❌ Build timeout after 60 minutes"
+          echo "📋 Check build status: https://expo.dev/accounts/henzardkruger/projects/Accounting/builds/$BUILD_ID"
           exit 1
 
       # iOS builds skipped for now
