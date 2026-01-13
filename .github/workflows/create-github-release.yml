@@ -47,19 +47,19 @@ jobs:
           echo "Tag: $TAG_NAME"
           echo "Commit SHA: $COMMIT_SHA"
 
-      - name: Wait for EAS build to complete
+      - name: Find EAS build for this tag
         working-directory: ./src
-        id: wait-build
+        id: find-build
         run: |
           COMMIT_SHA="${{ steps.get_commit.outputs.commit }}"
-          echo "Waiting for EAS build for commit $COMMIT_SHA..."
+          TAG_NAME="${{ steps.get_commit.outputs.tag }}"
+          echo "Looking for EAS build for tag: $TAG_NAME (commit: $COMMIT_SHA)"
           
-          # Wait a bit for the build to start (EAS Workflows might take a moment)
-          echo "⏳ Waiting 30 seconds for build to start..."
-          sleep 30
+          # Give EAS Workflow a moment to start the build
+          echo "⏳ Waiting 60 seconds for EAS build to start..."
+          sleep 60
           
-          # Wait for build to appear and complete
-          MAX_ATTEMPTS=120  # 30 minutes max
+          MAX_ATTEMPTS=80  # 20 minutes max (builds usually take 15-20 min)
           ATTEMPT=0
           BUILD_ID=""
           
@@ -67,42 +67,48 @@ jobs:
             # Get latest builds
             BUILD_LIST=$(eas build:list --platform android --limit 20 --json 2>/dev/null || echo "[]")
             
-            # Try to find build matching this commit SHA
-            # EAS builds include git commit info in the build metadata
-            BUILD_ID=$(echo "$BUILD_LIST" | jq -r ".[] | select(.gitCommitHash == \"$COMMIT_SHA\" or .gitCommitHash == \"${COMMIT_SHA:0:7}\") | .id" 2>/dev/null | head -1)
+            # First, try to find build matching this commit SHA (most accurate)
+            BUILD_ID=$(echo "$BUILD_LIST" | jq -r ".[] | select(.gitCommitHash == \"$COMMIT_SHA\" or .gitCommitHash == \"${COMMIT_SHA:0:7}\") | select(.status == \"finished\") | .id" 2>/dev/null | head -1)
             
-            # If no match by commit, try to find most recent finished build (fallback)
+            # If no match by commit, get the most recent finished build (EAS Workflows builds are sequential)
             if [ -z "$BUILD_ID" ] || [ "$BUILD_ID" = "null" ]; then
-              echo "   No build found for commit $COMMIT_SHA, trying most recent finished build..."
-              BUILD_ID=$(echo "$BUILD_LIST" | jq -r '.[] | select(.status == "finished" or .status == "in-progress") | .id' 2>/dev/null | head -1)
+              echo "   No build found for commit $COMMIT_SHA, checking most recent finished build..."
+              BUILD_ID=$(echo "$BUILD_LIST" | jq -r '.[] | select(.status == "finished") | .id' 2>/dev/null | head -1)
             fi
             
             if [ -n "$BUILD_ID" ] && [ "$BUILD_ID" != "null" ]; then
               BUILD_STATUS=$(echo "$BUILD_LIST" | jq -r ".[] | select(.id == \"$BUILD_ID\") | .status" 2>/dev/null)
               BUILD_COMMIT=$(echo "$BUILD_LIST" | jq -r ".[] | select(.id == \"$BUILD_ID\") | .gitCommitHash" 2>/dev/null)
+              BUILD_CREATED=$(echo "$BUILD_LIST" | jq -r ".[] | select(.id == \"$BUILD_ID\") | .createdAt" 2>/dev/null)
               
               if [ "$BUILD_STATUS" = "finished" ]; then
                 echo "✅ Found completed build: $BUILD_ID"
                 echo "   Status: $BUILD_STATUS"
                 echo "   Commit: $BUILD_COMMIT"
+                echo "   Created: $BUILD_CREATED"
                 echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
                 exit 0
-              elif [ "$BUILD_STATUS" = "errored" ] || [ "$BUILD_STATUS" = "canceled" ]; then
-                echo "❌ Build failed with status: $BUILD_STATUS"
-                exit 1
-              else
-                echo "   Build in progress: $BUILD_ID (status: $BUILD_STATUS)"
               fi
+            fi
+            
+            # Also check for in-progress builds
+            IN_PROGRESS=$(echo "$BUILD_LIST" | jq -r '.[] | select(.status == "in-progress" or .status == "new") | .id' 2>/dev/null | head -1)
+            if [ -n "$IN_PROGRESS" ] && [ "$IN_PROGRESS" != "null" ]; then
+              echo "   Build in progress: $IN_PROGRESS (waiting for completion...)"
             fi
             
             ATTEMPT=$((ATTEMPT + 1))
             if [ $((ATTEMPT % 4)) -eq 0 ]; then
-              echo "   Still waiting for build to complete... (attempt $ATTEMPT/$MAX_ATTEMPTS)"
+              echo "   Still waiting... (attempt $ATTEMPT/$MAX_ATTEMPTS)"
             fi
             sleep 15
           done
           
-          echo "❌ Timeout waiting for build"
+          echo "❌ Timeout: Could not find completed build after 20 minutes"
+          echo "   This might mean:"
+          echo "   1. EAS build is still in progress (check Expo dashboard)"
+          echo "   2. Build failed (check Expo dashboard)"
+          echo "   3. Build hasn't started yet (check EAS Workflows)"
           exit 1
 
       - name: Download Android build
