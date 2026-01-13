@@ -8,10 +8,10 @@ name: Build Android Production
 # 2. Install Expo GitHub App and connect repository
 # 3. Workflow will trigger automatically on version tag pushes
 #
-# Note: For GitHub Releases, you can:
-# - Download builds manually from Expo dashboard
-# - Use GitHub Actions workflow (backed up in .github/workflows/eas-build-and-release.yml.backup)
-# - Or create releases manually after builds complete
+# GitHub Actions workflow (.github/workflows/create-github-release.yml) will:
+# - Wait for this build to complete
+# - Download the APK
+# - Create a GitHub release with the APK attached
 
 on:
   push:
@@ -26,3 +26,4 @@ jobs:
     params:
       platform: android
       profile: production
+      # EAS will automatically use the commit SHA from the tag for build metadata
