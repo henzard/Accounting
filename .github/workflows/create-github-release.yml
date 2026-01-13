@@ -37,13 +37,26 @@ jobs:
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
 
+      - name: Get commit SHA from tag
+        id: get_commit
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          COMMIT_SHA=$(git rev-list -n 1 $TAG_NAME)
+          echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "commit=$COMMIT_SHA" >> $GITHUB_OUTPUT
+          echo "Tag: $TAG_NAME"
+          echo "Commit SHA: $COMMIT_SHA"
+
       - name: Wait for EAS build to complete
         working-directory: ./src
         id: wait-build
         run: |
-          # Extract version from tag (e.g., v1.2.6 -> 1.2.6)
-          VERSION=${GITHUB_REF#refs/tags/v}
-          echo "Waiting for EAS build for version $VERSION..."
+          COMMIT_SHA="${{ steps.get_commit.outputs.commit }}"
+          echo "Waiting for EAS build for commit $COMMIT_SHA..."
+          
+          # Wait a bit for the build to start (EAS Workflows might take a moment)
+          echo "⏳ Waiting 30 seconds for build to start..."
+          sleep 30
           
           # Wait for build to appear and complete
           MAX_ATTEMPTS=120  # 30 minutes max
@@ -52,17 +65,34 @@ jobs:
           
           while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
             # Get latest builds
-            BUILD_LIST=$(eas build:list --platform android --limit 10 --json 2>/dev/null || echo "[]")
+            BUILD_LIST=$(eas build:list --platform android --limit 20 --json 2>/dev/null || echo "[]")
             
-            # Try to find the most recent finished build (EAS Workflows builds should be recent)
-            BUILD_ID=$(echo "$BUILD_LIST" | jq -r '.[] | select(.status == "finished") | .id' 2>/dev/null | head -1)
+            # Try to find build matching this commit SHA
+            # EAS builds include git commit info in the build metadata
+            BUILD_ID=$(echo "$BUILD_LIST" | jq -r ".[] | select(.gitCommitHash == \"$COMMIT_SHA\" or .gitCommitHash == \"${COMMIT_SHA:0:7}\") | .id" 2>/dev/null | head -1)
+            
+            # If no match by commit, try to find most recent finished build (fallback)
+            if [ -z "$BUILD_ID" ] || [ "$BUILD_ID" = "null" ]; then
+              echo "   No build found for commit $COMMIT_SHA, trying most recent finished build..."
+              BUILD_ID=$(echo "$BUILD_LIST" | jq -r '.[] | select(.status == "finished" or .status == "in-progress") | .id' 2>/dev/null | head -1)
+            fi
             
             if [ -n "$BUILD_ID" ] && [ "$BUILD_ID" != "null" ]; then
-              # Verify it's recent (within last hour)
-              BUILD_CREATED=$(echo "$BUILD_LIST" | jq -r ".[] | select(.id == \"$BUILD_ID\") | .createdAt" 2>/dev/null)
-              echo "✅ Found completed build: $BUILD_ID (created: $BUILD_CREATED)"
-              echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
-              exit 0
+              BUILD_STATUS=$(echo "$BUILD_LIST" | jq -r ".[] | select(.id == \"$BUILD_ID\") | .status" 2>/dev/null)
+              BUILD_COMMIT=$(echo "$BUILD_LIST" | jq -r ".[] | select(.id == \"$BUILD_ID\") | .gitCommitHash" 2>/dev/null)
+              
+              if [ "$BUILD_STATUS" = "finished" ]; then
+                echo "✅ Found completed build: $BUILD_ID"
+                echo "   Status: $BUILD_STATUS"
+                echo "   Commit: $BUILD_COMMIT"
+                echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
+                exit 0
+              elif [ "$BUILD_STATUS" = "errored" ] || [ "$BUILD_STATUS" = "canceled" ]; then
+                echo "❌ Build failed with status: $BUILD_STATUS"
+                exit 1
+              else
+                echo "   Build in progress: $BUILD_ID (status: $BUILD_STATUS)"
+              fi
             fi
             
             ATTEMPT=$((ATTEMPT + 1))
@@ -86,17 +116,35 @@ jobs:
           echo "📥 Downloading build $BUILD_ID..."
           eas build:download --id $BUILD_ID --platform android --output ./android-build.apk
           echo "✅ Build downloaded successfully"
+          
+          # Verify file exists and show size
+          if [ -f "./android-build.apk" ]; then
+            FILE_SIZE=$(du -h ./android-build.apk | cut -f1)
+            echo "📦 APK file size: $FILE_SIZE"
+          else
+            echo "❌ APK file not found after download"
+            exit 1
+          fi
 
       - name: Extract version from tag
         id: get_version
         run: |
-          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
-            VERSION=${GITHUB_REF#refs/tags/}
-          else
-            VERSION=$(node -p "require('./src/package.json').version")
-          fi
+          TAG_NAME="${{ steps.get_commit.outputs.tag }}"
+          # Remove 'v' prefix if present (v1.2.6 -> 1.2.6)
+          VERSION=${TAG_NAME#v}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "Release version: $VERSION"
+          echo "Release tag: $TAG_NAME"
+
+      - name: Verify release notes exist
+        run: |
+          if [ ! -f "docs/release-notes.md" ]; then
+            echo "⚠️ Warning: docs/release-notes.md not found, using default release notes"
+            echo "## Release ${{ steps.get_version.outputs.version }}" > docs/release-notes.md
+            echo "" >> docs/release-notes.md
+            echo "See [release notes](https://github.com/${{ github.repository }}/blob/main/docs/release-notes.md) for details." >> docs/release-notes.md
+          fi
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
@@ -108,5 +156,6 @@ jobs:
             src/android-build.apk
           draft: false
           prerelease: false
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
