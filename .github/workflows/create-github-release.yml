@@ -114,7 +114,7 @@ jobs:
       - name: Download Android build
         working-directory: ./src
         run: |
-          BUILD_ID="${{ steps.wait-build.outputs.build_id }}"
+          BUILD_ID="${{ steps.find-build.outputs.build_id }}"
           if [ -z "$BUILD_ID" ]; then
             echo "❌ No build ID found"
             exit 1
