@@ -151,7 +151,10 @@ export const HouseholdSwitcherButton: React.FC<HouseholdSwitcherButtonProps> = (
           activeOpacity={1}
           onPress={() => setModalVisible(false)}
         >
-          <View style={[styles.modalContent, { backgroundColor: theme.surface.raised }]}>
+          <View
+            style={[styles.modalContent, { backgroundColor: theme.surface.raised }]}
+            onStartShouldSetResponder={() => true}
+          >
             <View style={styles.modalHeader}>
               <Text style={[styles.modalTitle, { color: theme.text.primary }]}>
                 Switch Household
@@ -237,6 +240,8 @@ export const HouseholdSwitcherButton: React.FC<HouseholdSwitcherButtonProps> = (
                 )}
                 style={styles.list}
                 contentContainerStyle={styles.listContent}
+                nestedScrollEnabled={true}
+                scrollEnabled={households.length > 3}
               />
             )}
 
@@ -280,6 +285,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     maxHeight: '80%',
     overflow: 'hidden',
+    flexShrink: 1,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -319,7 +325,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   list: {
-    flex: 1,
+    maxHeight: 400,
+    minHeight: 100,
   },
   listContent: {
     padding: 16,
