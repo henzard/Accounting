@@ -207,7 +207,7 @@ export default function EditAccountScreen() {
               Current Balance
             </AppText>
             <AppText variant="display" style={{ color: theme.text.primary, marginBottom: SPACING[1] }}>
-              {formatCurrency(account.balance / 100, householdCurrency)}
+              {formatCurrency(account.balance, householdCurrency)}
             </AppText>
             <AppText variant="caption" style={{ color: theme.text.tertiary }}>
               Balance is updated automatically by transactions

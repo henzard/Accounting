@@ -4,6 +4,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '@/infrastructure/theme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemeToggleButton } from './ThemeToggleButton';
@@ -32,6 +33,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
 }) => {
   const { theme } = useTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const handleBackPress = () => {
     if (onBackPress) {
@@ -45,7 +47,11 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
     <View
       style={[
         styles.container,
-        { backgroundColor: theme.background.primary, borderBottomColor: theme.border.default },
+        { 
+          backgroundColor: theme.background.primary, 
+          borderBottomColor: theme.border.default,
+          paddingTop: Math.max(insets.top, 16), // Use safe area inset, minimum 16px
+        },
         style,
       ]}
       testID={testID}
@@ -120,9 +126,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingTop: 60, // Account for status bar
     paddingBottom: 16,
     borderBottomWidth: 1,
+    // paddingTop is set dynamically based on safe area insets
   },
   leftSection: {
     flex: 1,

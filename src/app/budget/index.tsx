@@ -16,7 +16,7 @@ import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
 import { ScreenHeader, Card, AmountInput, PrimaryButton, ScreenWrapper, AppText } from '@/presentation/components';
 import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
-import { Budget, BudgetCategory, createBudget, createBudgetCategory, calculateRemainingToBudget, getBudgetMonthName, calculateBudgetPeriod } from '@/domain/entities';
+import { Budget, BudgetCategory, createBudget, createBudgetCategory, calculateRemainingToBudget, calculateTotalPlannedExpenses, getBudgetMonthName, calculateBudgetPeriod } from '@/domain/entities';
 import { FirestoreBudgetRepository } from '@/data/repositories/FirestoreBudgetRepository';
 import { getDefaultCategories, CATEGORY_GROUP_INFO } from '@/shared/constants/budget-categories';
 import { CurrencyCode, formatCurrency } from '@/shared/utils/currency';
@@ -280,8 +280,10 @@ export default function BudgetScreen() {
     return 'empty';
   }
 
-  // Calculate remaining to budget using domain helper (correctly excludes INCOME categories)
-  const remaining = budget ? calculateRemainingToBudget(budget) : 0;
+  // Calculate remaining to budget in real-time (use current income input, not saved budget.planned_income)
+  const remaining = budget 
+    ? plannedIncomeInCents - calculateTotalPlannedExpenses(budget)
+    : 0;
   const isZeroBased = remaining === 0;
 
   if (loading) {
@@ -373,7 +375,7 @@ export default function BudgetScreen() {
           <AppText variant="body" color={theme.text.secondary}>
             {isZeroBased
               ? 'Every dollar has a job! 🎉'
-              : `${formatCurrency(Math.abs(remaining) / 100, householdCurrency)} ${remaining > 0 ? 'left to budget' : 'over budget'}`
+              : `${formatCurrency(Math.abs(remaining), householdCurrency)} ${remaining > 0 ? 'left to budget' : 'over budget'}`
             }
           </AppText>
         </Card>

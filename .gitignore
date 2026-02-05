@@ -128,3 +128,6 @@ xcuserdata/
 *.xcuserstate
 *.xcscmblueprint
 
+
+# Ralph config (may contain API key)
+.cursor/ralph-config.json

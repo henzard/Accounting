@@ -10,7 +10,7 @@ import {
   User as FirebaseUser,
 } from 'firebase/auth';
 import { auth, db } from '@/infrastructure/firebase';
-import { doc, setDoc, serverTimestamp, getDocFromServer, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDoc, getDocFromServer, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
 import { User, createUser } from '@/domain/entities';
 
 interface AuthContextValue {
@@ -46,11 +46,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       if (firebaseUser) {
         // User is signed in, fetch their data from Firestore
-        // Use getDocFromServer to bypass potentially stale cache
         try {
           console.log('📡 Fetching user data from Firestore server...');
-          const userDoc = await getDocFromServer(doc(db, 'users', firebaseUser.uid));
-          
+          let userDoc = await getDocFromServer(doc(db, 'users', firebaseUser.uid));
+          // Retry if not found (handles signup race + eventual consistency on RN)
+          if (!userDoc.exists()) {
+            console.log('⏳ User doc not found, retrying in 600ms...');
+            await new Promise((r) => setTimeout(r, 600));
+            userDoc = await getDocFromServer(doc(db, 'users', firebaseUser.uid));
+          }
+          if (!userDoc.exists()) {
+            console.log('⏳ User doc still not found, retrying in 1200ms...');
+            await new Promise((r) => setTimeout(r, 1200));
+            userDoc = await getDocFromServer(doc(db, 'users', firebaseUser.uid));
+          }
+
           if (userDoc.exists()) {
             const userData = userDoc.data();
             
@@ -131,9 +141,53 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               setFirebaseUser(firebaseUser);
             }
           } else {
-            console.warn('⚠️ User document not found in Firestore');
-            setUser(null);
-            setFirebaseUser(null);
+            // Firebase Auth user exists but no Firestore document (signup was incomplete)
+            // Create a minimal user document now
+            console.warn('⚠️ User document not found in Firestore after retries');
+            console.log('🔧 Creating user document for existing Firebase Auth user...');
+            
+            try {
+              const minimalUserData: any = {
+                email: firebaseUser.email || '',
+                name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
+                phone: null,
+                household_ids: [],
+                default_household_id: null,
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+                currency: 'USD',
+                locale: Intl.DateTimeFormat().resolvedOptions().locale || 'en-US',
+                created_at: serverTimestamp(),
+                updated_at: serverTimestamp(),
+                last_login_at: serverTimestamp(),
+              };
+              
+              await setDoc(doc(db, 'users', firebaseUser.uid), minimalUserData);
+              console.log('✅ Created minimal user document');
+              
+              // Now create the app user object
+              const appUser = createUser({
+                id: firebaseUser.uid,
+                email: firebaseUser.email || '',
+                name: minimalUserData.name,
+                phone: null,
+                household_ids: [],
+                default_household_id: undefined,
+                timezone: minimalUserData.timezone,
+                currency: minimalUserData.currency,
+                locale: minimalUserData.locale,
+                created_at: new Date(),
+                updated_at: new Date(),
+                last_login_at: new Date(),
+              });
+              
+              setUser(appUser);
+              setFirebaseUser(firebaseUser);
+              console.log('✅ User loaded with new document:', appUser.email);
+            } catch (createError) {
+              console.error('❌ Failed to create user document:', createError);
+              setUser(null);
+              setFirebaseUser(null);
+            }
           }
         } catch (error) {
           console.error('❌ Error fetching user data:', error);
@@ -272,8 +326,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           }
         }
       }
-      
-      // Auth state listener will update the user state
+
+      // Set user state immediately so the app sees the new user (avoids race with auth listener
+      // which may run before setDoc is visible, causing redirect to login)
+      const appUser = createUser({
+        id: firebaseUser.uid,
+        email: firebaseUser.email || email,
+        name,
+        phone: null,
+        household_ids: existingHouseholdIds.length > 0 ? existingHouseholdIds : [],
+        default_household_id: existingDefaultHouseholdId ?? undefined,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+        currency: 'USD',
+        locale: Intl.DateTimeFormat().resolvedOptions().locale || 'en-US',
+        created_at: new Date(),
+        updated_at: new Date(),
+        last_login_at: new Date(),
+      });
+      setUser(appUser);
+      setFirebaseUser(firebaseUser);
+      setLoading(false); // Signal that auth is complete so tabs layout stops showing loading
+      console.log('✅ Account created successfully, user state set immediately');
     } catch (error: any) {
       console.error('❌ Sign up error:', error);
       throw new Error(error.message || 'Failed to create account');
@@ -293,6 +366,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // and corrupting the Firestore memory cache on React Native.
       // The auth state listener will handle loading user data.
       // last_login_at can be updated later if needed.
+      
+      // Give auth listener time to fetch user doc (wait for loading to complete)
+      // This prevents the login screen from immediately redirecting to login if auth listener is slow
+      const maxWait = 3000; // 3 seconds max
+      const startTime = Date.now();
+      while (loading && (Date.now() - startTime) < maxWait) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
     } catch (error: any) {
       console.error('❌ Sign in error:', error);
       
