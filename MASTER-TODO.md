@@ -978,6 +978,10 @@ Building core features: authentication, household management, transactions, budg
 - [x] Add photo to transaction
 - [x] Upload to Firebase Storage
 - [x] Display receipt in transaction detail
+- [x] Delete receipts from storage when transaction updated/deleted
+- [x] Handle CORS errors gracefully
+- [x] Support multiple receipts per transaction
+- [x] Add thumbnail grid with full-screen modal
 - [x] **Test app runs**, photos work
 
 **Exit Criteria**: Can attach and view receipt photos on transactions ✅ VERIFIED  
@@ -985,80 +989,422 @@ Building core features: authentication, household management, transactions, budg
 
 **What was built:**
 - `expo-image-picker` package installed
+- `expo-image` for optimized image display
 - `receipt-upload.ts` utility for image selection, camera capture, and Firebase Storage upload
 - Receipt photo capture/selection UI in transaction add screen
 - Receipt display with thumbnail grid and full-screen modal in transaction detail screen
-- `receipt_urls` field added to Transaction entity
+- Receipt deletion from Firebase Storage on transaction update/delete
+- `receipt_urls` field added to Transaction entity (array of strings)
 - Firestore repository updated to handle receipt URLs
 - Multiple receipt support (can add multiple photos per transaction)
+- CORS error handling and documentation
+- Security rules documentation for Firebase Storage
+
+**Bug Fixes During This Phase:**
+- Fixed `getDoc` missing import in AuthContext
+- Fixed auth race condition with retry mechanism and explicit state setting
+- Fixed double division in `formatCurrency` (budget and account screens)
+- Fixed double padding above headers (ScreenWrapper + ScreenHeader conflict)
+- Fixed local build script CMake cache issues
 
 ---
 
-### 6.3: Sinking Funds (2 hours)
+### 6.2.5: Recent Bug Fixes & Improvements ✅ COMPLETE **MAINTENANCE**
 
-- [ ] Create Goals screen
-- [ ] Add sinking fund categories
-- [ ] Track progress toward goals
-- [ ] **Test app runs**, sinking funds work
+- [x] Auth flow race conditions
+  - User document auto-creation when Firestore doc missing
+  - Retry mechanism with delays (600ms, 1200ms)
+  - Explicit state setting in signUp to prevent redirect loop
+  - Wait loop in signIn for listener completion
+- [x] Currency formatting consistency
+  - Fixed budget "left to budget" double division
+  - Fixed account balance double division
+  - Verified all formatCurrency usage across app
+- [x] UI spacing issues
+  - Fixed double safe area padding (ScreenWrapper + ScreenHeader)
+  - Dynamic paddingTop based on device safe area insets
+- [x] Budget calculation real-time updates
+  - Changed from saved `budget.planned_income` to live `plannedIncomeInCents`
+  - Remaining updates as user types, not just on save
+- [x] Local build improvements
+  - Fixed app.json path and Android directory paths
+  - Added CMake cache cleanup (.cxx directory removal)
+  - Made clean failures non-blocking with warnings
+  - React bundle always rebuilt with latest code
+- [x] Firestore query optimization
+  - Avoided composite indexes for budget and debt queries
+  - In-memory filtering for better performance
+
+**Status**: COMPLETE
+
+### 6.3: Sinking Funds (2-3 hours)
+
+**Why This Matters**: Users need to save for irregular expenses (Christmas, car repairs, vacations)
+
+- [ ] Create `Goal` entity
+  - Fields: id, name, target_amount, current_amount, target_date, household_id
+  - **Test app runs** ✅
+- [ ] Create Goals List screen (`goals/index.tsx`)
+  - Show all goals with progress bars
+  - Sort by target date
+  - **Test app runs** ✅
+- [ ] Create Add/Edit Goal screen (`goals/add.tsx`, `goals/edit.tsx`)
+  - Name, target amount, target date, linked category
+  - **Test app runs** ✅
+- [ ] Link goals to budget categories
+  - When transaction in category, update linked goal's current_amount
+  - **Test app runs** ✅
+- [ ] Goal progress visualization
+  - Progress bars with percentages
+  - Days remaining indicator
+  - On track / behind / ahead status
+  - **Test app runs** ✅
+- [ ] Navigation from More/Settings tab
+  - **Test app runs** ✅
+
+**Exit Criteria**: Can create goals, track progress, link to categories
 
 ---
 
-### 6.4: Reports & Analytics (3 hours)
+### 6.4: Reports & Analytics (4-5 hours)
 
-- [ ] Create Reports screen
+**Why This Matters**: Users need visual insights into spending patterns
+
+- [ ] Research charting library
+  - Options: `react-native-chart-kit`, `victory-native`, `react-native-svg-charts`
+  - Choose based on bundle size and features
+  - Install chosen library
+  - **Test app runs** ✅
+- [ ] Create Reports screen (`reports/index.tsx`)
+  - Tab navigation (Spending, Income, Debt, Trends)
+  - Month/date range selector
+  - **Test app runs** ✅
 - [ ] Spending by category chart
+  - Pie chart or bar chart
+  - Filter by date range
+  - Tap to drill down
+  - **Test app runs** ✅
 - [ ] Income vs expenses chart
+  - Line chart over time
+  - Show trend lines
+  - Highlight overspending months
+  - **Test app runs** ✅
 - [ ] Debt payoff projection
-- [ ] **Test app runs**, reports display
+  - Based on current snowball payments
+  - Show debt-free date
+  - Graph remaining balance over time
+  - **Test app runs** ✅
+- [ ] Spending trends
+  - Compare current month to previous
+  - Year-over-year comparison
+  - Category trend analysis
+  - **Test app runs** ✅
+- [ ] Navigation from More/Settings tab
+  - **Test app runs** ✅
+
+**Exit Criteria**: Visual charts display financial data accurately
 
 ---
 
-### 6.5: Onboarding Flow (2 hours)
+### 6.5: Onboarding Flow (3-4 hours)
 
-- [ ] Create welcome screen
-- [ ] Create Baby Step selector
-- [ ] Create initial budget wizard
-- [ ] **Test app runs**, onboarding smooth
+**Why This Matters**: First impressions matter - guide new users to success
+
+- [ ] Create welcome screens (`onboarding/welcome.tsx`)
+  - Swipeable carousel (3-5 screens)
+  - Explain app value proposition
+  - Homebase branding
+  - "Get Started" button
+  - **Test app runs** ✅
+- [ ] Integrate Baby Step selector into onboarding
+  - "Which Baby Step are you on?" screen
+  - Visual step cards
+  - Brief description per step
+  - **Test app runs** ✅
+- [ ] Create initial budget wizard (`onboarding/budget-wizard.tsx`)
+  - Step 1: Enter monthly income
+  - Step 2: Quick category amounts (top 5-7 categories)
+  - Step 3: Review and confirm
+  - Creates first budget automatically
+  - **Test app runs** ✅
+- [ ] Add account setup to onboarding
+  - "Add your first account" screen
+  - Skip option (can add later)
+  - **Test app runs** ✅
+- [ ] Onboarding completion state
+  - Save `has_completed_onboarding` to user doc
+  - Only show once per user
+  - "Reset onboarding" option in settings (for testing)
+  - **Test app runs** ✅
+- [ ] Guard in app entry point
+  - Check onboarding status after auth
+  - Redirect to onboarding if not complete
+  - **Test app runs** ✅
+
+**Exit Criteria**: New users guided through setup, understand app basics
 
 ---
 
-### 6.6: Error Handling & Edge Cases (4 hours)
+### 6.6: Error Handling & Edge Cases (5-6 hours)
 
-- [ ] Handle offline errors gracefully
-- [ ] Handle sync conflicts
-- [ ] Add loading states
-- [ ] Add empty states
-- [ ] Add error messages
-- [ ] **Test app runs**, no crashes
+**Why This Matters**: Production apps must handle errors gracefully
+
+**Partially Complete:**
+- ✅ Loading states exist on most screens
+- ✅ Empty states exist on list screens
+- ✅ Basic error messages exist
+- ❌ Need systematic offline error handling
+- ❌ Need sync conflict resolution
+
+**Remaining Work:**
+
+- [ ] Audit all screens for consistent error handling
+  - Create checklist of all screens
+  - Verify loading states
+  - Verify empty states
+  - Verify error messages
+  - **Test app runs** ✅
+- [ ] Offline error handling
+  - Show "Offline" banner when no connection
+  - Queue operations for sync
+  - Show sync status indicator
+  - Test all CRUD operations offline
+  - **Test app runs** ✅
+- [ ] Sync conflict resolution
+  - Detect conflicts (server version changed)
+  - Strategy: Last write wins with warning
+  - Optional: Show conflict resolution UI
+  - **Test app runs** ✅
+- [ ] Form validation consistency
+  - Audit all forms
+  - Consistent error message styling
+  - Field-level validation
+  - Form-level validation
+  - **Test app runs** ✅
+- [ ] Network error recovery
+  - Retry failed requests
+  - Exponential backoff
+  - Max retry limits
+  - User notification of failures
+  - **Test app runs** ✅
+- [ ] Edge case testing
+  - Test with 0 accounts
+  - Test with 0 transactions
+  - Test with 100+ categories
+  - Test with 1000+ transactions
+  - Test month boundaries (Dec 31 → Jan 1)
+  - Test leap years
+  - **Test app runs** ✅
+
+**Exit Criteria**: App handles errors gracefully, no crashes in production scenarios
 
 ---
 
-### 6.7: Testing (8 hours)
+### 6.7: Testing (10-12 hours)
 
-- [ ] Write unit tests for use cases
-- [ ] Write integration tests for repositories
-- [ ] Write E2E tests for critical flows
-- [ ] Test offline scenarios extensively
-- [ ] **All tests pass**
+**Why This Matters**: Tests prevent regressions and give confidence in changes
+
+**Current State:** No tests exist
+
+- [ ] Setup testing infrastructure
+  - Install jest, @testing-library/react-native
+  - Configure test setup files
+  - Add test scripts to package.json
+  - **Test setup works** ✅
+- [ ] Unit tests for entities
+  - Budget calculations (calculateTotalExpenses, isZeroBasedBudget)
+  - Debt snowball ordering
+  - Transaction category allocation
+  - Currency formatting
+  - Date utilities
+  - **All entity tests pass** ✅
+- [ ] Unit tests for use cases
+  - CreateTransactionUseCase
+  - GetCurrentBudgetUseCase
+  - ValidateZeroBasedBudgetUseCase
+  - CreateBudgetUseCase
+  - GetDebtSnowballUseCase
+  - **All use case tests pass** ✅
+- [ ] Integration tests for repositories
+  - Mock Firestore
+  - Test CRUD operations
+  - Test query filtering
+  - Test error handling
+  - **All repository tests pass** ✅
+- [ ] Integration tests for Firebase
+  - Use Firebase emulator
+  - Test auth flow
+  - Test Firestore operations
+  - Test Storage operations
+  - **All Firebase tests pass** ✅
+- [ ] Component tests
+  - Test critical UI components
+  - Button states
+  - Form validation
+  - Currency input formatting
+  - **All component tests pass** ✅
+- [ ] E2E tests for critical flows (optional - use Detox)
+  - Login → Create Household → Add Account → Add Transaction
+  - Create Budget → Add Category → Allocate Amount → Verify Zero-Based
+  - Add Debt → Make Payment → Verify Snowball Order
+  - **All E2E tests pass** ✅
+- [ ] Offline scenario tests
+  - Add transaction offline
+  - Edit budget offline
+  - Delete account offline
+  - Verify sync when online
+  - **Offline tests pass** ✅
+- [ ] Setup CI/CD testing
+  - Run tests on pull requests
+  - Block merge if tests fail
+  - **CI pipeline configured** ✅
+
+**Exit Criteria**: Critical flows covered by tests, CI pipeline running
+
+**Time Breakdown:**
+- Setup: 1 hour
+- Entity tests: 2 hours
+- Use case tests: 2 hours
+- Repository tests: 3 hours
+- Component tests: 2 hours
+- E2E tests: 2-3 hours (optional)
+- Offline tests: 1 hour
+- CI setup: 1 hour
 
 ---
 
-### 6.8: Performance Optimization (4 hours)
+### 6.8: Performance Optimization (4-5 hours)
 
+**Why This Matters**: App must stay fast with large datasets
+
+**Current State:** No optimization done, no performance testing
+
+- [ ] Profile app with large datasets
+  - Create test data (1000+ transactions, 50+ categories, 20+ accounts)
+  - Measure render times
+  - Identify slow queries
+  - Use React DevTools Profiler
+  - **Identify bottlenecks** ✅
 - [ ] Optimize Firestore queries
-- [ ] Add pagination
+  - Add indexes where needed (check console warnings)
+  - Use query cursors for pagination
+  - Limit initial query results
+  - Use `startAfter` for pagination
+  - **Queries optimized** ✅
+- [ ] Add pagination to transaction list
+  - Load 50 transactions at a time
+  - "Load more" button or infinite scroll
+  - Cache loaded pages
+  - **Pagination works** ✅
 - [ ] Optimize images
-- [ ] Reduce app size
-- [ ] **Test app runs smoothly**
+  - Compress receipt photos before upload (< 1MB each)
+  - Use thumbnails for list views
+  - Lazy load images
+  - Use `expo-image` caching
+  - **Images optimized** ✅
+- [ ] Reduce app bundle size
+  - Analyze bundle with `npx react-native-bundle-visualizer`
+  - Remove unused dependencies
+  - Use Hermes engine (already enabled)
+  - Enable ProGuard for Android
+  - **Bundle size reduced** ✅
+- [ ] Add memoization
+  - Memoize expensive calculations
+  - Use React.memo for components
+  - Use useMemo for derived state
+  - Use useCallback for callbacks
+  - **Unnecessary re-renders eliminated** ✅
+- [ ] Database optimization
+  - Add indexes if using SQLite
+  - Batch Firestore writes
+  - Use transactions for atomic operations
+  - **Database optimized** ✅
+- [ ] Test with real user data volume
+  - 2+ years of transactions
+  - 50+ categories
+  - 10+ accounts
+  - Multiple budgets
+  - **Performance acceptable** ✅
+
+**Exit Criteria**: App loads quickly, scrolling smooth, no lag with 1000+ transactions
+
+**Target Performance:**
+- Transaction list loads in < 1 second
+- Budget screen loads in < 500ms
+- Smooth 60 FPS scrolling
+- APK size < 30MB
 
 ---
 
-### 6.9: Production Build (2 hours)
+### 6.9: Production Build & Deployment (3-4 hours)
 
-- [ ] Test release APK
-- [ ] Test iOS build
-- [ ] Verify Firebase production config
-- [ ] **Builds successfully**
+**Why This Matters**: Must be production-ready before release
+
+**Partially Complete:**
+- ✅ Local APK build script (`local-build.ps1`)
+- ✅ EAS build workflow configured (`eas-build.yml`)
+- ✅ GitHub release automation (`release.yml`)
+- ❌ iOS build not tested
+- ❌ Production Firebase config not documented
+
+**Remaining Work:**
+
+- [ ] Production Firebase setup
+  - Create separate Firebase project for production
+  - Document production API keys (in 1Password or similar)
+  - Create `.env.production` file
+  - Add production config to `.gitignore`
+  - Document setup steps in `docs/guides/deployment.md`
+  - **Production Firebase configured** ✅
+- [ ] Android release build
+  - Test local release APK (`local-build.ps1`)
+  - Verify APK size (< 30MB target)
+  - Test on multiple devices (physical + emulator)
+  - Verify offline functionality
+  - Verify Firebase works
+  - **Release APK verified** ✅
+- [ ] iOS build (if deploying to iOS)
+  - Setup Apple Developer account
+  - Configure iOS signing
+  - Test iOS build with EAS
+  - Test on iPhone/iPad
+  - **iOS build verified** ✅
+- [ ] App store assets
+  - Screenshots (6+ per platform)
+  - App icon (multiple sizes)
+  - Feature graphic
+  - Privacy policy
+  - Terms of service
+  - **Assets ready** ✅
+- [ ] Version management
+  - Document versioning strategy (semantic versioning)
+  - Update version in `app.json`
+  - Create changelog
+  - Tag releases in git
+  - **Version 1.0.0 ready** ✅
+- [ ] Beta testing
+  - Distribute to beta testers (TestFlight, Firebase App Distribution)
+  - Collect feedback
+  - Fix critical bugs
+  - **Beta testing complete** ✅
+- [ ] Production deployment
+  - Submit to Google Play Store
+  - Submit to Apple App Store (if iOS)
+  - Monitor crash reports
+  - Monitor user feedback
+  - **App published** ✅
+
+**Exit Criteria**: App published to stores, production Firebase working
+
+**Production Checklist:**
+- [ ] All sensitive data encrypted
+- [ ] API keys secured
+- [ ] Firebase security rules reviewed
+- [ ] Privacy policy complete
+- [ ] Crash reporting enabled (Firebase Crashlytics)
+- [ ] Analytics enabled (Firebase Analytics)
+- [ ] Update mechanism tested
+- [ ] Rollback plan documented
 
 ---
 
@@ -1116,6 +1462,516 @@ npm run android
 
 ---
 
+## Phase 7: Missing Critical Features 🚧
+
+**Status**: NOT STARTED
+
+These features are essential for a complete budgeting app but are not yet implemented.
+
+### 7.1: Date Picker Component (1-2 hours)
+
+**Why This Matters**: Users need to select dates for transactions, budgets, goals
+
+- [ ] Research date picker libraries
+  - Options: `react-native-date-picker`, `@react-native-community/datetimepicker`, `expo-datetime-picker`
+  - Choose based on cross-platform support
+  - Install chosen library
+  - **Test app runs** ✅
+- [ ] Create reusable DatePicker component
+  - Support iOS and Android native pickers
+  - Format date display
+  - Validate date ranges
+  - **Test app runs** ✅
+- [ ] Integrate into transaction forms
+  - Replace manual date entry
+  - Default to today
+  - **Test app runs** ✅
+- [ ] Integrate into budget forms
+  - Select budget month
+  - **Test app runs** ✅
+- [ ] Integrate into goal forms
+  - Select target date
+  - **Test app runs** ✅
+
+**Exit Criteria**: Date selection works across all forms
+
+---
+
+### 7.2: Split Transactions (2-3 hours)
+
+**Why This Matters**: Single transactions often span multiple categories (e.g., shopping at Costco)
+
+- [ ] Update Transaction entity
+  - Add `splits` array field
+  - Each split: { category_id, amount, memo }
+  - Validate: sum of splits = transaction amount
+  - **Test app runs** ✅
+- [ ] Update TransactionRepository
+  - Support split transactions in Firestore
+  - Query by parent transaction
+  - **Test app runs** ✅
+- [ ] Update transaction form UI
+  - "Split this transaction" toggle
+  - Add/remove split rows
+  - Category picker per split
+  - Amount input per split
+  - Show remaining to allocate
+  - **Test app runs** ✅
+- [ ] Update transaction list display
+  - Show split indicator icon
+  - Expand to show splits on tap
+  - **Test app runs** ✅
+- [ ] Update budget calculations
+  - Count split amounts toward categories
+  - **Test app runs** ✅
+- [ ] Update reports
+  - Include splits in category totals
+  - **Test app runs** ✅
+
+**Exit Criteria**: Can split transactions across multiple categories
+
+---
+
+### 7.3: Account Transfers (1-2 hours)
+
+**Why This Matters**: Moving money between accounts shouldn't count as income/expense
+
+- [ ] Create Transfer entity
+  - id, from_account_id, to_account_id, amount, date, memo, household_id
+  - **Test app runs** ✅
+- [ ] Create TransferRepository
+  - Save as two linked transactions (one in, one out)
+  - Mark as transfer type
+  - **Test app runs** ✅
+- [ ] Create Add Transfer screen (`transfers/add.tsx`)
+  - From account picker
+  - To account picker
+  - Amount input
+  - Date picker
+  - Memo (optional)
+  - **Test app runs** ✅
+- [ ] Update transaction list
+  - Show transfers with special icon
+  - Show "Transfer from X to Y"
+  - Don't include in budget calculations
+  - **Test app runs** ✅
+- [ ] Update account balance calculations
+  - Include transfers
+  - **Test app runs** ✅
+- [ ] Navigation from accounts list
+  - "Transfer" button
+  - **Test app runs** ✅
+
+**Exit Criteria**: Can transfer money between accounts without affecting budget
+
+---
+
+### 7.4: Recurring Transactions (3-4 hours)
+
+**Why This Matters**: Many transactions repeat monthly (rent, utilities, subscriptions)
+
+- [ ] Create RecurringTransaction entity
+  - id, name, amount, category_id, account_id, frequency (monthly, weekly, etc.), start_date, end_date, last_created_date, household_id
+  - **Test app runs** ✅
+- [ ] Create RecurringTransactionRepository
+  - CRUD operations
+  - Query by household
+  - **Test app runs** ✅
+- [ ] Create Recurring Transactions screen (`recurring/index.tsx`)
+  - List all recurring transactions
+  - Group by frequency
+  - Show next occurrence date
+  - **Test app runs** ✅
+- [ ] Create Add/Edit Recurring screen (`recurring/add.tsx`, `recurring/edit.tsx`)
+  - Name, amount, category, account
+  - Frequency picker (monthly, weekly, biweekly, yearly)
+  - Start date, optional end date
+  - **Test app runs** ✅
+- [ ] Create background job to generate transactions
+  - Check for due recurring transactions on app launch
+  - Create actual transactions from recurring rules
+  - Update last_created_date
+  - Notify user of created transactions
+  - **Test app runs** ✅
+- [ ] Add "Skip this month" option
+  - Don't create transaction for this occurrence
+  - **Test app runs** ✅
+- [ ] Navigation from More/Settings tab
+  - **Test app runs** ✅
+
+**Exit Criteria**: Recurring transactions automatically created
+
+---
+
+### 7.5: Budget Templates (2-3 hours)
+
+**Why This Matters**: Users shouldn't manually recreate budgets every month
+
+- [ ] Create BudgetTemplate entity
+  - id, name, category_allocations (array), household_id
+  - **Test app runs** ✅
+- [ ] Create BudgetTemplateRepository
+  - CRUD operations
+  - **Test app runs** ✅
+- [ ] Add "Save as Template" to budget screen
+  - Button in budget header
+  - Name the template
+  - **Test app runs** ✅
+- [ ] Add "Create from Template" option
+  - Show template picker when creating new budget
+  - Pre-fill categories and amounts
+  - Allow editing before saving
+  - **Test app runs** ✅
+- [ ] Create "Copy Previous Month" feature
+  - Quick action to duplicate last month's budget
+  - **Test app runs** ✅
+- [ ] Template management screen (`templates/index.tsx`)
+  - List saved templates
+  - Edit/delete templates
+  - **Test app runs** ✅
+- [ ] Navigation from budget screen or More tab
+  - **Test app runs** ✅
+
+**Exit Criteria**: Can save and reuse budget templates
+
+---
+
+### 7.6: Export & Backup Data (2-3 hours)
+
+**Why This Matters**: Users need data portability and backup
+
+- [ ] Create CSV export utility
+  - Export transactions
+  - Export budgets
+  - Export accounts
+  - Export debts
+  - Format: standard CSV for Excel/Google Sheets
+  - **Test app runs** ✅
+- [ ] Create JSON export for full backup
+  - All user data in single JSON file
+  - Include metadata (export date, version)
+  - **Test app runs** ✅
+- [ ] Add Export screen (`settings/export.tsx`)
+  - Choose data type (transactions, budgets, all)
+  - Choose format (CSV, JSON)
+  - Date range filter
+  - Generate file
+  - Share via system share sheet
+  - **Test app runs** ✅
+- [ ] Add import functionality (optional)
+  - Import transactions from CSV
+  - Map columns to fields
+  - Validate and preview
+  - **Test app runs** ✅
+- [ ] Cloud backup option (future phase)
+  - Automatic backup to user's cloud storage
+  - Restore from backup
+  - **Test app runs** ✅
+- [ ] Navigation from More/Settings tab
+  - **Test app runs** ✅
+
+**Exit Criteria**: Can export all data to CSV/JSON
+
+---
+
+### 7.7: Search & Filters (2-3 hours)
+
+**Why This Matters**: Finding specific transactions in large datasets
+
+- [ ] Add search bar to transactions list
+  - Search by memo/payee
+  - Debounce search input
+  - **Test app runs** ✅
+- [ ] Add filter options
+  - Filter by category
+  - Filter by account
+  - Filter by date range
+  - Filter by amount range
+  - **Test app runs** ✅
+- [ ] Create filter UI
+  - Filter sheet/modal
+  - Apply multiple filters
+  - Show active filter count
+  - Clear filters button
+  - **Test app runs** ✅
+- [ ] Add sort options
+  - Sort by date (newest/oldest)
+  - Sort by amount (high/low)
+  - Sort by payee (A-Z)
+  - **Test app runs** ✅
+- [ ] Save filter presets (optional)
+  - "Last month"
+  - "This category"
+  - "Large expenses (>$100)"
+  - **Test app runs** ✅
+
+**Exit Criteria**: Can search and filter transactions effectively
+
+---
+
+### 7.8: Notifications & Reminders (2-3 hours)
+
+**Why This Matters**: Remind users to budget, pay bills, log transactions
+
+**Partially Complete:**
+- ✅ Expo Notifications installed
+- ❌ No scheduled notifications implemented
+
+- [ ] Setup push notification permissions
+  - Request permission on first launch
+  - Handle permission denied state
+  - **Test app runs** ✅
+- [ ] Budget reminder notifications
+  - "Time to create next month's budget" (e.g., 25th of month)
+  - User configurable time
+  - **Test app runs** ✅
+- [ ] Bill due reminders
+  - Link to recurring transactions
+  - Notify X days before due date
+  - **Test app runs** ✅
+- [ ] Goal progress notifications
+  - "You're 50% to your vacation goal!"
+  - Weekly progress updates (optional)
+  - **Test app runs** ✅
+- [ ] Overspending alerts
+  - "You've exceeded your Dining Out budget"
+  - Real-time or end-of-day
+  - **Test app runs** ✅
+- [ ] Create notification settings screen
+  - Toggle each notification type
+  - Set reminder times
+  - **Test app runs** ✅
+- [ ] Navigation from More/Settings tab
+  - **Test app runs** ✅
+
+**Exit Criteria**: Users receive timely reminders and alerts
+
+---
+
+### 7.9: Multi-Currency Support (3-4 hours)
+
+**Why This Matters**: Some households use multiple currencies
+
+**Partially Complete:**
+- ✅ Currency stored in household settings
+- ✅ `formatCurrency` utility supports multiple currencies
+- ❌ No currency conversion
+- ❌ No multi-currency accounts
+
+- [ ] Add currency field to Account entity
+  - Allow accounts in different currencies
+  - Default to household currency
+  - **Test app runs** ✅
+- [ ] Currency conversion API
+  - Integrate with exchange rate API (e.g., exchangerate-api.io)
+  - Cache rates locally (update daily)
+  - **Test app runs** ✅
+- [ ] Display converted amounts
+  - Show account balance in both currencies
+  - Show total net worth in household currency
+  - **Test app runs** ✅
+- [ ] Handle transactions in foreign currency
+  - Record original currency and amount
+  - Store converted amount
+  - Show both in transaction details
+  - **Test app runs** ✅
+- [ ] Currency picker in account form
+  - List of common currencies
+  - Search functionality
+  - **Test app runs** ✅
+- [ ] Reports in household currency
+  - Convert all amounts for charts
+  - Note: "Converted to USD at X rate"
+  - **Test app runs** ✅
+
+**Exit Criteria**: Can manage accounts in multiple currencies
+
+---
+
+### 7.10: Budgeting for Irregular Income (2-3 hours)
+
+**Why This Matters**: Freelancers and commission-based workers have variable income
+
+- [ ] Add income type to budget
+  - Toggle: "Regular" vs "Irregular"
+  - **Test app runs** ✅
+- [ ] Implement holding buffer strategy
+  - Create "Income Holding" virtual category
+  - All income goes to buffer first
+  - Allocate to budget from buffer
+  - **Test app runs** ✅
+- [ ] Create "Release Income" flow
+  - Button to allocate buffer to budget
+  - Show available amount in buffer
+  - Choose amount to release
+  - **Test app runs** ✅
+- [ ] Adjust budget calculations
+  - Don't count income automatically
+  - Only count released amounts
+  - **Test app runs** ✅
+- [ ] Add guide/tutorial for irregular income
+  - Explain the strategy
+  - Show in onboarding or help section
+  - **Test app runs** ✅
+
+**Exit Criteria**: Can manage budget with irregular income
+
+---
+
+### 7.11: Home Screen Widgets (3-4 hours)
+
+**Why This Matters**: Quick access to add transactions without opening the app
+
+**Technical Note**: React Native widgets are complex and may require native code
+
+- [ ] Research widget solutions
+  - Options: `react-native-widget-extension`, custom native modules
+  - Evaluate feasibility (iOS vs Android support)
+  - **Test app runs** ✅
+- [ ] Create "Quick Add Transaction" widget
+  - Show input fields on home screen
+  - Amount, category, memo
+  - Save directly to Firestore
+  - **Test app runs** ✅
+- [ ] Create "Budget Summary" widget
+  - Show remaining to budget
+  - Show top 3 categories
+  - Tap to open app
+  - **Test app runs** ✅
+- [ ] Create "Net Worth" widget
+  - Show total across all accounts
+  - Show trend (up/down)
+  - **Test app runs** ✅
+- [ ] Widget configuration screen
+  - Choose widget type
+  - Customize display options
+  - **Test app runs** ✅
+- [ ] Handle widget updates
+  - Update when data changes
+  - Background sync
+  - **Test app runs** ✅
+
+**Exit Criteria**: Can add transactions from home screen widget
+
+**Note**: Widgets may be deferred to post-MVP due to complexity
+
+---
+
+### 7.12: Biometric Authentication (1-2 hours)
+
+**Why This Matters**: Faster, more secure login
+
+- [ ] Research biometric libraries
+  - Options: `expo-local-authentication`, `react-native-biometrics`
+  - Check platform support (Face ID, Touch ID, fingerprint)
+  - Install chosen library
+  - **Test app runs** ✅
+- [ ] Add biometric enrollment
+  - "Enable Face ID / Touch ID" toggle in settings
+  - Check if device supports biometrics
+  - Store preference in user settings
+  - **Test app runs** ✅
+- [ ] Implement biometric login flow
+  - Show biometric prompt on app launch
+  - Fallback to email/password if biometric fails
+  - Skip biometric if not enrolled
+  - **Test app runs** ✅
+- [ ] Add "Lock app when inactive" option
+  - Require biometric after X minutes
+  - User configurable timeout
+  - **Test app runs** ✅
+- [ ] Handle biometric changes
+  - Re-prompt enrollment if biometric data changes
+  - Disable biometric if device no longer supports it
+  - **Test app runs** ✅
+
+**Exit Criteria**: Can log in with Face ID/Touch ID/fingerprint
+
+---
+
+### 7.13: Bulk Transaction Operations (2-3 hours)
+
+**Why This Matters**: Managing many transactions at once
+
+- [ ] Add bulk selection mode to transaction list
+  - Checkbox on each transaction
+  - "Select all" option
+  - Show count of selected
+  - **Test app runs** ✅
+- [ ] Bulk delete functionality
+  - Confirm before deleting
+  - Show count to delete
+  - Atomic operation (all or nothing)
+  - **Test app runs** ✅
+- [ ] Bulk categorize
+  - Select multiple transactions
+  - Change category for all
+  - Update budget calculations
+  - **Test app runs** ✅
+- [ ] Bulk mark as business expense
+  - Toggle business flag for all selected
+  - **Test app runs** ✅
+- [ ] Bulk export
+  - Export selected transactions only
+  - CSV format
+  - **Test app runs** ✅
+- [ ] Undo bulk operations
+  - Store previous state
+  - "Undo" button for 5 seconds
+  - **Test app runs** ✅
+
+**Exit Criteria**: Can perform bulk operations on transactions
+
+---
+
+### 7.14: Receipt OCR (Optical Character Recognition) (4-5 hours)
+
+**Why This Matters**: Automatically extract amount, date, merchant from receipts
+
+**Technical Note**: OCR requires cloud API or ML Kit
+
+- [ ] Research OCR solutions
+  - Options: Firebase ML Kit, Google Cloud Vision API, AWS Textract, Tesseract.js
+  - Compare accuracy vs cost
+  - Choose solution
+  - **Test app runs** ✅
+- [ ] Integrate OCR API
+  - Setup API credentials
+  - Create OCR service utility
+  - Handle API errors
+  - **Test app runs** ✅
+- [ ] Process receipt photos
+  - Extract text from image
+  - Parse total amount
+  - Parse merchant name
+  - Parse date
+  - Parse line items (optional)
+  - **Test app runs** ✅
+- [ ] Pre-fill transaction form
+  - When receipt photo added, run OCR
+  - Fill amount, payee, date fields
+  - Show "Auto-filled from receipt" indicator
+  - Allow user to edit/confirm
+  - **Test app runs** ✅
+- [ ] Handle OCR errors
+  - Show manual entry form if OCR fails
+  - Let user correct OCR results
+  - Log accuracy for improvements
+  - **Test app runs** ✅
+- [ ] OCR confidence indicator
+  - Show confidence level (high/medium/low)
+  - Highlight fields that need review
+  - **Test app runs** ✅
+
+**Exit Criteria**: Receipt photos automatically pre-fill transaction details
+
+**Cost Considerations:**
+- Firebase ML Kit: Free tier available, limited
+- Google Cloud Vision: ~$1.50 per 1000 images
+- Consider on-device ML for privacy/cost
+
+---
+
 ## 🚀 Current Status
 
 **You are here**: Phase 6.3 - Sinking Funds
@@ -1123,7 +1979,8 @@ npm run android
 **What's Complete**:
 - ✅ Phase 0-5: All infrastructure, domain, data, Firebase, theme, components, navigation, MVP features
 - ✅ Phase 5.1-5.9: Authentication, Households, Baby Steps, Accounts, Budgets, Transactions, Category Tracking, Debt Snowball, Dashboard
-- ✅ Phase 6.0-6.2: Household Management, Business Expense Tracking, Receipt Photos
+- ✅ Phase 6.0-6.2: Household Management, Business Expense Tracking, Receipt Photos (full implementation)
+- ✅ Phase 6.2.5: Recent Bug Fixes & Improvements (auth flow, currency formatting, UI spacing, budget calculations, local build, Firestore optimization)
 - ✅ UI component library with premium design standards
 - ✅ Firebase tested and working (offline + online)
 - ✅ Multi-currency support
@@ -1133,6 +1990,31 @@ npm run android
 
 **Next step**: Phase 6.3 - Sinking Funds (create Goals screen, track progress toward goals)
 
+**Remaining Phases**:
+- Phase 6.3: Sinking Funds
+- Phase 6.4: Reports & Analytics
+- Phase 6.5: Onboarding Flow
+- Phase 6.6: Error Handling & Edge Cases (partially complete)
+- Phase 6.7: Testing (not started)
+- Phase 6.8: Performance Optimization (not started)
+- Phase 6.9: Production Build & Deployment (partially complete)
+
+**Newly Identified Missing Features** (Phase 7):
+- 7.1: Date Picker Component ✅ (you confirmed needed)
+- 7.2: Split Transactions ✅ (you confirmed needed)
+- 7.3: Account Transfers ✅ (you confirmed needed)
+- 7.4: Recurring Transactions ✅ (you confirmed needed)
+- 7.5: Budget Templates ✅ (you confirmed needed)
+- 7.6: Export & Backup Data ✅ (you confirmed needed)
+- 7.7: Search & Filters ✅ (you confirmed needed)
+- 7.8: Notifications & Reminders ✅ (you confirmed needed)
+- 7.9: Multi-Currency Support (enhanced)
+- 7.10: Budgeting for Irregular Income
+- 7.11: Home Screen Widgets ✅ (you confirmed needed)
+- 7.12: Biometric Authentication ✅ (you confirmed needed)
+- 7.13: Bulk Transaction Operations ✅ (you confirmed needed)
+- 7.14: Receipt OCR ✅ (you confirmed needed)
+
 **To verify app works**:
 ```powershell
 cd C:\Project\Accounting\src
@@ -1141,5 +2023,5 @@ npm run android
 
 ---
 
-**Remember**: MVP features are complete! Now polishing and adding production-ready features. 📸
+**Remember**: MVP features are complete! Now polishing and adding production-ready features. The app is functional but needs features like sinking funds, reports, onboarding, and the critical features listed in Phase 7 to be truly complete. 📸
 
