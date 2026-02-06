@@ -104,7 +104,17 @@ export default function AddTransactionScreen() {
 
         // Load categories
         const cats = await budgetRepo.getMasterCategoriesByHousehold(user.default_household_id);
-        setCategories(cats);
+        
+        if (cats.length === 0) {
+          // No custom categories - use defaults
+          const { getDefaultCategories } = await import('@/shared/constants/budget-categories');
+          const defaultCats = getDefaultCategories();
+          console.log('📊 Using default categories:', defaultCats.length);
+          setCategories(defaultCats);
+        } else {
+          console.log('📊 Loaded custom categories:', cats.length);
+          setCategories(cats);
+        }
 
         // Load businesses
         const biz = await businessRepo.getBusinessesByHousehold(user.default_household_id);
@@ -141,6 +151,13 @@ export default function AddTransactionScreen() {
       value: cat.id,
       subtitle: cat.group,
     }));
+
+  console.log('🔍 Category filtering:', {
+    totalCategories: categories.length,
+    transactionType: type,
+    filteredOptions: categoryOptions.length,
+    categoryGroups: categories.map(c => c.group),
+  });
 
   // Transform businesses for SearchableSelect
   const businessOptions: SelectOption[] = businesses.map((business) => ({
@@ -457,13 +474,39 @@ export default function AddTransactionScreen() {
           />
 
           {/* Category */}
-          <SearchableSelect
-            label="Category *"
-            value={selectedCategoryId}
-            onSelect={setSelectedCategoryId}
-            options={categoryOptions}
-            placeholder={`Select ${type.toLowerCase()} category`}
-          />
+          {categoryOptions.length === 0 ? (
+            <Card padding="md" style={{ marginBottom: SPACING[4] }}>
+              <AppText variant="body" color={theme.text.secondary} style={{ marginBottom: SPACING[2] }}>
+                Category *
+              </AppText>
+              <TouchableOpacity
+                onPress={() => router.push('/budget/manage-categories')}
+                style={{
+                  padding: SPACING[3],
+                  borderRadius: BORDER_RADIUS.sm,
+                  borderWidth: 1,
+                  borderColor: theme.border.default,
+                  borderStyle: 'dashed',
+                  backgroundColor: theme.status.warningBackground,
+                }}
+              >
+                <AppText variant="body" color={theme.status.warning} style={{ textAlign: 'center', marginBottom: SPACING[1] }}>
+                  ⚠️ No budget categories found
+                </AppText>
+                <AppText variant="caption" color={theme.status.warning} style={{ textAlign: 'center' }}>
+                  Tap to add categories in Budget settings
+                </AppText>
+              </TouchableOpacity>
+            </Card>
+          ) : (
+            <SearchableSelect
+              label="Category *"
+              value={selectedCategoryId}
+              onSelect={setSelectedCategoryId}
+              options={categoryOptions}
+              placeholder={`Select ${type.toLowerCase()} category`}
+            />
+          )}
 
           {/* Notes */}
           <Input

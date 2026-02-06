@@ -7,7 +7,6 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -17,6 +16,7 @@ import { ScreenHeader, Card, PrimaryButton, SearchableSelect, ScreenWrapper, App
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
 import { SelectOption } from '@/shared/types';
+import { showAlert } from '@/shared/utils/alert';
 import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
 
 export default function HouseholdSettingsScreen() {
@@ -57,7 +57,7 @@ export default function HouseholdSettingsScreen() {
       }
     } catch (error) {
       console.error('Error loading household settings:', error);
-      Alert.alert('Error', 'Failed to load settings');
+      showAlert('Error', 'Failed to load settings');
     } finally {
       setLoading(false);
     }
@@ -68,7 +68,7 @@ export default function HouseholdSettingsScreen() {
 
     // Validate budget period start day
     if (budgetPeriodStartDay < 1 || budgetPeriodStartDay > 31) {
-      Alert.alert('Invalid Day', 'Budget period start day must be between 1 and 31');
+      showAlert('Invalid Day', 'Budget period start day must be between 1 and 31');
       return;
     }
 
@@ -82,10 +82,10 @@ export default function HouseholdSettingsScreen() {
         }
       );
 
-      Alert.alert('Success! 🎉', 'Settings saved successfully');
+      showAlert('Success! 🎉', 'Settings saved successfully');
     } catch (error) {
       console.error('Error saving settings:', error);
-      Alert.alert('Error', 'Failed to save settings');
+      showAlert('Error', 'Failed to save settings');
     } finally {
       setSaving(false);
     }

@@ -42,6 +42,18 @@ export interface ITransactionRepository {
   // Get unclaimed business expenses
   getUnclaimedBusinessExpenses(householdId: string): Promise<Transaction[]>;
   
+  // Mark transaction as cleared
+  markTransactionCleared(transactionId: string, clearedDate?: Date): Promise<void>;
+  
+  // Mark transaction as pending (uncleared)
+  markTransactionPending(transactionId: string): Promise<void>;
+  
+  // Get uncleared transactions for an account
+  getUnclearedTransactions(accountId: string): Promise<Transaction[]>;
+  
+  // Get cleared transactions for an account
+  getClearedTransactions(accountId: string): Promise<Transaction[]>;
+  
   // Listen to real-time transaction updates
   subscribeToTransactions(
     householdId: string,

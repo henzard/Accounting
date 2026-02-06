@@ -65,6 +65,7 @@ export default function TransactionsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'cleared'>('all');
   const [householdCurrency, setHouseholdCurrency] = useState<CurrencyCode>('USD');
   
   const transactionRepo = new FirestoreTransactionRepository();
@@ -102,6 +103,32 @@ export default function TransactionsScreen() {
     await loadTransactions();
   };
   
+  // Toggle transaction cleared status
+  const handleToggleCleared = async (transaction: Transaction, event: any) => {
+    // Stop event propagation to prevent navigation to detail screen
+    event?.stopPropagation?.();
+    event?.preventDefault?.();
+    
+    try {
+      const newStatus = transaction.status === 'pending' ? 'cleared' : 'pending';
+      
+      if (newStatus === 'cleared') {
+        await transactionRepo.markTransactionCleared(transaction.id);
+      } else {
+        await transactionRepo.markTransactionPending(transaction.id);
+      }
+      
+      // Update local state optimistically
+      setTransactions(prev => prev.map(t => 
+        t.id === transaction.id 
+          ? { ...t, status: newStatus, cleared_date: newStatus === 'cleared' ? new Date() : undefined }
+          : t
+      ));
+    } catch (error) {
+      console.error('❌ Failed to toggle cleared status:', error);
+    }
+  };
+  
   // Reload when screen comes into focus (e.g., after adding/deleting)
   useFocusEffect(
     useCallback(() => {
@@ -109,8 +136,13 @@ export default function TransactionsScreen() {
     }, [loadTransactions])
   );
   
-  // Filter transactions by search
+  // Filter transactions by search and status
   const filteredTransactions = transactions.filter(txn => {
+    // Filter by status
+    if (filterStatus === 'pending' && txn.status !== 'pending') return false;
+    if (filterStatus === 'cleared' && txn.status === 'pending') return false;
+    
+    // Filter by search
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
@@ -196,7 +228,7 @@ export default function TransactionsScreen() {
       >
         {/* Search Bar */}
         {transactions.length >= 10 && (
-          <View style={{ padding: SPACING[4] }}>
+          <View style={{ padding: SPACING[4], paddingBottom: 0 }}>
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -214,8 +246,65 @@ export default function TransactionsScreen() {
           </View>
         )}
         
+        {/* Filter Tabs */}
+        <View style={{ padding: SPACING[4], paddingTop: SPACING[2] }}>
+          <View style={styles.filterTabs}>
+            <TouchableOpacity
+              onPress={() => setFilterStatus('all')}
+              style={[
+                styles.filterTab,
+                {
+                  backgroundColor: filterStatus === 'all' ? theme.interactive.primary : 'transparent',
+                  borderColor: theme.border.default,
+                },
+              ]}
+            >
+              <AppText
+                variant="caption"
+                color={filterStatus === 'all' ? theme.text.inverse : theme.text.secondary}
+              >
+                All
+              </AppText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setFilterStatus('pending')}
+              style={[
+                styles.filterTab,
+                {
+                  backgroundColor: filterStatus === 'pending' ? theme.status.warning : 'transparent',
+                  borderColor: theme.border.default,
+                },
+              ]}
+            >
+              <AppText
+                variant="caption"
+                color={filterStatus === 'pending' ? theme.text.inverse : theme.text.secondary}
+              >
+                Pending
+              </AppText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => setFilterStatus('cleared')}
+              style={[
+                styles.filterTab,
+                {
+                  backgroundColor: filterStatus === 'cleared' ? theme.status.success : 'transparent',
+                  borderColor: theme.border.default,
+                },
+              ]}
+            >
+              <AppText
+                variant="caption"
+                color={filterStatus === 'cleared' ? theme.text.inverse : theme.text.secondary}
+              >
+                Cleared
+              </AppText>
+            </TouchableOpacity>
+          </View>
+        </View>
+        
         {/* Grouped Transactions */}
-        <View style={{ padding: SPACING[4] }}>
+        <View style={{ padding: SPACING[4], paddingTop: 0 }}>
           {Array.from(groupedTransactions.entries()).map(([group, groupTransactions]) => (
             <View key={group} style={{ marginBottom: SPACING[6] }}>
               {/* Date Group Header */}
@@ -225,40 +314,63 @@ export default function TransactionsScreen() {
               
               {/* Transactions in Group */}
               {groupTransactions.map((transaction) => (
-                <Link 
-                  key={transaction.id} 
-                  href={`/transactions/${transaction.id}`}
-                  asChild
-                >
-                  <TouchableOpacity style={{ marginBottom: SPACING[2] }}>
-                    <Card padding="md">
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <View style={{ flex: 1 }}>
-                          <AppText variant="bodyEmphasis" style={{ marginBottom: SPACING[1] }}>
-                            {transaction.payee || 'Transaction'}
+                <View key={transaction.id} style={{ marginBottom: SPACING[2] }}>
+                  <Card padding="md">
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                      {/* Clearing Checkbox */}
+                      <TouchableOpacity
+                        onPress={(e) => handleToggleCleared(transaction, e)}
+                        style={[
+                          styles.checkbox,
+                          {
+                            backgroundColor: transaction.status !== 'pending' 
+                              ? theme.status.success 
+                              : 'transparent',
+                            borderColor: transaction.status !== 'pending' 
+                              ? theme.status.success 
+                              : theme.border.default,
+                          },
+                        ]}
+                      >
+                        {transaction.status !== 'pending' && (
+                          <AppText variant="caption" color={theme.text.inverse}>✓</AppText>
+                        )}
+                      </TouchableOpacity>
+                      
+                      {/* Transaction Details (Tappable) */}
+                      <Link 
+                        href={`/transactions/${transaction.id}`}
+                        asChild
+                        style={{ flex: 1 }}
+                      >
+                        <TouchableOpacity style={{ flex: 1, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <View style={{ flex: 1 }}>
+                            <AppText variant="bodyEmphasis" style={{ marginBottom: SPACING[1] }}>
+                              {transaction.payee || 'Transaction'}
+                            </AppText>
+                            <AppText variant="caption" color={theme.text.secondary}>
+                              {transaction.date.toLocaleDateString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric',
+                                year: transaction.date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+                              })}
+                              {transaction.notes && ` • ${transaction.notes.substring(0, 30)}${transaction.notes.length > 30 ? '...' : ''}`}
+                            </AppText>
+                          </View>
+                          
+                          <AppText 
+                            variant="h2"
+                            color={transaction.type === 'INCOME' ? theme.financial.income : theme.financial.expense}
+                            style={{ marginLeft: SPACING[4] }}
+                          >
+                            {transaction.type === 'INCOME' ? '+' : '-'}
+                            {formatCurrency(transaction.amount, householdCurrency)}
                           </AppText>
-                          <AppText variant="caption" color={theme.text.secondary}>
-                            {transaction.date.toLocaleDateString('en-US', { 
-                              month: 'short', 
-                              day: 'numeric',
-                              year: transaction.date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
-                            })}
-                            {transaction.notes && ` • ${transaction.notes.substring(0, 30)}${transaction.notes.length > 30 ? '...' : ''}`}
-                          </AppText>
-                        </View>
-                        
-                        <AppText 
-                          variant="h2"
-                          color={transaction.type === 'INCOME' ? theme.financial.income : theme.financial.expense}
-                          style={{ marginLeft: SPACING[4] }}
-                        >
-                          {transaction.type === 'INCOME' ? '+' : '-'}
-                          {formatCurrency(transaction.amount, householdCurrency)}
-                        </AppText>
-                      </View>
-                    </Card>
-                  </TouchableOpacity>
-                </Link>
+                        </TouchableOpacity>
+                      </Link>
+                    </View>
+                  </Card>
+                </View>
               ))}
             </View>
           ))}
@@ -285,5 +397,24 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  filterTabs: {
+    flexDirection: 'row',
+    gap: SPACING[2],
+  },
+  filterTab: {
+    paddingVertical: SPACING[2],
+    paddingHorizontal: SPACING[4],
+    borderRadius: BORDER_RADIUS.full,
+    borderWidth: 1,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: BORDER_RADIUS.sm,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: SPACING[3],
   },
 });

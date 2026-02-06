@@ -1,3 +1,31 @@
+# Release Notes
+
+## v1.0.1 - 2026-02-06
+
+### 🐛 Bug Fixes
+
+#### Android Alert Context Issue
+- Fixed "Tried to show an alert while not attached to an Activity" error on Android
+- Replaced native `Alert.alert` with state-based modal components for seed categories confirmation
+- Improved modal styling with proper elevation, shadow, and layout
+- Added success message modal to avoid Activity context timing issues
+
+### 🔧 Technical Improvements
+
+#### Category Management UX
+- Enhanced seed categories modal with better styling and user feedback
+- Added loading states during category seeding process
+- Improved error handling for category operations
+- Added comprehensive logging for debugging category operations
+
+#### Code Quality
+- Moved audit documentation to proper location (`docs/issues/`)
+- Cleaned up root folder per documentation standards
+- Organized temporary files into appropriate directories
+- Improved code organization and maintainability
+
+---
+
 # Release Notes - v1.0.0
 
 ## 🎉 Major Release: Complete MVP Features + Receipt Management

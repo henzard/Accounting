@@ -7,7 +7,6 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
@@ -19,6 +18,7 @@ import { Input, Button, Card, ScreenWrapper, AppText } from '@/presentation/comp
 import { Account, AccountType } from '@/domain/entities/Account';
 import { FirestoreAccountRepository } from '@/data/repositories/FirestoreAccountRepository';
 import { formatCurrency, CurrencyCode } from '@/shared/utils/currency';
+import { showAlert, showConfirm } from '@/shared/utils/alert';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
 import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
@@ -75,7 +75,7 @@ export default function EditAccountScreen() {
 
   async function loadAccount() {
     if (!id) {
-      Alert.alert('Error', 'No account ID provided');
+      showAlert('Error', 'No account ID provided');
       router.back();
       return;
     }
@@ -85,7 +85,7 @@ export default function EditAccountScreen() {
       const loadedAccount = await accountRepository.getAccountById(id);
 
       if (!loadedAccount) {
-        Alert.alert('Error', 'Account not found');
+        showAlert('Error', 'Account not found');
         router.back();
         return;
       }
@@ -97,7 +97,7 @@ export default function EditAccountScreen() {
       setIsActive(loadedAccount.is_active);
     } catch (error) {
       console.error('❌ Error loading account:', error);
-      Alert.alert('Error', 'Failed to load account');
+      showAlert('Error', 'Failed to load account');
       router.back();
     } finally {
       setLoading(false);
@@ -106,7 +106,7 @@ export default function EditAccountScreen() {
 
   async function handleSave() {
     if (!name.trim()) {
-      Alert.alert('Validation Error', 'Please enter an account name');
+      showAlert('Validation Error', 'Please enter an account name');
       return;
     }
 
@@ -124,12 +124,11 @@ export default function EditAccountScreen() {
       });
 
       console.log('✅ Account updated:', account.id);
-      Alert.alert('Success', 'Account updated!', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
+      router.back();
+      showAlert('Success', 'Account updated!');
     } catch (error) {
       console.error('❌ Error updating account:', error);
-      Alert.alert('Error', 'Failed to update account. Please try again.');
+      showAlert('Error', 'Failed to update account. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -138,28 +137,20 @@ export default function EditAccountScreen() {
   async function handleArchive() {
     if (!account) return;
 
-    Alert.alert(
+    showConfirm(
       'Archive Account',
       `Are you sure you want to archive "${account.name}"? You can reactivate it later.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Archive',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await accountRepository.archiveAccount(account.id);
-              console.log('✅ Account archived:', account.id);
-              Alert.alert('Success', 'Account archived', [
-                { text: 'OK', onPress: () => router.back() },
-              ]);
-            } catch (error) {
-              console.error('❌ Error archiving account:', error);
-              Alert.alert('Error', 'Failed to archive account');
-            }
-          },
-        },
-      ]
+      async () => {
+        try {
+          await accountRepository.archiveAccount(account.id);
+          console.log('✅ Account archived:', account.id);
+          router.back();
+          showAlert('Success', 'Account archived');
+        } catch (error) {
+          console.error('❌ Error archiving account:', error);
+          showAlert('Error', 'Failed to archive account');
+        }
+      }
     );
   }
 
@@ -203,15 +194,34 @@ export default function EditAccountScreen() {
         >
           {/* Balance Display (Read-only) */}
           <Card>
-            <AppText variant="bodyEmphasis" style={{ color: theme.text.secondary, marginBottom: SPACING[2] }}>
-              Current Balance
+            <AppText variant="bodyEmphasis" style={{ color: theme.text.secondary, marginBottom: SPACING[3] }}>
+              Account Balances
             </AppText>
-            <AppText variant="display" style={{ color: theme.text.primary, marginBottom: SPACING[1] }}>
-              {formatCurrency(account.balance, householdCurrency)}
-            </AppText>
-            <AppText variant="caption" style={{ color: theme.text.tertiary }}>
-              Balance is updated automatically by transactions
-            </AppText>
+            
+            {/* Available Balance (all transactions) */}
+            <View style={{ marginBottom: SPACING[4] }}>
+              <AppText variant="caption" style={{ color: theme.text.tertiary, marginBottom: SPACING[1] }}>
+                Available Balance
+              </AppText>
+              <AppText variant="display" style={{ color: theme.text.primary }}>
+                {formatCurrency(account.balance, householdCurrency)}
+              </AppText>
+              <AppText variant="caption" style={{ color: theme.text.tertiary, marginTop: SPACING[1] }}>
+                Includes all pending and cleared transactions
+              </AppText>
+            </View>
+            
+            {/* Info about reconciliation */}
+            <View
+              style={[
+                styles.infoBox,
+                { backgroundColor: theme.status.infoBackground },
+              ]}
+            >
+              <AppText variant="caption" style={{ color: theme.status.info }}>
+                💡 To see your cleared balance (what your bank shows), mark transactions as cleared on the Transactions tab, then reconcile this account.
+              </AppText>
+            </View>
           </Card>
 
           {/* Account Type Selection */}
@@ -421,6 +431,10 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
+  },
+  infoBox: {
+    padding: SPACING[3],
+    borderRadius: BORDER_RADIUS.sm,
   },
   archiveButton: {
     marginTop: SPACING[4],

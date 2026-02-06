@@ -6,4 +6,6 @@ export * from './FirestoreDebtRepository';
 export * from './FirestoreHouseholdRepository';
 export * from './FirestoreUserRepository';
 export * from './FirestoreAccountRepository';
+export * from './FirestoreGoalRepository';
+export * from './FirestoreReconciliationRepository';
 

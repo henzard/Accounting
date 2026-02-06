@@ -38,6 +38,7 @@ export interface Transaction {
   
   // Status
   status: TransactionStatus;
+  cleared_date?: Date; // When this transaction cleared at the bank
   reconciled_at?: Date;
   reconciled_by?: string;
   
@@ -107,5 +108,53 @@ export function createTransaction(params: {
     updated_at: now,
     created_by: params.created_by,
   };
+}
+
+// Helper: Check if transaction is cleared
+export function isTransactionCleared(transaction: Transaction): boolean {
+  return transaction.status === 'cleared' || transaction.status === 'reconciled';
+}
+
+// Helper: Check if transaction is reconciled
+export function isTransactionReconciled(transaction: Transaction): boolean {
+  return transaction.status === 'reconciled';
+}
+
+// Helper: Mark transaction as cleared
+export function markTransactionCleared(transaction: Transaction, clearedDate?: Date): Transaction {
+  return {
+    ...transaction,
+    status: 'cleared',
+    cleared_date: clearedDate || new Date(),
+    updated_at: new Date(),
+  };
+}
+
+// Helper: Mark transaction as pending (uncleared)
+export function markTransactionPending(transaction: Transaction): Transaction {
+  return {
+    ...transaction,
+    status: 'pending',
+    cleared_date: undefined,
+    updated_at: new Date(),
+  };
+}
+
+// Helper: Calculate cleared balance for an account
+export function calculateClearedBalance(transactions: Transaction[]): number {
+  return transactions
+    .filter(t => isTransactionCleared(t))
+    .reduce((sum, t) => {
+      if (t.type === 'INCOME') {
+        return sum + t.amount;
+      } else if (t.type === 'EXPENSE') {
+        return sum - t.amount;
+      } else if (t.type === 'TRANSFER') {
+        // Handle transfers based on account perspective
+        // This should be refined based on whether it's the source or destination account
+        return sum;
+      }
+      return sum;
+    }, 0);
 }
 

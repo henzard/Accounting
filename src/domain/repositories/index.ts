@@ -6,4 +6,6 @@ export * from './IAccountRepository';
 export * from './ITransactionRepository';
 export * from './IBudgetRepository';
 export * from './IDebtRepository';
+export * from './IGoalRepository';
+export * from './IReconciliationRepository';
 

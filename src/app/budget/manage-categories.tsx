@@ -7,13 +7,13 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   TextInput,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
+import { showAlert, showConfirm } from '@/shared/utils/alert';
 import { ScreenHeader, Card, PrimaryButton, OutlineButton, SearchableSelect, ScreenWrapper, AppText, Input } from '@/presentation/components';
 import { CategoryGroup } from '@/domain/entities/Budget';
 import { CATEGORY_GROUP_INFO, MasterCategory, getDefaultCategories, DEFAULT_BUDGET_CATEGORIES } from '@/shared/constants/budget-categories';
@@ -51,6 +51,9 @@ export default function ManageCategoriesScreen() {
   const [categoryUsage, setCategoryUsage] = useState<Map<string, boolean>>(new Map());
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
+  const [showSeedConfirm, setShowSeedConfirm] = useState(false);
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
   useFocusEffect(
     useCallback(() => {
@@ -91,16 +94,64 @@ export default function ManageCategoriesScreen() {
       }
     } catch (error) {
       console.error('Error loading categories:', error);
-      Alert.alert('Error', 'Failed to load categories');
+      showAlert('Error', 'Failed to load categories');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleSeedDefaults() {
+    console.log('🔵 handleSeedDefaults: START');
+    
+    if (!user?.default_household_id) {
+      console.log('❌ No household ID, returning early');
+      return;
+    }
+
+    console.log('🔵 Setting saving to true...');
+    setSaving(true);
+    try {
+      console.log('🔵 Getting default categories...');
+      const defaults = getDefaultCategories();
+      console.log('🔵 Default categories count:', defaults.length);
+      
+      let seededCount = 0;
+
+      console.log('🔵 Starting to add categories to Firestore...');
+      for (const category of defaults) {
+        const { id, ...categoryData } = category;
+        console.log(`🔵 Adding category ${seededCount + 1}:`, categoryData.name);
+        await addDoc(collection(db, 'master_categories'), {
+          ...categoryData,
+          household_id: user.default_household_id,
+          is_default: true,
+        });
+        seededCount++;
+        console.log(`✅ Added category ${seededCount}/${defaults.length}`);
+      }
+
+      console.log(`✅ Seeded ${seededCount} default categories`);
+      console.log('🔵 Loading categories...');
+      await loadCategories();
+      console.log('🔵 Categories loaded, showing success message...');
+      setSuccessMessage(`Added ${seededCount} default categories. You can now delete the ones you don't need.`);
+      setShowSuccessMessage(true);
+    } catch (error) {
+      console.error('❌ Error seeding defaults:', error);
+      setSuccessMessage('Failed to seed default categories');
+      setShowSuccessMessage(true);
+    } finally {
+      console.log('🔵 Setting saving to false...');
+      setSaving(false);
+      setShowSeedConfirm(false);
+      console.log('🔵 handleSeedDefaults: END');
     }
   }
 
   async function handleAddCategory() {
     if (!user?.default_household_id) return;
     if (!newCategoryName.trim()) {
-      Alert.alert('Error', 'Category name is required');
+      showAlert('Error', 'Category name is required');
       return;
     }
 
@@ -118,14 +169,14 @@ export default function ManageCategoriesScreen() {
 
       await addDoc(collection(db, 'master_categories'), newCategory);
 
-      Alert.alert('Success! 🎉', 'Category added');
+      showAlert('Success! 🎉', 'Category added');
       setNewCategoryName('');
       setNewCategoryIcon('📦');
       setShowAddForm(false);
       loadCategories();
     } catch (error) {
       console.error('Error adding category:', error);
-      Alert.alert('Error', 'Failed to add category');
+      showAlert('Error', 'Failed to add category');
     } finally {
       setSaving(false);
     }
@@ -142,7 +193,7 @@ export default function ManageCategoriesScreen() {
   async function handleSaveEdit() {
     if (!editingCategory) return;
     if (!editCategoryName.trim()) {
-      Alert.alert('Error', 'Category name is required');
+      showAlert('Error', 'Category name is required');
       return;
     }
 
@@ -156,12 +207,12 @@ export default function ManageCategoriesScreen() {
 
       await updateDoc(doc(db, 'master_categories', editingCategory.id), updates);
 
-      Alert.alert('Success! 🎉', 'Category updated');
+      showAlert('Success! 🎉', 'Category updated');
       setEditingCategory(null);
       loadCategories();
     } catch (error) {
       console.error('Error updating category:', error);
-      Alert.alert('Error', 'Failed to update category');
+      showAlert('Error', 'Failed to update category');
     } finally {
       setSaving(false);
     }
@@ -172,72 +223,59 @@ export default function ManageCategoriesScreen() {
   }
 
   async function handleDeleteCategory(categoryId: string, categoryName: string) {
-    Alert.alert(
+    const confirmed = await showConfirm(
       'Delete Category?',
-      `Are you sure you want to delete "${categoryName}"? This cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await deleteDoc(doc(db, 'master_categories', categoryId));
-              Alert.alert('Success', 'Category deleted');
-              loadCategories();
-            } catch (error) {
-              console.error('Error deleting category:', error);
-              Alert.alert('Error', 'Failed to delete category');
-            }
-          },
-        },
-      ]
+      `Are you sure you want to delete "${categoryName}"? This cannot be undone.`
     );
+
+    if (!confirmed) return;
+
+    try {
+      await deleteDoc(doc(db, 'master_categories', categoryId));
+      showAlert('Success', 'Category deleted');
+      loadCategories();
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      showAlert('Error', 'Failed to delete category');
+    }
   }
 
-  function handleResetToDefaults() {
-    Alert.alert(
+  async function handleResetToDefaults() {
+    const confirmed = await showConfirm(
       'Reset to Defaults?',
-      'This will delete all your custom categories and load all Dave Ramsey defaults (which you can then edit or delete). This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reset',
-          style: 'destructive',
-          onPress: async () => {
-            if (!user?.default_household_id) return;
-            try {
-              // Step 1: Delete all custom categories
-              const categoriesQuery = query(
-                collection(db, 'master_categories'),
-                where('household_id', '==', user.default_household_id)
-              );
-              const snapshot = await getDocs(categoriesQuery);
-              const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
-              await Promise.all(deletePromises);
-
-              // Step 2: Add ALL Dave Ramsey defaults as editable categories
-              const defaults = DEFAULT_BUDGET_CATEGORIES; // Use ALL categories, not just is_default: true
-              const addPromises = defaults.map(category => {
-                const { id, is_default, ...categoryData } = category;
-                return addDoc(collection(db, 'master_categories'), {
-                  ...categoryData,
-                  household_id: user.default_household_id,
-                  is_default: false, // Make them editable/deletable
-                });
-              });
-              await Promise.all(addPromises);
-
-              Alert.alert('Success! 🎉', `Reset complete. Added all ${defaults.length} Dave Ramsey categories (including debt payments, car payment, life insurance). You can now edit or delete them.`);
-              loadCategories();
-            } catch (error) {
-              console.error('Error resetting categories:', error);
-              Alert.alert('Error', 'Failed to reset categories');
-            }
-          },
-        },
-      ]
+      'This will delete all your custom categories and load all Dave Ramsey defaults (which you can then edit or delete). This cannot be undone.'
     );
+
+    if (!confirmed || !user?.default_household_id) return;
+
+    try {
+      // Step 1: Delete all custom categories
+      const categoriesQuery = query(
+        collection(db, 'master_categories'),
+        where('household_id', '==', user.default_household_id)
+      );
+      const snapshot = await getDocs(categoriesQuery);
+      const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deletePromises);
+
+      // Step 2: Add ALL Dave Ramsey defaults as editable categories
+      const defaults = DEFAULT_BUDGET_CATEGORIES; // Use ALL categories, not just is_default: true
+      const addPromises = defaults.map(category => {
+        const { id, is_default, ...categoryData } = category;
+        return addDoc(collection(db, 'master_categories'), {
+          ...categoryData,
+          household_id: user.default_household_id,
+          is_default: false, // Make them editable/deletable
+        });
+      });
+      await Promise.all(addPromises);
+
+      showAlert('Success! 🎉', `Reset complete. Added all ${defaults.length} Dave Ramsey categories (including debt payments, car payment, life insurance). You can now edit or delete them.`);
+      loadCategories();
+    } catch (error) {
+      console.error('Error resetting categories:', error);
+      showAlert('Error', 'Failed to reset categories');
+    }
   }
 
   // ============================================
@@ -327,33 +365,27 @@ export default function ManageCategoriesScreen() {
   async function handleBulkDelete() {
     if (selectedCategories.size === 0) return;
     
-    Alert.alert(
+    const confirmed = await showConfirm(
       'Delete Selected Categories?',
-      `Delete ${selectedCategories.size} categories? This cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const deletePromises = Array.from(selectedCategories).map(id =>
-                deleteDoc(doc(db, 'master_categories', id))
-              );
-              await Promise.all(deletePromises);
-              
-              Alert.alert('Success', `Deleted ${selectedCategories.size} categories`);
-              setSelectionMode(false);
-              setSelectedCategories(new Set());
-              loadCategories();
-            } catch (error) {
-              console.error('Error bulk deleting:', error);
-              Alert.alert('Error', 'Failed to delete categories');
-            }
-          },
-        },
-      ]
+      `Delete ${selectedCategories.size} categories? This cannot be undone.`
     );
+
+    if (!confirmed) return;
+
+    try {
+      const deletePromises = Array.from(selectedCategories).map(id =>
+        deleteDoc(doc(db, 'master_categories', id))
+      );
+      await Promise.all(deletePromises);
+      
+      showAlert('Success', `Deleted ${selectedCategories.size} categories`);
+      setSelectionMode(false);
+      setSelectedCategories(new Set());
+      loadCategories();
+    } catch (error) {
+      console.error('Error bulk deleting:', error);
+      showAlert('Error', 'Failed to delete categories');
+    }
   }
 
   // Category group options for SearchableSelect
@@ -454,7 +486,7 @@ export default function ManageCategoriesScreen() {
         {/* ACTION BUTTONS */}
         {!showAddForm && !editingCategory && !selectionMode && hasCategories && (
           <View style={styles.section}>
-            <View style={{ flexDirection: 'row', gap: SPACING[3] }}>
+            <View style={{ flexDirection: 'row', gap: SPACING[3], marginBottom: SPACING[3] }}>
               <PrimaryButton
                 title="+ Add Category"
                 onPress={() => setShowAddForm(true)}
@@ -466,6 +498,15 @@ export default function ManageCategoriesScreen() {
                 style={{ flex: 1 }}
               />
             </View>
+            
+            {/* Seed Defaults Button - Only show if some categories exist */}
+            <OutlineButton
+              title="📦 Seed All Defaults"
+              onPress={() => setShowSeedConfirm(true)}
+              disabled={saving}
+              fullWidth
+              size="md"
+            />
           </View>
         )}
 
@@ -713,6 +754,90 @@ export default function ManageCategoriesScreen() {
         {/* Bottom spacer */}
         <View style={{ height: SPACING[12] }} />
       </ScrollView>
+
+      {/* Seed Confirm Modal */}
+      {showSeedConfirm && (
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: theme.background.elevated }]}>
+            <AppText 
+              variant="h2" 
+              style={{ 
+                color: theme.text.primary, 
+                marginBottom: SPACING[2],
+                fontSize: 20,
+                fontWeight: '700',
+              }}
+            >
+              Seed Default Categories?
+            </AppText>
+            <AppText 
+              variant="body" 
+              style={{ 
+                color: theme.text.secondary, 
+                marginBottom: SPACING[6],
+                fontSize: 16,
+                lineHeight: 22,
+              }}
+            >
+              This will add all default Dave Ramsey categories to Firestore. You can then delete the ones you don't need. This action cannot be undone.
+            </AppText>
+            <View style={styles.modalButtons}>
+              <View style={{ flex: 1 }}>
+                <OutlineButton
+                  title="Cancel"
+                  onPress={() => setShowSeedConfirm(false)}
+                  disabled={saving}
+                  fullWidth
+                />
+              </View>
+              <View style={{ flex: 1 }}>
+                <PrimaryButton
+                  title="Confirm"
+                  onPress={handleSeedDefaults}
+                  disabled={saving}
+                  loading={saving}
+                  fullWidth
+                />
+              </View>
+            </View>
+          </View>
+        </View>
+      )}
+
+      {/* Success Message Modal */}
+      {showSuccessMessage && (
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: theme.background.elevated }]}>
+            <AppText 
+              variant="h2" 
+              style={{ 
+                color: theme.text.primary, 
+                marginBottom: SPACING[2],
+                fontSize: 20,
+                fontWeight: '700',
+              }}
+            >
+              Success! 🎉
+            </AppText>
+            <AppText 
+              variant="body" 
+              style={{ 
+                color: theme.text.secondary, 
+                marginBottom: SPACING[6],
+                fontSize: 16,
+                lineHeight: 22,
+              }}
+            >
+              {successMessage}
+            </AppText>
+            <PrimaryButton
+              title="OK"
+              onPress={() => setShowSuccessMessage(false)}
+              fullWidth
+            />
+          </View>
+        </View>
+      )}
     </ScreenWrapper>
   );
 }
@@ -888,6 +1013,35 @@ const styles = StyleSheet.create({
   usageText: {
     fontSize: 11,
     fontWeight: '600',
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: SPACING[6],
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING[6],
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 8,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: SPACING[3],
   },
 });
 
