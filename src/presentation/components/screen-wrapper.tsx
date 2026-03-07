@@ -4,8 +4,8 @@
 // See .cursor/rules/37-premium-ui-standards.mdc for details
 
 import React, { ReactNode } from 'react';
-import { View, StyleSheet, ViewStyle } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View, ViewStyle, StyleProp } from 'react-native';
+import { SafeAreaView, Edge } from 'react-native-safe-area-context';
 import { useTheme } from '@/infrastructure/theme';
 import { SPACING } from '@/shared/constants/spacing';
 
@@ -25,12 +25,17 @@ interface ScreenWrapperProps {
   /**
    * Custom style for the container
    */
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   /**
    * Whether to include safe area insets
    * Default: true
    */
   safeArea?: boolean;
+  /**
+   * Safe area edges to apply when safeArea=true
+   * Default: ['top', 'bottom']
+   */
+  safeAreaEdges?: Edge[];
 }
 
 /**
@@ -67,9 +72,9 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
   backgroundColor,
   style,
   safeArea = true,
+  safeAreaEdges = ['top', 'bottom'],
 }) => {
   const { theme } = useTheme();
-  const insets = useSafeAreaInsets();
 
   const containerStyle: ViewStyle = {
     flex: 1,
@@ -80,14 +85,8 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
   if (safeArea) {
     return (
       <SafeAreaView
-        style={[
-          containerStyle,
-          {
-            paddingTop: insets.top,
-            paddingBottom: insets.bottom,
-          },
-          style,
-        ]}
+        edges={safeAreaEdges}
+        style={[containerStyle, style]}
       >
         <View style={{ flex: 1 }}>
           {children}
@@ -102,7 +101,3 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  // Styles handled inline for theme integration
-});

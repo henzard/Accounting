@@ -4,17 +4,19 @@
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   Modal,
   TouchableOpacity,
   FlatList,
-  StyleSheet,
   TextInput,
+  ViewStyle,
+  StyleProp,
 } from 'react-native';
 import { useTheme } from '@/infrastructure/theme';
 import { Input } from './Input';
 import { OutlineButton } from './Button';
 import { SelectOption } from '@/shared/types';
+import { AppText } from './styled/app-text';
+import { SPACING } from '@/shared/constants/spacing';
 
 interface SearchableSelectProps {
   label: string;
@@ -25,6 +27,7 @@ interface SearchableSelectProps {
   helperText?: string;
   testID?: string;
   required?: boolean;
+  style?: StyleProp<ViewStyle>;
 }
 
 export const SearchableSelect: React.FC<SearchableSelectProps> = ({
@@ -36,6 +39,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   helperText,
   testID,
   required,
+  style,
 }) => {
   const { theme } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
@@ -60,7 +64,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   };
 
   return (
-    <View>
+    <View style={style}>
       {/* Trigger Input */}
       <TouchableOpacity onPress={() => setModalVisible(true)} activeOpacity={0.7}>
         <View style={{ pointerEvents: 'none' }}>
@@ -74,7 +78,9 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
             editable={false}
             rightIcon={
               <View style={{ justifyContent: 'center', alignItems: 'center' }}>
-                <Text style={{ color: theme.text.secondary, fontSize: 18 }}>▼</Text>
+                <AppText variant="body" style={{ color: theme.text.secondary }}>
+                  ▼
+                </AppText>
               </View>
             }
           />
@@ -98,16 +104,12 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
               backgroundColor: theme.surface.default,
             }}
           >
-            <Text
-              style={{
-                fontSize: 20,
-                fontWeight: 'bold',
-                color: theme.text.primary,
-                marginBottom: theme.spacing[3],
-              }}
+            <AppText
+              variant="h2"
+              style={{ color: theme.text.primary, marginBottom: theme.spacing[3] }}
             >
               Select {label}
-            </Text>
+            </AppText>
 
             {/* Search Input */}
             <TextInput
@@ -148,35 +150,35 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   {/* Check mark for selected */}
-                  <View style={{ width: 24, marginRight: theme.spacing[3] }}>
+                  <View style={{ width: SPACING[6], marginRight: theme.spacing[3] }}>
                     {item.value === value && (
-                      <Text style={{ color: theme.interactive.primary, fontSize: 18 }}>
+                      <AppText variant="body" style={{ color: theme.interactive.primary }}>
                         ✓
-                      </Text>
+                      </AppText>
                     )}
                   </View>
 
                   {/* Option content */}
                   <View style={{ flex: 1 }}>
-                    <Text
+                    <AppText
+                      variant="body"
                       style={{
-                        fontSize: 16,
                         color: theme.text.primary,
                         fontWeight: item.value === value ? '600' : '400',
                       }}
                     >
                       {item.label}
-                    </Text>
+                    </AppText>
                     {item.subtitle && (
-                      <Text
+                      <AppText
+                        variant="caption"
                         style={{
-                          fontSize: 12,
                           color: theme.text.secondary,
-                          marginTop: 2,
+                          marginTop: SPACING[1],
                         }}
                       >
                         {item.subtitle}
-                      </Text>
+                      </AppText>
                     )}
                   </View>
                 </View>
@@ -189,9 +191,9 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
                   alignItems: 'center',
                 }}
               >
-                <Text style={{ color: theme.text.secondary, fontSize: 16 }}>
+                <AppText variant="body" style={{ color: theme.text.secondary }}>
                   No results found for &quot;{searchQuery}&quot;
-                </Text>
+                </AppText>
               </View>
             }
           />

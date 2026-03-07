@@ -18,6 +18,7 @@ import { Household } from '@/domain/entities';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
 import { useRouter } from 'expo-router';
+import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
 
 interface HouseholdSwitcherButtonProps {
   size?: number;
@@ -116,8 +117,6 @@ export const HouseholdSwitcherButton: React.FC<HouseholdSwitcherButtonProps> = (
       setSwitching(null);
     }
   };
-
-  const currentHousehold = households.find(h => h.id === user?.default_household_id);
 
   return (
     <>
@@ -233,7 +232,7 @@ export const HouseholdSwitcherButton: React.FC<HouseholdSwitcherButtonProps> = (
                   );
                 }}
                 ItemSeparatorComponent={() => (
-                  <View style={{ height: 8 }} />
+                  <View style={{ height: SPACING[2] }} />
                 )}
                 style={styles.list}
                 contentContainerStyle={styles.listContent}
@@ -260,9 +259,9 @@ export const HouseholdSwitcherButton: React.FC<HouseholdSwitcherButtonProps> = (
 
 const styles = StyleSheet.create({
   button: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -272,12 +271,12 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: SPACING[5],
   },
   modalContent: {
     width: '100%',
     maxWidth: 400,
-    borderRadius: 16,
+    borderRadius: BORDER_RADIUS.md,
     maxHeight: '80%',
     overflow: 'hidden',
   },
@@ -285,7 +284,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 20,
+    padding: SPACING[5],
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0,0,0,0.1)',
   },
@@ -294,8 +293,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   closeButton: {
-    width: 32,
-    height: 32,
+    width: 44,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -304,15 +303,15 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   loadingContainer: {
-    padding: 40,
+    padding: SPACING[10],
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 12,
+    marginTop: SPACING[3],
     fontSize: 14,
   },
   emptyContainer: {
-    padding: 40,
+    padding: SPACING[10],
     alignItems: 'center',
   },
   emptyText: {
@@ -322,11 +321,11 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listContent: {
-    padding: 16,
+    padding: SPACING[4],
   },
   householdItem: {
-    padding: 16,
-    borderRadius: 8,
+    padding: SPACING[4],
+    borderRadius: BORDER_RADIUS.sm,
     borderWidth: 1,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -345,14 +344,14 @@ const styles = StyleSheet.create({
   currentBadge: {
     fontSize: 12,
     fontWeight: '600',
-    marginLeft: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
+    marginLeft: SPACING[2],
+    paddingHorizontal: SPACING[2],
+    paddingVertical: SPACING[1],
+    borderRadius: BORDER_RADIUS.sm,
     backgroundColor: 'rgba(255,255,255,0.2)',
   },
   manageButton: {
-    padding: 20,
+    padding: SPACING[5],
     borderTopWidth: 1,
     alignItems: 'center',
   },

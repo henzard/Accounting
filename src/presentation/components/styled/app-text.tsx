@@ -4,7 +4,7 @@
 // See .cursor/rules/37-premium-ui-standards.mdc for details
 
 import React, { ReactNode } from 'react';
-import { Text, TextProps, TextStyle } from 'react-native';
+import { Text, TextProps, TextStyle, StyleProp } from 'react-native';
 import { useTheme } from '@/infrastructure/theme';
 import { TEXT_STYLES } from '@/shared/constants/typography';
 
@@ -32,7 +32,7 @@ interface AppTextProps extends Omit<TextProps, 'style'> {
   /**
    * Additional style (will be merged with variant style)
    */
-  style?: TextStyle;
+  style?: StyleProp<TextStyle>;
   /**
    * Color override (defaults to theme.text.primary)
    */
@@ -69,15 +69,8 @@ export const AppText: React.FC<AppTextProps> = ({
   // Determine text color
   const textColor = color || theme.text.primary;
   
-  // Merge styles
-  const mergedStyle: TextStyle = {
-    ...baseStyle,
-    color: textColor,
-    ...style,
-  };
-
   return (
-    <Text style={mergedStyle} {...textProps}>
+    <Text style={[baseStyle, { color: textColor }, style]} {...textProps}>
       {children}
     </Text>
   );

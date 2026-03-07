@@ -2,7 +2,7 @@
 // Specialized input for currency amounts (stores as cents)
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text } from 'react-native';
 import { Input } from './Input';
 import { useTheme } from '@/infrastructure/theme';
 
@@ -10,6 +10,7 @@ interface AmountInputProps {
   label?: string;
   value: number; // Amount in cents
   onChangeValue: (cents: number) => void;
+  placeholder?: string;
   error?: string;
   helperText?: string;
   required?: boolean;
@@ -24,6 +25,7 @@ export const AmountInput: React.FC<AmountInputProps> = ({
   label,
   value,
   onChangeValue,
+  placeholder = '0.00',
   error,
   helperText,
   required = false,
@@ -127,7 +129,7 @@ export const AmountInput: React.FC<AmountInputProps> = ({
         required={required}
         disabled={disabled}
         keyboardType="numeric"
-        placeholder="0.00"
+        placeholder={placeholder}
         leftIcon={
           <Text
             style={{

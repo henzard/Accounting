@@ -4,7 +4,7 @@
 // See .cursor/rules/37-premium-ui-standards.mdc for details
 
 import React, { ReactNode } from 'react';
-import { View, ViewStyle, StyleSheet } from 'react-native';
+import { View, ViewStyle, StyleSheet, StyleProp } from 'react-native';
 import { useTheme } from '@/infrastructure/theme';
 import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
 
@@ -36,7 +36,7 @@ interface SurfaceProps {
   /**
    * Additional style (will be merged with variant style)
    */
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   /**
    * Test ID for testing
    */

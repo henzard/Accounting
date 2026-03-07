@@ -2,11 +2,13 @@
 // Shows current Baby Step with progress indicator
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { useTheme } from '@/infrastructure/theme';
 import { BABY_STEPS, getBabyStep } from '@/shared/constants/baby-steps';
 import { formatCurrency, CurrencyCode, convertFromUSD } from '@/shared/utils/currency';
 import { Card } from './Card';
+import { AppText } from './styled/app-text';
+import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
 
 interface BabyStepsDisplayProps {
   currentStep: number;
@@ -38,19 +40,21 @@ export const BabyStepsDisplay: React.FC<BabyStepsDisplayProps> = ({
             { backgroundColor: theme.interactive.primary },
           ]}
         >
-          <Text style={[styles.stepNumber, { color: theme.text.inverse }]}>
+          <AppText variant="h2" style={[styles.stepNumber, { color: theme.text.inverse }]}>
             {step.step}
-          </Text>
+          </AppText>
         </View>
         <View style={styles.titleContainer}>
-          <Text style={[styles.stepLabel, { color: theme.text.secondary }]}>
+          <AppText variant="caption" style={[styles.stepLabel, { color: theme.text.secondary }]}>
             Baby Step {step.step} of 7
-          </Text>
-          <Text style={[styles.stepTitle, { color: theme.text.primary }]}>
+          </AppText>
+          <AppText variant="bodyEmphasis" style={[styles.stepTitle, { color: theme.text.primary }]}>
             {step.shortTitle}
-          </Text>
+          </AppText>
         </View>
-        <Text style={styles.icon}>{step.icon}</Text>
+        <AppText variant="display" style={styles.icon}>
+          {step.icon}
+        </AppText>
       </View>
 
       {/* Progress Bar */}
@@ -108,9 +112,9 @@ export const BabyStepsDisplay: React.FC<BabyStepsDisplayProps> = ({
       </View>
 
       {/* Description */}
-      <Text style={[styles.description, { color: theme.text.secondary }]}>
+      <AppText variant="body" style={[styles.description, { color: theme.text.secondary }]}>
         {step.description}
-      </Text>
+      </AppText>
 
       {/* Goal if available */}
       {step.goalAmountUSD && (
@@ -120,17 +124,17 @@ export const BabyStepsDisplay: React.FC<BabyStepsDisplayProps> = ({
             { backgroundColor: theme.status.successBackground },
           ]}
         >
-          <Text style={[styles.goalLabel, { color: theme.status.success }]}>
+          <AppText variant="bodyEmphasis" style={[styles.goalLabel, { color: theme.status.success }]}>
             Goal: {formatCurrency(convertFromUSD(step.goalAmountUSD, currency), currency)}
-          </Text>
+          </AppText>
         </View>
       )}
 
       {/* Tap hint */}
       {onPress && (
-        <Text style={[styles.tapHint, { color: theme.text.tertiary }]}>
+        <AppText variant="caption" style={[styles.tapHint, { color: theme.text.tertiary }]}>
           Tap to change step →
-        </Text>
+        </AppText>
       )}
     </Card>
   );
@@ -150,86 +154,72 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: SPACING[4],
   },
   stepBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: SPACING[12],
+    height: SPACING[12],
+    borderRadius: BORDER_RADIUS.full,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: SPACING[3],
   },
-  stepNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-  },
+  stepNumber: {},
   titleContainer: {
     flex: 1,
   },
   stepLabel: {
-    fontSize: 12,
-    marginBottom: 2,
+    marginBottom: SPACING[1],
   },
-  stepTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-  },
+  stepTitle: {},
   icon: {
-    fontSize: 32,
-    marginLeft: 8,
+    marginLeft: SPACING[2],
   },
   progressContainer: {
-    marginBottom: 16,
+    marginBottom: SPACING[4],
   },
   progressTrack: {
-    height: 8,
-    borderRadius: 4,
+    height: SPACING[2],
+    borderRadius: BORDER_RADIUS.sm,
     overflow: 'visible',
     position: 'relative',
   },
   progressFill: {
     height: '100%',
-    borderRadius: 4,
+    borderRadius: BORDER_RADIUS.sm,
   },
   progressCurrent: {
     position: 'absolute',
-    top: -4,
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    marginLeft: -8,
+    top: -SPACING[1],
+    width: SPACING[4],
+    height: SPACING[4],
+    borderRadius: BORDER_RADIUS.full,
+    marginLeft: -SPACING[2],
   },
   dotsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 8,
-    paddingHorizontal: 2,
+    marginTop: SPACING[2],
+    paddingHorizontal: SPACING[1],
   },
   dot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: SPACING[3],
+    height: SPACING[3],
+    borderRadius: BORDER_RADIUS.full,
   },
   description: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginBottom: 12,
+    marginBottom: SPACING[3],
   },
   goalContainer: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 8,
-    marginBottom: 8,
+    paddingHorizontal: SPACING[3],
+    paddingVertical: SPACING[2],
+    borderRadius: BORDER_RADIUS.sm,
+    marginBottom: SPACING[2],
   },
-  goalLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
+  goalLabel: {},
   tapHint: {
-    fontSize: 12,
     textAlign: 'right',
-    marginTop: 4,
+    marginTop: SPACING[1],
   },
 });
 

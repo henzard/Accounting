@@ -2,12 +2,14 @@
 // Reusable header for all screens with consistent back button and styling
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ViewStyle } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, ViewStyle, StyleProp } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { ThemeToggleButton } from './ThemeToggleButton';
 import { HouseholdSwitcherButton } from './HouseholdSwitcherButton';
+import { AppText } from './styled/app-text';
+import { SPACING } from '@/shared/constants/spacing';
 
 interface ScreenHeaderProps {
   title: string;
@@ -16,7 +18,7 @@ interface ScreenHeaderProps {
   rightAction?: React.ReactNode;
   showThemeToggle?: boolean;
   showHouseholdSwitcher?: boolean;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   testID?: string;
 }
 
@@ -64,9 +66,9 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
               size={24}
               color={theme.interactive.primary}
             />
-            <Text style={[styles.backText, { color: theme.interactive.primary }]}>
+            <AppText variant="bodyEmphasis" style={[styles.backText, { color: theme.interactive.primary }]}>
               Back
-            </Text>
+            </AppText>
           </TouchableOpacity>
         ) : (
           <View style={styles.leftSpacer} />
@@ -75,13 +77,14 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({
 
       {/* Center: Title */}
       <View style={styles.centerSection}>
-        <Text
+        <AppText
+          variant="h2"
           style={[styles.title, { color: theme.text.primary }]}
           numberOfLines={1}
           testID={`${testID}-title`}
         >
           {title}
-        </Text>
+        </AppText>
       </View>
 
       {/* Right: Household Switcher + Theme Toggle + Action or Spacer */}
@@ -119,10 +122,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 60, // Account for status bar
-    paddingBottom: 16,
-    borderBottomWidth: 1,
+    paddingHorizontal: SPACING[4],
+    paddingVertical: SPACING[3],
+    minHeight: 56,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   leftSection: {
     flex: 1,
@@ -143,27 +146,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   rightActionSpacer: {
-    marginLeft: 8,
+    marginLeft: SPACING[2],
   },
   backButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 4,
+    minHeight: 44,
+    minWidth: 44,
+    paddingVertical: SPACING[1],
   },
   backText: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 4,
+    marginLeft: SPACING[1],
   },
   leftSpacer: {
-    width: 60,
+    width: 44,
   },
   rightSpacer: {
-    width: 60,
+    width: 44,
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
     textAlign: 'center',
   },
 });
