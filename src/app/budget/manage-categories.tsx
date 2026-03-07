@@ -14,7 +14,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
 import { showAlert, showConfirm } from '@/shared/utils/alert';
-import { ScreenHeader, Card, PrimaryButton, OutlineButton, SearchableSelect, ScreenWrapper, AppText, Input } from '@/presentation/components';
+import { ScreenHeader, Card, PrimaryButton, OutlineButton, SearchableSelect, ScreenWrapper, AppText, Input, ConfirmationModal } from '@/presentation/components';
 import { CategoryGroup } from '@/domain/entities/Budget';
 import { CATEGORY_GROUP_INFO, MasterCategory, getDefaultCategories, DEFAULT_BUDGET_CATEGORIES } from '@/shared/constants/budget-categories';
 import { collection, getDocs, addDoc, deleteDoc, updateDoc, doc, query, where } from 'firebase/firestore';
@@ -756,88 +756,28 @@ export default function ManageCategoriesScreen() {
       </ScrollView>
 
       {/* Seed Confirm Modal */}
-      {showSeedConfirm && (
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: theme.background.elevated }]}>
-            <AppText 
-              variant="h2" 
-              style={{ 
-                color: theme.text.primary, 
-                marginBottom: SPACING[2],
-                fontSize: 20,
-                fontWeight: '700',
-              }}
-            >
-              Seed Default Categories?
-            </AppText>
-            <AppText 
-              variant="body" 
-              style={{ 
-                color: theme.text.secondary, 
-                marginBottom: SPACING[6],
-                fontSize: 16,
-                lineHeight: 22,
-              }}
-            >
-              This will add all default Dave Ramsey categories to Firestore. You can then delete the ones you don't need. This action cannot be undone.
-            </AppText>
-            <View style={styles.modalButtons}>
-              <View style={{ flex: 1 }}>
-                <OutlineButton
-                  title="Cancel"
-                  onPress={() => setShowSeedConfirm(false)}
-                  disabled={saving}
-                  fullWidth
-                />
-              </View>
-              <View style={{ flex: 1 }}>
-                <PrimaryButton
-                  title="Confirm"
-                  onPress={handleSeedDefaults}
-                  disabled={saving}
-                  loading={saving}
-                  fullWidth
-                />
-              </View>
-            </View>
-          </View>
-        </View>
-      )}
+      <ConfirmationModal
+        visible={showSeedConfirm}
+        title="Seed Default Categories?"
+        message="This will add all default Dave Ramsey categories to Firestore. You can then delete the ones you don't need. This action cannot be undone."
+        onConfirm={handleSeedDefaults}
+        onCancel={() => setShowSeedConfirm(false)}
+        loading={saving}
+        confirmText="Confirm"
+        cancelText="Cancel"
+      />
 
       {/* Success Message Modal */}
-      {showSuccessMessage && (
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalCard, { backgroundColor: theme.background.elevated }]}>
-            <AppText 
-              variant="h2" 
-              style={{ 
-                color: theme.text.primary, 
-                marginBottom: SPACING[2],
-                fontSize: 20,
-                fontWeight: '700',
-              }}
-            >
-              Success! 🎉
-            </AppText>
-            <AppText 
-              variant="body" 
-              style={{ 
-                color: theme.text.secondary, 
-                marginBottom: SPACING[6],
-                fontSize: 16,
-                lineHeight: 22,
-              }}
-            >
-              {successMessage}
-            </AppText>
-            <PrimaryButton
-              title="OK"
-              onPress={() => setShowSuccessMessage(false)}
-              fullWidth
-            />
-          </View>
-        </View>
-      )}
+      <ConfirmationModal
+        visible={showSuccessMessage}
+        title="Success!"
+        message={successMessage}
+        onConfirm={() => setShowSuccessMessage(false)}
+        onCancel={() => setShowSuccessMessage(false)}
+        variant="success"
+        showCancel={false}
+        confirmText="OK"
+      />
     </ScreenWrapper>
   );
 }
@@ -1013,35 +953,6 @@ const styles = StyleSheet.create({
   usageText: {
     fontSize: 11,
     fontWeight: '600',
-  },
-  modalOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: SPACING[6],
-  },
-  modalCard: {
-    width: '100%',
-    maxWidth: 400,
-    borderRadius: BORDER_RADIUS.lg,
-    padding: SPACING[6],
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 12,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: SPACING[3],
   },
 });
 

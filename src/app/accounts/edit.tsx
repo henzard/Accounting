@@ -14,7 +14,7 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
-import { Input, Button, Card, ScreenWrapper, AppText } from '@/presentation/components';
+import { Input, Button, Card, ScreenWrapper, AppText, ConfirmationModal } from '@/presentation/components';
 import { Account, AccountType } from '@/domain/entities/Account';
 import { FirestoreAccountRepository } from '@/data/repositories/FirestoreAccountRepository';
 import { formatCurrency, CurrencyCode } from '@/shared/utils/currency';
@@ -46,6 +46,7 @@ export default function EditAccountScreen() {
   const [isActive, setIsActive] = useState(true);
   const [saving, setSaving] = useState(false);
   const [householdCurrency, setHouseholdCurrency] = useState<CurrencyCode>('USD');
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
 
   const accountRepository = new FirestoreAccountRepository();
 
@@ -136,22 +137,22 @@ export default function EditAccountScreen() {
 
   async function handleArchive() {
     if (!account) return;
+    setShowArchiveModal(true);
+  }
 
-    showConfirm(
-      'Archive Account',
-      `Are you sure you want to archive "${account.name}"? You can reactivate it later.`,
-      async () => {
-        try {
-          await accountRepository.archiveAccount(account.id);
-          console.log('✅ Account archived:', account.id);
-          router.back();
-          showAlert('Success', 'Account archived');
-        } catch (error) {
-          console.error('❌ Error archiving account:', error);
-          showAlert('Error', 'Failed to archive account');
-        }
-      }
-    );
+  async function confirmArchive() {
+    if (!account) return;
+    setShowArchiveModal(false);
+
+    try {
+      await accountRepository.archiveAccount(account.id);
+      console.log('✅ Account archived:', account.id);
+      router.back();
+      showAlert('Success', 'Account archived');
+    } catch (error) {
+      console.error('❌ Error archiving account:', error);
+      showAlert('Error', 'Failed to archive account');
+    }
   }
 
   if (loading) {
@@ -373,6 +374,18 @@ export default function EditAccountScreen() {
           </TouchableOpacity>
         </ScrollView>
       </ScreenWrapper>
+
+      {/* Archive Confirmation Modal */}
+      <ConfirmationModal
+        visible={showArchiveModal}
+        title="Archive Account"
+        message={`Are you sure you want to archive "${account?.name}"? You can reactivate it later.`}
+        onConfirm={confirmArchive}
+        onCancel={() => setShowArchiveModal(false)}
+        confirmText="Archive"
+        cancelText="Cancel"
+        variant="confirm"
+      />
     </KeyboardAvoidingView>
   );
 }

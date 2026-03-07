@@ -14,7 +14,7 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
-import { Input, Button, Card, ScreenWrapper, AppText, ScreenHeader } from '@/presentation/components';
+import { Input, Button, Card, ScreenWrapper, AppText, ScreenHeader, DatePicker } from '@/presentation/components';
 import { showAlert, showConfirm } from '@/shared/utils/alert';
 import { Goal, calculateGoalProgress, getGoalStatus, calculateDaysRemaining, calculateRemainingAmount } from '@/domain/entities/Goal';
 import { FirestoreGoalRepository } from '@/data/repositories/FirestoreGoalRepository';
@@ -35,7 +35,7 @@ export default function EditGoalScreen() {
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
-  const [targetDate, setTargetDate] = useState('');
+  const [targetDate, setTargetDate] = useState<Date | undefined>(undefined);
   const [selectedIcon, setSelectedIcon] = useState('🎯');
   const [amountToAdd, setAmountToAdd] = useState('');
   const [saving, setSaving] = useState(false);
@@ -88,10 +88,7 @@ export default function EditGoalScreen() {
       setSelectedIcon(loadedGoal.icon || '🎯');
       
       if (loadedGoal.target_date) {
-        // Format date as MM/DD/YYYY
-        const date = new Date(loadedGoal.target_date);
-        const formatted = `${(date.getMonth() + 1).toString().padStart(2, '0')}/${date.getDate().toString().padStart(2, '0')}/${date.getFullYear()}`;
-        setTargetDate(formatted);
+        setTargetDate(new Date(loadedGoal.target_date));
       }
     } catch (error) {
       console.error('❌ Error loading goal:', error);
@@ -121,22 +118,10 @@ export default function EditGoalScreen() {
       // Parse amount (convert dollars to cents)
       const amountInCents = Math.round(parseFloat(targetAmount) * 100);
 
-      // Parse target date if provided
-      let parsedDate: Date | null = null;
-      if (targetDate.trim()) {
-        const date = new Date(targetDate);
-        if (isNaN(date.getTime())) {
-          showAlert('Validation Error', 'Invalid date format. Use MM/DD/YYYY');
-          setSaving(false);
-          return;
-        }
-        parsedDate = date;
-      }
-
       await goalRepository.updateGoal(goal.id, {
         name: name.trim(),
         target_amount: amountInCents,
-        target_date: parsedDate || undefined,
+        target_date: targetDate || undefined,
         icon: selectedIcon,
         updated_at: new Date(),
       });
@@ -414,11 +399,11 @@ export default function EditGoalScreen() {
 
           {/* Target Date */}
           <Card style={styles.card}>
-            <Input
+            <DatePicker
               label="Target Date (Optional)"
               value={targetDate}
-              onChangeText={setTargetDate}
-              placeholder="MM/DD/YYYY"
+              onChange={setTargetDate}
+              minimumDate={new Date()}
               helperText="Leave blank if no specific deadline"
               testID="target-date-input"
             />

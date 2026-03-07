@@ -1,7 +1,7 @@
 // Add Transaction Screen
 // Form to create new income or expense transaction
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   ScrollView,
   View,
@@ -37,7 +37,7 @@ import { FirestoreBusinessRepository } from '@/data/repositories/FirestoreBusine
 import { Transaction, TransactionType, ReimbursementType, createTransaction } from '@/domain/entities/Transaction';
 import { Account } from '@/domain/entities/Account';
 import { Business } from '@/domain/entities/Business';
-import { MasterCategory } from '@/shared/constants/budget-categories';
+import { MasterCategory, CATEGORY_GROUP_INFO } from '@/shared/constants/budget-categories';
 import { SelectOption } from '@/shared/types';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
@@ -54,6 +54,7 @@ export default function AddTransactionScreen() {
   const [type, setType] = useState<TransactionType>('EXPENSE');
   const [amountInCents, setAmountInCents] = useState<number>(0);
   const [selectedAccountId, setSelectedAccountId] = useState<string>('');
+  const [selectedCategoryGroup, setSelectedCategoryGroup] = useState<string>('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [payee, setPayee] = useState('');
   const [notes, setNotes] = useState('');
@@ -131,40 +132,64 @@ export default function AddTransactionScreen() {
   }, [user?.default_household_id]);
 
   // Transform accounts for SearchableSelect
-  const accountOptions: SelectOption[] = accounts.map((account) => ({
-    label: account.name,
-    value: account.id,
-    subtitle: account.account_type,
-  }));
+  const accountOptions: SelectOption[] = useMemo(() => 
+    accounts.map((account) => ({
+      label: account.name,
+      value: account.id,
+      subtitle: account.account_type,
+    })),
+    [accounts]
+  );
 
-  // Transform categories for SearchableSelect (filter by type)
-  const categoryOptions: SelectOption[] = categories
-    .filter((cat) => {
+  // Get unique category groups based on transaction type
+  const categoryGroupOptions: SelectOption[] = useMemo(() => {
+    const filteredCategories = categories.filter((cat) => {
       if (type === 'INCOME') {
         return cat.group === 'INCOME';
       } else {
         return cat.group !== 'INCOME';
       }
-    })
-    .map((cat) => ({
-      label: cat.name,
-      value: cat.id,
-      subtitle: cat.group,
-    }));
+    });
 
-  console.log('🔍 Category filtering:', {
-    totalCategories: categories.length,
-    transactionType: type,
-    filteredOptions: categoryOptions.length,
-    categoryGroups: categories.map(c => c.group),
-  });
+    // Get unique groups
+    const uniqueGroups = [...new Set(filteredCategories.map(cat => cat.group))];
+    
+    return uniqueGroups.map(group => ({
+      label: CATEGORY_GROUP_INFO[group]?.name || group,
+      value: group,
+      subtitle: CATEGORY_GROUP_INFO[group]?.recommendedPercent,
+    }));
+  }, [categories, type]);
+
+  // Get categories for selected group
+  const categoryOptions: SelectOption[] = useMemo(() => {
+    if (!selectedCategoryGroup) return [];
+
+    const filtered = categories
+      .filter((cat) => cat.group === selectedCategoryGroup)
+      .map((cat) => ({
+        label: cat.name,
+        value: cat.id,
+        subtitle: cat.icon,
+      }));
+
+    return filtered;
+  }, [categories, selectedCategoryGroup]);
+
+  // Reset category selection when group changes
+  useEffect(() => {
+    setSelectedCategoryId('');
+  }, [selectedCategoryGroup]);
 
   // Transform businesses for SearchableSelect
-  const businessOptions: SelectOption[] = businesses.map((business) => ({
-    label: business.name,
-    value: business.id,
-    subtitle: business.type === 'EMPLOYER' ? 'Employer' : business.type === 'CLIENT' ? 'Client' : 'Own Business',
-  }));
+  const businessOptions: SelectOption[] = useMemo(() => 
+    businesses.map((business) => ({
+      label: business.name,
+      value: business.id,
+      subtitle: business.type === 'EMPLOYER' ? 'Employer' : business.type === 'CLIENT' ? 'Client' : 'Own Business',
+    })),
+    [businesses]
+  );
 
   // Reimbursement type options
   const reimbursementTypeOptions: SelectOption[] = [
@@ -473,8 +498,8 @@ export default function AddTransactionScreen() {
             placeholder="Select account"
           />
 
-          {/* Category */}
-          {categoryOptions.length === 0 ? (
+          {/* Category Group */}
+          {categoryGroupOptions.length === 0 ? (
             <Card padding="md" style={{ marginBottom: SPACING[4] }}>
               <AppText variant="body" color={theme.text.secondary} style={{ marginBottom: SPACING[2] }}>
                 Category *
@@ -499,13 +524,25 @@ export default function AddTransactionScreen() {
               </TouchableOpacity>
             </Card>
           ) : (
-            <SearchableSelect
-              label="Category *"
-              value={selectedCategoryId}
-              onSelect={setSelectedCategoryId}
-              options={categoryOptions}
-              placeholder={`Select ${type.toLowerCase()} category`}
-            />
+            <>
+              <SearchableSelect
+                label="Category Group *"
+                value={selectedCategoryGroup}
+                onSelect={setSelectedCategoryGroup}
+                options={categoryGroupOptions}
+                placeholder="Select category group"
+              />
+
+              {selectedCategoryGroup && (
+                <SearchableSelect
+                  label="Category *"
+                  value={selectedCategoryId}
+                  onSelect={setSelectedCategoryId}
+                  options={categoryOptions}
+                  placeholder="Select specific category"
+                />
+              )}
+            </>
           )}
 
           {/* Notes */}

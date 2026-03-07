@@ -1,0 +1,319 @@
+---
+globs:
+  - "src/infrastructure/firebase/**/*"
+  - "src/data/datasources/**/*"
+alwaysApply: false
+description: "Firebase/Firestore setup, offline persistence, UUIDs, and data structure patterns"
+---
+
+# Firebase Setup & Offline Persistence
+
+**Part of Firebase/Firestore Standards** (Split 1 of 3)
+
+**See also**:
+- @46-firebase-repository.mdc - Repository patterns, queries, real-time
+- @47-firebase-security.mdc - Security, testing, performance, migration
+- @23-database-rules.mdc - Generic database design principles
+- @05-database-sqlite.mdc - Local SQLite reference
+
+---
+
+## TL;DR - Quick Reference
+
+**Offline-first setup**:
+```typescript
+await enableIndexedDbPersistence(firestore);
+```
+
+**UUID-based IDs**:
+```typescript
+const docId = uuid(); // Client-generated
+await setDoc(doc(db, 'users', docId), userData);
+```
+
+**Key patterns**:
+- Use UUIDs for document IDs (offline-first)
+- Enable offline persistence
+- Use subcollections for nested data
+- Plan for "last write wins" conflicts
+
+---
+
+## Why Firestore for Offline-First?
+
+### Firestore Strengths
+
+✅ **Built-in offline support** - Local cache handles reads/writes  
+✅ **Automatic sync** - Queues writes, syncs when online  
+✅ **Real-time updates** - Other devices get changes automatically  
+✅ **Managed infrastructure** - No server to maintain  
+✅ **Scalable** - Handles growth without re-architecture
+
+### When to Use Firestore vs SQLite
+
+| Use Case | Recommendation |
+|----------|----------------|
+| **Multi-device sync** | Firestore |
+| **Offline-only, no sync** | SQLite |
+| **Complex relational queries** | SQLite (or Firestore + denormalization) |
+| **Real-time collaboration** | Firestore |
+| **Cost-sensitive at scale** | SQLite + custom sync (more work) |
+
+---
+
+## Firebase Setup
+
+### Installation
+
+```bash
+# Install Firebase SDK
+npm install firebase
+
+# For React Native (if using)
+npm install @react-native-firebase/app @react-native-firebase/firestore
+```
+
+### Configuration
+
+```typescript
+// src/infrastructure/firebase/config.ts
+import { initializeApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+import { getStorage } from 'firebase/storage';
+
+// Load from environment variables (see @17-environment-config.mdc)
+const firebaseConfig = {
+  apiKey: process.env.FIREBASE_API_KEY,
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.FIREBASE_PROJECT_ID,
+  storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.FIREBASE_APP_ID,
+};
+
+// Initialize Firebase
+export const app = initializeApp(firebaseConfig);
+export const db = getFirestore(app);
+export const auth = getAuth(app);
+export const storage = getStorage(app);
+```
+
+### Environment Variables
+
+```bash
+# .env.local (NEVER commit to git!)
+FIREBASE_API_KEY=your-api-key
+FIREBASE_AUTH_DOMAIN=your-app.firebaseapp.com
+FIREBASE_PROJECT_ID=your-project-id
+FIREBASE_STORAGE_BUCKET=your-app.appspot.com
+FIREBASE_MESSAGING_SENDER_ID=123456789
+FIREBASE_APP_ID=1:123456789:web:abc123
+```
+
+---
+
+## Offline Persistence
+
+### Enable Offline Persistence
+
+```typescript
+// src/infrastructure/firebase/offline-setup.ts
+import { initializeFirestore, persistentLocalCache } from 'firebase/firestore';
+import { enableIndexedDbPersistence } from 'firebase/firestore';
+
+// Web
+export async function setupOfflineFirst() {
+  try {
+    await enableIndexedDbPersistence(db);
+    console.log('Offline persistence enabled');
+  } catch (err: any) {
+    if (err.code === 'failed-precondition') {
+      // Multiple tabs open, persistence only enabled in one tab
+      console.warn('Offline persistence failed: Multiple tabs open');
+    } else if (err.code === 'unimplemented') {
+      // Browser doesn't support persistence
+      console.warn('Offline persistence not available in this browser');
+    }
+  }
+}
+
+// React Native
+import { initializeFirestore } from '@react-native-firebase/firestore';
+
+export function setupOfflineFirstRN() {
+  // Offline persistence is enabled by default in React Native
+  // Configure cache size if needed
+  firestore().settings({
+    cacheSizeBytes: 100 * 1024 * 1024, // 100 MB
+  });
+}
+```
+
+### How Offline Persistence Works
+
+```typescript
+/*
+ * Offline Flow:
+ * 
+ * 1. User writes data while offline
+ *    → Write goes to local cache immediately
+ *    → Write added to pending queue
+ *    → UI updates instantly (optimistic)
+ * 
+ * 2. User goes online
+ *    → SDK automatically uploads pending writes
+ *    → Server acknowledges
+ *    → Local cache syncs with server
+ * 
+ * 3. Other devices
+ *    → Receive real-time updates
+ *    → Local cache updates
+ *    → UI updates via listeners
+ */
+```
+
+---
+
+## UUID-Based Document IDs
+
+### Why UUIDs for Offline-First?
+
+```typescript
+// ✅ GOOD: Client-generated UUID
+import { v4 as uuid } from 'uuid';
+
+const userId = uuid(); // Generated offline
+await setDoc(doc(db, 'users', userId), {
+  name: 'John Doe',
+  email: 'john@example.com',
+  created_at: serverTimestamp(),
+});
+
+// ❌ BAD: Server-generated ID
+const docRef = await addDoc(collection(db, 'users'), {
+  name: 'John Doe',
+  // Problem: Requires online connection to get ID
+});
+```
+
+### UUID Pattern
+
+```typescript
+// src/infrastructure/firebase/document-helpers.ts
+import { v4 as uuid } from 'uuid';
+import { doc, setDoc, Timestamp } from 'firebase/firestore';
+
+export async function createDocument<T>(
+  collectionPath: string,
+  data: T,
+  customId?: string
+): Promise<string> {
+  const docId = customId || uuid();
+  
+  await setDoc(doc(db, collectionPath, docId), {
+    ...data,
+    created_at: Timestamp.now(),
+    updated_at: Timestamp.now(),
+  });
+  
+  return docId;
+}
+```
+
+---
+
+## Data Structure Patterns
+
+### Collections vs Subcollections
+
+```typescript
+// Pattern 1: Top-level collections
+// Good for: Independent entities, cross-household queries
+users/{userId}
+households/{householdId}
+transactions/{transactionId}
+
+// Pattern 2: Subcollections
+// Good for: Nested data, scoped queries, automatic cleanup
+households/{householdId}/budgets/{budgetId}
+households/{householdId}/budgets/{budgetId}/categories/{categoryId}
+transactions/{transactionId}/receipts/{receiptId}
+```
+
+### When to Use Each
+
+```typescript
+// ✅ Subcollections: When data belongs to parent
+households/{householdId}/members/{userId}
+households/{householdId}/transactions/{txId}
+
+// ✅ Top-level: When data is referenced across parents
+users/{userId} // Used by multiple households
+categories/{categoryId} // Shared templates
+
+// ❌ Don't deeply nest (>3 levels)
+// Bad: a/b/c/d/e/f - queries become complex
+```
+
+### Document Structure
+
+```typescript
+// src/infrastructure/firebase/models.ts
+
+// ✅ GOOD: Flat structure
+interface UserDocument {
+  id: string;
+  email: string;
+  name: string;
+  household_ids: string[]; // Array of references
+  created_at: Timestamp;
+  updated_at: Timestamp;
+}
+
+// ❌ BAD: Nested objects (hard to query)
+interface UserDocumentBad {
+  id: string;
+  profile: {
+    personal: {
+      name: string;
+      age: number;
+    };
+    contact: {
+      email: string;
+      phone: string;
+    };
+  };
+}
+
+// ✅ Use subcollections for nested data instead
+users/{userId}/preferences/{key}
+```
+
+---
+
+## Quick Reference
+
+### Setup Checklist
+- [ ] Install Firebase SDK
+- [ ] Configure environment variables
+- [ ] Enable offline persistence
+- [ ] Use UUID-based document IDs
+
+### Data Structure Rules
+- **Collections**: Top-level for independent entities
+- **Subcollections**: For nested, parent-owned data
+- **Nesting limit**: Max 3 levels deep
+- **Document structure**: Flat, not deeply nested
+
+### Offline Patterns
+- **UUIDs**: Client-generated IDs (v4)
+- **Persistence**: Enable IndexedDB (web) or default (RN)
+- **Cache size**: Configure as needed (default 40MB)
+- **Conflict resolution**: Last write wins (see @46-firebase-repository.mdc)
+
+---
+
+**Last Updated**: 2026-02-06  
+**Status**: Active Standard  
+**Part of**: Firebase/Firestore Standards (Split 1 of 3)

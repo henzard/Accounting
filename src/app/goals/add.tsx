@@ -13,7 +13,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
-import { Input, Button, Card, ScreenWrapper, AppText, ScreenHeader } from '@/presentation/components';
+import { Input, Button, Card, ScreenWrapper, AppText, ScreenHeader, DatePicker } from '@/presentation/components';
 import { showAlert, showConfirm } from '@/shared/utils/alert';
 import { createGoal } from '@/domain/entities/Goal';
 import { FirestoreGoalRepository } from '@/data/repositories/FirestoreGoalRepository';
@@ -29,7 +29,7 @@ export default function AddGoalScreen() {
   
   const [name, setName] = useState('');
   const [targetAmount, setTargetAmount] = useState('');
-  const [targetDate, setTargetDate] = useState('');
+  const [targetDate, setTargetDate] = useState<Date | undefined>(undefined);
   const [selectedIcon, setSelectedIcon] = useState('🎯');
   const [saving, setSaving] = useState(false);
 
@@ -58,24 +58,11 @@ export default function AddGoalScreen() {
       // Parse amount (convert dollars to cents)
       const amountInCents = Math.round(parseFloat(targetAmount) * 100);
 
-      // Parse target date if provided
-      let parsedDate: Date | undefined;
-      if (targetDate.trim()) {
-        // Simple date parser (expects MM/DD/YYYY or YYYY-MM-DD)
-        const date = new Date(targetDate);
-        if (isNaN(date.getTime())) {
-          showAlert('Validation Error', 'Invalid date format. Use MM/DD/YYYY or YYYY-MM-DD');
-          setSaving(false);
-          return;
-        }
-        
-        if (date < new Date()) {
-          showAlert('Validation Error', 'Target date must be in the future');
-          setSaving(false);
-          return;
-        }
-        
-        parsedDate = date;
+      // Validate target date if provided
+      if (targetDate && targetDate < new Date()) {
+        showAlert('Validation Error', 'Target date must be in the future');
+        setSaving(false);
+        return;
       }
 
       // Create goal
@@ -85,7 +72,7 @@ export default function AddGoalScreen() {
         name: name.trim(),
         target_amount: amountInCents,
         current_amount: 0,
-        target_date: parsedDate,
+        target_date: targetDate,
         icon: selectedIcon,
       });
 
@@ -173,11 +160,11 @@ export default function AddGoalScreen() {
 
           {/* Target Date (Optional) */}
           <Card style={styles.card}>
-            <Input
+            <DatePicker
               label="Target Date (Optional)"
               value={targetDate}
-              onChangeText={setTargetDate}
-              placeholder="MM/DD/YYYY"
+              onChange={setTargetDate}
+              minimumDate={new Date()}
               helperText="When do you need this money? Leave blank if flexible"
               testID="target-date-input"
             />

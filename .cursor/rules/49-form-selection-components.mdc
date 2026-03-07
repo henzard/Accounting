@@ -1,10 +1,19 @@
 ---
 globs:
-  - "src/presentation/components/**/*"
+  - "src/presentation/components/form/**/*"
 alwaysApply: false
+description: "Form selection components - searchable dropdowns, quick add, autocomplete, and grouped selects"
 ---
 
-# UI Component Patterns
+# Form Selection Components
+
+**Part of UI Component Patterns** (Split 1 of 2)
+
+**See also**:
+- @49-advanced-form-patterns.mdc - Multi-select, composition, best practices
+- @29-form-management.mdc - Form validation and state management
+
+---
 
 ## Searchable Dropdowns
 
@@ -16,7 +25,7 @@ alwaysApply: false
 ```typescript
 // src/presentation/components/form/searchable-select.tsx
 import { useState, useMemo } from 'react';
-import { FlatList, TextInput, TouchableOpacity } from 'react-native';
+import { FlatList, TextInput, TouchableOpacity, Modal, View, Text } from 'react-native';
 
 interface SelectItem {
   label: string;
@@ -30,7 +39,7 @@ interface SearchableSelectProps {
   onValueChange: (value: string) => void;
   placeholder?: string;
   label?: string;
-  onQuickAdd?: () => void;  // Quick add callback
+  onQuickAdd?: () => void;
   quickAddLabel?: string;
 }
 
@@ -173,6 +182,8 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
 };
 ```
 
+---
+
 ## Quick Add Pattern
 
 ### When to Include Quick Add
@@ -238,51 +249,42 @@ export const QuickAddSelect: React.FC<QuickAddSelectProps> = ({
 };
 ```
 
-### Usage Example: Species Selector
+### Usage Example
 ```typescript
-export const AnimalFormScreen: React.FC = () => {
-  const [species, setSpecies] = useState('');
-  const [speciesList, setSpeciesList] = useState([
-    { label: 'Cattle', value: 'cattle' },
-    { label: 'Sheep', value: 'sheep' },
-    { label: 'Pig', value: 'pig' },
-  ]);
+export const FormScreen: React.FC = () => {
+  const [category, setCategory] = useState('');
+  const [categoryList, setCategoryList] = useState([...]);
 
-  const handleQuickAddSpecies = async () => {
-    // Show quick add form
-    const newSpecies = await promptForNewSpecies();
+  const handleQuickAddCategory = async () => {
+    const newCategory = await promptForNewCategory();
     
-    if (newSpecies) {
-      // Add to database
-      await speciesRepository.create(newSpecies);
+    if (newCategory) {
+      await categoryRepository.create(newCategory);
+      setCategoryList([...categoryList, newCategory]);
+      setCategory(newCategory.value);
       
-      // Update list
-      setSpeciesList([...speciesList, newSpecies]);
-      
-      // Auto-select new item
-      setSpecies(newSpecies.value);
-      
-      // Show success feedback
       showToast({
         type: 'success',
-        title: 'Species Added',
-        message: `${newSpecies.label} has been added`,
+        title: 'Category Added',
+        message: `${newCategory.label} has been added`,
       });
     }
   };
 
   return (
     <SearchableSelect
-      label="Species"
-      items={speciesList}
-      value={species}
-      onValueChange={setSpecies}
-      onQuickAdd={handleQuickAddSpecies}
-      quickAddLabel="Add New Species"
+      label="Category"
+      items={categoryList}
+      value={category}
+      onValueChange={setCategory}
+      onQuickAdd={handleQuickAddCategory}
+      quickAddLabel="Add New Category"
     />
   );
 };
 ```
+
+---
 
 ## Autocomplete Pattern
 
@@ -356,113 +358,7 @@ export const AutocompleteSelect: React.FC = ({
 };
 ```
 
-## Multi-Select Pattern
-
-### Multi-Select with Search & Quick Add
-```typescript
-interface MultiSelectProps {
-  items: SelectItem[];
-  value: string[];  // Array of selected values
-  onChange: (values: string[]) => void;
-  onQuickAdd?: () => void;
-  label?: string;
-  max?: number;  // Maximum selections allowed
-}
-
-export const MultiSelect: React.FC<MultiSelectProps> = ({
-  items,
-  value,
-  onChange,
-  onQuickAdd,
-  label,
-  max,
-}) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isOpen, setIsOpen] = useState(false);
-
-  const filteredItems = useMemo(() => {
-    if (!searchQuery) return items;
-    return items.filter(item =>
-      item.label.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [items, searchQuery]);
-
-  const toggleItem = (itemValue: string) => {
-    const isSelected = value.includes(itemValue);
-    
-    if (isSelected) {
-      onChange(value.filter(v => v !== itemValue));
-    } else {
-      if (max && value.length >= max) {
-        Alert.alert('Limit Reached', `You can only select up to ${max} items`);
-        return;
-      }
-      onChange([...value, itemValue]);
-    }
-  };
-
-  const selectedItems = items.filter(item => value.includes(item.value));
-
-  return (
-    <View style={styles.container}>
-      {label && <Text style={styles.label}>{label}</Text>}
-      
-      {/* Selected Pills */}
-      <View style={styles.selectedContainer}>
-        {selectedItems.map(item => (
-          <View key={item.value} style={styles.pill}>
-            <Text style={styles.pillText}>{item.label}</Text>
-            <TouchableOpacity onPress={() => toggleItem(item.value)}>
-              <CloseIcon size={16} />
-            </TouchableOpacity>
-          </View>
-        ))}
-        
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => setIsOpen(true)}
-        >
-          <PlusIcon />
-          <Text>Add</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Selection Modal */}
-      <Modal visible={isOpen} transparent>
-        <View style={styles.modalContent}>
-          {/* Search */}
-          <TextInput
-            placeholder="Search..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-
-          {/* Quick Add */}
-          {onQuickAdd && (
-            <Button title="Add New" onPress={onQuickAdd} />
-          )}
-
-          {/* Items with Checkboxes */}
-          <FlatList
-            data={filteredItems}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.checkboxItem}
-                onPress={() => toggleItem(item.value)}
-              >
-                <Checkbox checked={value.includes(item.value)} />
-                <Text>{item.label}</Text>
-              </TouchableOpacity>
-            )}
-          />
-
-          <Button title="Done" onPress={() => setIsOpen(false)} />
-        </View>
-      </Modal>
-    </View>
-  );
-};
-```
+---
 
 ## Grouped Select
 
@@ -547,128 +443,31 @@ export const GroupedSelect: React.FC<GroupedSelectProps> = ({
 };
 ```
 
-## Component Composition Example
+---
 
-### Complete Form with Searchable Selects
-```typescript
-// src/presentation/screens/animal-form.screen.tsx
-export const AnimalFormScreen: React.FC = () => {
-  const { control, handleSubmit } = useForm<AnimalFormData>();
+## Quick Reference
 
-  return (
-    <ScrollView>
-      {/* Species - Searchable with Quick Add */}
-      <Controller
-        control={control}
-        name="species"
-        render={({ field }) => (
-          <SearchableSelect
-            label="Species"
-            items={speciesList}
-            value={field.value}
-            onValueChange={field.onChange}
-            onQuickAdd={handleQuickAddSpecies}
-            quickAddLabel="Add New Species"
-          />
-        )}
-      />
+### Component Types
+- **SearchableSelect**: Basic dropdown with search
+- **QuickAddSelect**: Dropdown with inline add button
+- **AutocompleteSelect**: API-backed search
+- **GroupedSelect**: Organized by categories
 
-      {/* Tags - Multi-select with Quick Add */}
-      <Controller
-        control={control}
-        name="tags"
-        render={({ field }) => (
-          <MultiSelect
-            label="Tags"
-            items={tagsList}
-            value={field.value}
-            onChange={field.onChange}
-            onQuickAdd={handleQuickAddTag}
-            max={5}
-          />
-        )}
-      />
+### When to Use
+- **Search**: 5+ items in dropdown
+- **Quick Add**: User-generated data
+- **Autocomplete**: 100+ items, API search
+- **Grouped**: Logically organized data
 
-      {/* Location - Grouped with Quick Add */}
-      <Controller
-        control={control}
-        name="location"
-        render={({ field }) => (
-          <GroupedSelect
-            label="Location"
-            items={locationsList}
-            value={field.value}
-            onValueChange={field.onChange}
-            onQuickAdd={handleQuickAddLocation}
-          />
-        )}
-      />
+### Key Features
+- **Search**: Filter locally or via API
+- **Quick Add**: Inline creation flow
+- **Auto-select**: Select newly added items
+- **Feedback**: Success toast after add
+- **Loading**: Show spinner during search
 
-      <Button title="Save" onPress={handleSubmit(onSubmit)} />
-    </ScrollView>
-  );
-};
-```
+---
 
-## Best Practices
-
-### DO
-- ✅ Always include search for dropdowns with 5+ items
-- ✅ Provide quick add for user-generated data
-- ✅ Auto-select newly added items
-- ✅ Show loading state during search
-- ✅ Highlight matching text in search results
-- ✅ Allow keyboard navigation (web)
-- ✅ Debounce search input (300ms)
-- ✅ Show "No results" with quick add option
-
-### DON'T
-- ❌ Make users scroll through long lists
-- ❌ Forget to provide feedback after quick add
-- ❌ Allow quick add for system-controlled data
-- ❌ Make search case-sensitive
-- ❌ Ignore loading states
-- ❌ Forget accessibility labels
-
-## Performance Optimization
-
-### Virtual Lists for Large Datasets
-```typescript
-import { FlashList } from '@shopify/flash-list';
-
-// Use FlashList for better performance
-<FlashList
-  data={filteredItems}
-  renderItem={renderItem}
-  estimatedItemSize={50}
-  keyExtractor={(item) => item.value}
-/>
-```
-
-### Memoize Filtered Results
-```typescript
-const filteredItems = useMemo(() => {
-  return items.filter(item =>
-    item.label.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-}, [items, searchQuery]);
-```
-
-## Accessibility
-
-### Screen Reader Support
-```typescript
-<TouchableOpacity
-  accessibilityRole="button"
-  accessibilityLabel={`Select ${label}, current value ${selectedItem?.label || 'none'}`}
-  accessibilityHint="Opens a searchable list"
->
-  {/* ... */}
-</TouchableOpacity>
-
-<TextInput
-  accessibilityLabel="Search items"
-  accessibilityHint="Type to filter the list"
-  placeholder="Search..."
-/>
-```
+**Last Updated**: 2026-02-06  
+**Status**: Active Standard  
+**Part of**: UI Component Patterns (Split 1 of 2)

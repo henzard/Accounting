@@ -1,0 +1,322 @@
+---
+globs:
+  - "src/app/**/*.tsx"
+  - "src/presentation/**/*.tsx"
+  - "src/shared/components/**/*.tsx"
+alwaysApply: false
+description: "Premium UI components - buttons, inputs, lists, motion, and content presentation"
+---
+
+# Premium UI Components & Motion
+
+**Part of Premium UI Standards** (Split 3 of 4)
+
+**See also**:
+- @42-spacing-layout.mdc - Spacing and typography foundations
+- @43-visual-design.mdc - Colors, surfaces, borders, iconography
+- @44-implementation-tokens.mdc - Accessibility, tokens, checklists
+
+---
+
+## 1. Component Rules (Buttons, Inputs, Lists)
+
+### 1.1 Buttons
+
+**Primary Button**:
+- **Height**: `48-52px` (use `SPACING[12]` = 48px or custom 50px)
+- **Radius**: `12-14px` (use `BORDER_RADIUS.sm` = 10-12, or `BORDER_RADIUS.md` = 14)
+- **Text**: Medium/Semibold
+- **No gradients**
+- **Press state**: Darken background slightly; no ripple chaos
+
+**Secondary Button**:
+- Same size as primary
+- Neutral background or border
+- Never more visually dominant than primary
+
+**Icon Buttons**:
+- **Touch target min**: `44×44px` (accessibility requirement)
+- **Icon size**: `18-22px`
+- **One icon style set only** (stroke weight consistent)
+
+**Implementation**:
+```typescript
+// Primary button
+<TouchableOpacity
+  style={{
+    height: 50,
+    borderRadius: BORDER_RADIUS.md,
+    backgroundColor: theme.interactive.primary,
+    paddingHorizontal: SPACING[6],
+    justifyContent: 'center',
+    alignItems: 'center',
+  }}
+  activeOpacity={0.8}
+>
+  <Text style={[TEXT_STYLES.button, { color: theme.text.inverse }]}>
+    {title}
+  </Text>
+</TouchableOpacity>
+
+// Icon button
+<TouchableOpacity
+  style={{
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+  }}
+>
+  <Icon size={20} color={theme.text.primary} />
+</TouchableOpacity>
+```
+
+---
+
+### 1.2 Inputs
+
+**Input Specifications**:
+- **Height**: `48-52px` (match button height)
+- **Label above input** (not inside) for premium clarity
+- **Border**: `1px` subtle (use `StyleSheet.hairlineWidth` or `1`)
+- **Focus**: Blue focus ring or border (no neon glow)
+
+**Implementation**:
+```typescript
+<View>
+  <Text style={[TEXT_STYLES.label, { marginBottom: SPACING[1] }]}>
+    {label}
+  </Text>
+  <TextInput
+    style={{
+      height: 50,
+      borderWidth: 1,
+      borderColor: theme.border.default,
+      borderRadius: BORDER_RADIUS.sm,
+      paddingHorizontal: SPACING[4],
+      ...TEXT_STYLES.body,
+    }}
+    onFocus={(e) => {
+      e.target.setNativeProps({ borderColor: theme.interactive.primary });
+    }}
+  />
+</View>
+```
+
+**❌ FORBIDDEN**: Labels inside inputs (floating labels are acceptable but not preferred for premium feel).
+
+---
+
+### 1.3 Lists
+
+**List Specifications**:
+- **Row height**: `56-64px` (consistent)
+- **Dividers**: Hairline (`StyleSheet.hairlineWidth` or `1`)
+- **Layout**: Left = label; Right = value/chevron/status
+- **Avoid**: "Busy" rows with 5+ elements
+
+**Implementation**:
+```typescript
+<View style={{
+  height: 60,
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  paddingHorizontal: SPACING[4],
+  borderBottomWidth: StyleSheet.hairlineWidth,
+  borderBottomColor: theme.border.default,
+}}>
+  <Text style={TEXT_STYLES.body}>{label}</Text>
+  <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACING[2] }}>
+    <Text style={TEXT_STYLES.bodyEmphasis}>{value}</Text>
+    <Icon name="chevron-right" size={20} />
+  </View>
+</View>
+```
+
+---
+
+## 2. Motion Rules (Premium Motion, Not Flashy)
+
+### 2.1 Micro-animations Only
+
+**Rule**: Duration 150-220ms. Easing: standard ease-out. Use motion to clarify state changes, not decorate.
+
+**Animation Constants**:
+```typescript
+// src/shared/constants/animations.ts
+export const ANIMATION = {
+  duration: {
+    micro: 150,   // Micro-interactions
+    fast: 200,    // Standard transitions
+    normal: 220,  // Max for micro-animations
+  },
+  easing: {
+    easeOut: Easing.out(Easing.ease),
+  },
+} as const;
+```
+
+**Usage**:
+```typescript
+Animated.timing(value, {
+  toValue: 1,
+  duration: ANIMATION.duration.fast,
+  easing: ANIMATION.easing.easeOut,
+  useNativeDriver: true,
+}).start();
+```
+
+---
+
+### 2.2 Disable "Bouncy" Transitions by Default
+
+**Rule**: Avoid spring overshoot for core navigation/controls. Springs are fine for tiny affordances (e.g., toggles) if subtle.
+
+**✅ GOOD**:
+```typescript
+// Standard ease-out for navigation
+Animated.timing(translateX, {
+  toValue: 0,
+  duration: 200,
+  easing: Easing.out(Easing.ease),
+}).start();
+```
+
+**❌ BAD**:
+```typescript
+// Bouncy spring for navigation (too playful)
+Animated.spring(translateX, {
+  toValue: 0,
+  overshootClamping: false, // Creates bounce
+}).start();
+```
+
+**Exception**: Subtle springs for toggle switches, checkboxes (tiny affordances only).
+
+---
+
+### 2.3 Skeleton Loading Over Spinners
+
+**Rule**: Spinners feel cheap when overused. Use skeletons for list and card loading. Use spinners only for short actions (<1s perceived).
+
+**✅ GOOD**:
+```typescript
+// Skeleton for list loading
+{isLoading ? (
+  <SkeletonList count={5} />
+) : (
+  <FlatList data={items} />
+)}
+
+// Spinner only for short actions
+<Button
+  loading={isSubmitting}
+  onPress={handleSubmit}
+/>
+```
+
+**❌ BAD**:
+```typescript
+// Spinner for list loading (feels cheap)
+{isLoading ? (
+  <ActivityIndicator size="large" />
+) : (
+  <FlatList data={items} />
+)}
+```
+
+---
+
+## 3. Content Rules (The Hidden Luxury Lever)
+
+### 3.1 Reduce Visible UI "Noise"
+
+**Rule**: Fewer labels. Shorter copy. More whitespace. Fewer simultaneous call-to-actions.
+
+**✅ GOOD**:
+```typescript
+// Clean, minimal
+<View>
+  <Text style={TEXT_STYLES.h1}>Balance</Text>
+  <Text style={TEXT_STYLES.currency}>$12,345.67</Text>
+</View>
+```
+
+**❌ BAD**:
+```typescript
+// Too much noise
+<View>
+  <Text style={TEXT_STYLES.label}>Current Account Balance</Text>
+  <Text style={TEXT_STYLES.body}>Your balance as of today</Text>
+  <Text style={TEXT_STYLES.currency}>$12,345.67</Text>
+  <Text style={TEXT_STYLES.caption}>Last updated: 2 minutes ago</Text>
+  <Button title="View Details" />
+  <Button title="Add Transaction" />
+  <Button title="Export" />
+</View>
+```
+
+---
+
+### 3.2 Numbers Should Feel "Instrument-Grade"
+
+**Rule**: For finance/data screens, align decimals, use tabular numerals if available, keep formatting consistent.
+
+**Implementation**:
+```typescript
+// Tabular numerals (monospaced numbers)
+const currencyStyle = {
+  ...TEXT_STYLES.currency,
+  fontVariant: ['tabular-nums'], // Aligns decimals
+};
+
+// Consistent formatting
+const formatCurrency = (amount: number) => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+};
+```
+
+---
+
+## Quick Reference
+
+### Button Specifications
+- **Height**: 48-52px
+- **Radius**: 10-14px
+- **Touch target**: Min 44×44px (icons)
+- **States**: Subtle darken on press
+
+### Input Specifications
+- **Height**: 48-52px (match buttons)
+- **Labels**: Above input (not inside)
+- **Borders**: 1px hairline
+- **Focus**: Blue border (no glow)
+
+### List Specifications
+- **Row height**: 56-64px
+- **Dividers**: Hairline
+- **Layout**: Label left, value/chevron right
+
+### Motion
+- **Duration**: 150-220ms
+- **Easing**: Ease-out
+- **Avoid**: Bouncy springs, excessive spinners
+- **Prefer**: Skeletons for loading states
+
+### Content
+- **Fewer labels**: Minimize UI noise
+- **Shorter copy**: Concise text
+- **Numbers**: Tabular numerals, aligned decimals
+- **CTAs**: 1-2 max per screen
+
+---
+
+**Last Updated**: 2026-02-06  
+**Status**: Active Standard  
+**Part of**: Premium UI Standards (Split 3 of 4)
