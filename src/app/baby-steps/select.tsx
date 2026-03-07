@@ -192,7 +192,7 @@ export default function BabyStepsSelectScreen() {
                       <AppText variant="body" style={{ color: 'white' }}>✓</AppText>
                     ) : (
                       <AppText
-                        variant="h3"
+                        variant="h2"
                         style={{
                           color: isSelected
                             ? theme.text.inverse

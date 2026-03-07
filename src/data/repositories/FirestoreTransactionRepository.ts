@@ -53,6 +53,13 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
   }
 
   /**
+   * Get a single transaction by ID (interface alias)
+   */
+  async getTransactionById(transactionId: string): Promise<Transaction | null> {
+    return this.getTransaction(transactionId);
+  }
+
+  /**
    * Get transactions for a household
    * Works offline - returns cached data if no connection
    */

@@ -3,7 +3,7 @@
 // Premium UI: Uses Surface component internally for consistency
 
 import React, { ReactNode } from 'react';
-import { ViewStyle } from 'react-native';
+import { StyleProp, ViewStyle } from 'react-native';
 import { Surface } from './styled/surface';
 import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
 
@@ -13,7 +13,7 @@ interface CardProps {
   children: ReactNode;
   variant?: CardVariant;
   padding?: 'none' | 'sm' | 'md' | 'lg';
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   testID?: string;
 }
 

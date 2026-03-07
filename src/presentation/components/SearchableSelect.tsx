@@ -8,8 +8,9 @@ import {
   Modal,
   TouchableOpacity,
   FlatList,
-  StyleSheet,
+  StyleProp,
   TextInput,
+  ViewStyle,
 } from 'react-native';
 import { useTheme } from '@/infrastructure/theme';
 import { Input } from './Input';
@@ -25,6 +26,7 @@ interface SearchableSelectProps {
   helperText?: string;
   testID?: string;
   required?: boolean;
+  style?: StyleProp<ViewStyle>;
 }
 
 export const SearchableSelect: React.FC<SearchableSelectProps> = ({
@@ -36,6 +38,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   helperText,
   testID,
   required,
+  style,
 }) => {
   const { theme } = useTheme();
   const [modalVisible, setModalVisible] = useState(false);
@@ -60,7 +63,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
   };
 
   return (
-    <View>
+    <View style={style}>
       {/* Trigger Input */}
       <TouchableOpacity onPress={() => setModalVisible(true)} activeOpacity={0.7}>
         <View style={{ pointerEvents: 'none' }}>

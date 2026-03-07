@@ -4,8 +4,8 @@
 import { User } from '@/domain/entities';
 
 export interface IUserRepository {
-  // Get current authenticated user
-  getCurrentUser(): Promise<User | null>;
+  // Get current authenticated user (or by id fallback)
+  getCurrentUser(userId?: string): Promise<User | null>;
   
   // Get user by ID
   getUserById(userId: string): Promise<User | null>;

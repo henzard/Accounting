@@ -124,7 +124,7 @@ export default function AddTransactionScreen() {
   const accountOptions: SelectOption[] = accounts.map((account) => ({
     label: account.name,
     value: account.id,
-    subtitle: account.account_type,
+    subtitle: account.type,
   }));
 
   // Transform categories for SearchableSelect (filter by type)
@@ -435,7 +435,6 @@ export default function AddTransactionScreen() {
             value={amountInCents}
             onChangeValue={setAmountInCents}
             currency={householdCurrency}
-            placeholder="0.00"
           />
 
           {/* Payee */}

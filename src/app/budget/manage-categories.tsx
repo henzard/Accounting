@@ -626,7 +626,7 @@ export default function ManageCategoriesScreen() {
                 activeOpacity={0.7}
               >
                 <AppText variant="h2" style={styles.groupIcon}>{groupInfo.icon}</AppText>
-                <AppText variant="h3" style={{ color: theme.text.primary }}>
+                <AppText variant="h2" style={{ color: theme.text.primary }}>
                   {groupInfo.name}
                 </AppText>
                 {/* 5. COUNT BADGE */}
@@ -847,7 +847,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: SPACING[8],
-    paddingVertical: SPACING[16],
+    paddingVertical: SPACING[12],
   },
   emptyIcon: {
     fontSize: 64,

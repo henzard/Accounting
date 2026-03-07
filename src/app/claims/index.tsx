@@ -164,7 +164,7 @@ export default function ClaimsScreen() {
                   <Card padding="md" style={styles.claimCard}>
                     <View style={styles.claimHeader}>
                       <View style={styles.claimInfo}>
-                        <AppText variant="h3" style={{ marginBottom: SPACING[1] }}>
+                        <AppText variant="h2" style={{ marginBottom: SPACING[1] }}>
                           {claim.name}
                         </AppText>
                         <AppText variant="caption" color={theme.text.secondary}>

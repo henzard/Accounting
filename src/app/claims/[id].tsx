@@ -66,18 +66,23 @@ export default function ClaimDetailScreen() {
     if (!user?.default_household_id || !claimId || hasLoaded) return;
 
     const loadData = async () => {
+      if (!claimId) return;
+      if (!user?.default_household_id) return;
+      const currentClaimId = claimId;
+      const householdId = user.default_household_id;
+
       try {
         setLoading(true);
         setHasLoaded(true);
 
         // Load household currency
-        const householdDoc = await getDoc(doc(db, 'households', user.default_household_id));
+        const householdDoc = await getDoc(doc(db, 'households', householdId));
         if (householdDoc.exists()) {
           setHouseholdCurrency((householdDoc.data().currency as CurrencyCode) || 'USD');
         }
 
         // Load claim
-        const clm = await claimRepo.getClaimById(claimId);
+        const clm = await claimRepo.getClaimById(currentClaimId);
         if (!clm) {
           showAlert('Error', 'Claim not found');
           router.back();
@@ -85,7 +90,7 @@ export default function ClaimDetailScreen() {
         }
 
         // Verify claim belongs to user's household
-        if (clm.household_id !== user.default_household_id) {
+        if (clm.household_id !== householdId) {
           showAlert('Permission Denied', 'You do not have access to this claim');
           router.back();
           return;
@@ -280,7 +285,7 @@ export default function ClaimDetailScreen() {
 
           {/* Transactions Card */}
           <Card padding="md" style={styles.transactionsCard}>
-            <AppText variant="h3" style={{ marginBottom: SPACING[4] }}>
+            <AppText variant="h2" style={{ marginBottom: SPACING[4] }}>
               Transactions ({transactions.length})
             </AppText>
 

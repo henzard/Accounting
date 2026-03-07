@@ -96,7 +96,7 @@ export class FirestoreReimbursementClaimRepository implements IReimbursementClai
       })
     );
 
-    return transactions.reduce((sum, amount) => sum + amount, 0);
+    return transactions.reduce((sum: number, amount: number) => sum + amount, 0);
   }
 
   private firestoreToClaim(id: string, data: any): ReimbursementClaim {

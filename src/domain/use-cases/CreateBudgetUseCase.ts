@@ -32,7 +32,7 @@ export class CreateBudgetUseCase {
     }
     
     // Check if budget already exists for this period
-    const existing = await this.budgetRepository.getBudgetByPeriod(
+    const existing = await this.budgetRepository.getBudgetByMonth(
       input.household_id,
       input.month,
       input.year
@@ -42,38 +42,40 @@ export class CreateBudgetUseCase {
       throw new Error('Budget already exists for this period');
     }
     
-    // Create new budget
-    const budget = createBudget({
-      id: uuid(),
-      household_id: input.household_id,
-      month: input.month,
-      year: input.year,
-      planned_income: input.planned_income,
-      created_by: input.created_by,
-    });
-    
-    // Save budget
-    await this.budgetRepository.createBudget(budget);
-    
-    // Copy categories from previous month if requested
+    // Optionally copy categories from previous month
+    let copiedCategories: Budget['categories'] = [];
     if (input.copy_from_previous) {
       const prevMonth = input.month === 1 ? 12 : input.month - 1;
       const prevYear = input.month === 1 ? input.year - 1 : input.year;
       
-      const previousBudget = await this.budgetRepository.getBudgetByPeriod(
+      const previousBudget = await this.budgetRepository.getBudgetByMonth(
         input.household_id,
         prevMonth,
         prevYear
       );
       
       if (previousBudget) {
-        // Copy categories logic will be in a separate use case
-        budget.copied_from_budget_id = previousBudget.id;
-        await this.budgetRepository.updateBudget(budget.id, {
-          copied_from_budget_id: previousBudget.id,
-        });
+        copiedCategories = previousBudget.categories.map((category) => ({
+          ...category,
+          id: uuid(),
+          actual_amount: 0,
+          is_funded: false,
+        }));
       }
     }
+
+    // Create new budget
+    const budget = createBudget({
+      id: uuid(),
+      household_id: input.household_id,
+      month: input.month,
+      year: input.year,
+      planned_income: input.planned_income ?? 0,
+      categories: copiedCategories,
+    });
+    
+    // Save budget
+    await this.budgetRepository.createBudget(budget);
     
     return budget;
   }

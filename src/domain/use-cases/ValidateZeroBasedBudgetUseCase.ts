@@ -1,7 +1,7 @@
 // Use Case: Validate Zero-Based Budget
 // Checks if a budget follows Dave Ramsey's zero-based budgeting principle
 
-import { Budget, validateZeroBasedBudget } from '@/domain/entities';
+import { calculateRemainingToBudget, isZeroBasedBudget } from '@/domain/entities';
 import { IBudgetRepository } from '@/domain/repositories';
 
 export interface ValidateZeroBasedBudgetInput {
@@ -27,19 +27,27 @@ export class ValidateZeroBasedBudgetUseCase {
     }
     
     // Validate zero-based
-    const validation = validateZeroBasedBudget(budget);
+    const difference = calculateRemainingToBudget(budget);
+    const zeroBased = isZeroBasedBudget(budget);
+    const message = zeroBased
+      ? 'Budget is zero-based. Every dollar has a job.'
+      : difference > 0
+      ? 'You still have money left to assign.'
+      : 'Your planned spending exceeds planned income.';
     
     // Add suggested action based on difference
     let suggestedAction: string | undefined;
     
-    if (validation.difference > 0) {
+    if (difference > 0) {
       suggestedAction = 'Allocate the extra money to a category or savings goal';
-    } else if (validation.difference < 0) {
+    } else if (difference < 0) {
       suggestedAction = 'Reduce expenses or increase planned income';
     }
     
     return {
-      ...validation,
+      isZeroBased: zeroBased,
+      difference,
+      message,
       suggestedAction,
     };
   }

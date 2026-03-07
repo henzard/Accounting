@@ -314,7 +314,7 @@ export default function HouseholdMembersScreen() {
           {/* Add Member Section - Only for owners */}
           {isOwner && (
             <Card padding="md" style={styles.addMemberCard}>
-              <AppText variant="h3" style={{ marginBottom: SPACING[3] }}>
+              <AppText variant="h2" style={{ marginBottom: SPACING[3] }}>
                 Add Member
               </AppText>
               <AppText variant="caption" color={theme.text.secondary} style={{ marginBottom: SPACING[3] }}>
@@ -344,7 +344,7 @@ export default function HouseholdMembersScreen() {
 
           {/* Members List */}
           <Card padding="md" style={styles.membersCard}>
-            <AppText variant="h3" style={{ marginBottom: SPACING[3] }}>
+            <AppText variant="h2" style={{ marginBottom: SPACING[3] }}>
               Members ({members.length})
             </AppText>
 
@@ -353,7 +353,7 @@ export default function HouseholdMembersScreen() {
                 <View style={styles.memberRow}>
                   <View style={styles.memberInfo}>
                     <View style={[styles.avatar, { backgroundColor: theme.interactive.primary }]}>
-                      <AppText variant="h4" color={theme.text.inverse}>
+                      <AppText variant="h2" color={theme.text.inverse}>
                         {member.name.charAt(0).toUpperCase()}
                       </AppText>
                     </View>

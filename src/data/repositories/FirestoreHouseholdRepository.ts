@@ -4,11 +4,14 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
+  query,
   setDoc,
   updateDoc,
   Timestamp,
+  where,
 } from 'firebase/firestore';
-import { Household } from '@/domain/entities';
+import { BabyStep, Household } from '@/domain/entities';
 import { IHouseholdRepository } from '@/domain/repositories';
 import { db } from '@/infrastructure/firebase';
 
@@ -27,6 +30,23 @@ export class FirestoreHouseholdRepository implements IHouseholdRepository {
       return this.firestoreToHousehold(docSnap.id, docSnap.data());
     } catch (error) {
       console.error('Error getting household:', error);
+      throw error;
+    }
+  }
+
+  async getHouseholdsForUser(userId: string): Promise<Household[]> {
+    try {
+      const q = query(
+        collection(db, this.COLLECTION),
+        where('member_ids', 'array-contains', userId)
+      );
+
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.map((householdDoc) =>
+        this.firestoreToHousehold(householdDoc.id, householdDoc.data())
+      );
+    } catch (error) {
+      console.error('Error getting households for user:', error);
       throw error;
     }
   }
@@ -65,7 +85,7 @@ export class FirestoreHouseholdRepository implements IHouseholdRepository {
     }
   }
 
-  async updateBabyStep(householdId: string, babyStep: number): Promise<void> {
+  async updateBabyStep(householdId: string, babyStep: BabyStep): Promise<void> {
     await this.updateHousehold(householdId, {
       current_baby_step: babyStep,
       baby_step_started_at: new Date(),
@@ -123,6 +143,10 @@ export class FirestoreHouseholdRepository implements IHouseholdRepository {
   // ============================================
 
   private firestoreToHousehold(id: string, data: any): Household {
+    const rawBabyStep = typeof data.current_baby_step === 'number' ? data.current_baby_step : 1;
+    const currentBabyStep: BabyStep =
+      rawBabyStep >= 1 && rawBabyStep <= 7 ? (rawBabyStep as BabyStep) : 1;
+
     return {
       id: id,
       name: data.name,
@@ -131,7 +155,7 @@ export class FirestoreHouseholdRepository implements IHouseholdRepository {
       timezone: data.timezone || 'UTC',
       currency: data.currency || 'USD',
       budget_period_start_day: data.budget_period_start_day || 1,
-      current_baby_step: data.current_baby_step || 1,
+      current_baby_step: currentBabyStep,
       baby_step_started_at: data.baby_step_started_at 
         ? (data.baby_step_started_at instanceof Timestamp ? data.baby_step_started_at.toDate() : new Date(data.baby_step_started_at))
         : undefined,

@@ -29,7 +29,7 @@ export interface IDebtRepository {
   updateDebtBalance(debtId: string, newBalance: number): Promise<void>;
   
   // Mark debt as paid off
-  markDebtPaidOff(debtId: string): Promise<void>;
+  markDebtPaidOff(debtId: string, paidOffBy?: string): Promise<void>;
   
   // Recalculate snowball order for all debts
   recalculateSnowballOrder(householdId: string): Promise<void>;

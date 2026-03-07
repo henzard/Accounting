@@ -55,7 +55,7 @@ export function Example2_ThemedStyles() {
     title: {
       color: theme.text.primary,
       fontSize: 24,
-      fontWeight: 'bold',
+      fontWeight: '700' as const,
     },
     subtitle: {
       color: theme.text.secondary,

@@ -16,7 +16,7 @@ import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
 import { ScreenHeader, Card, AmountInput, PrimaryButton, ScreenWrapper, AppText } from '@/presentation/components';
 import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
-import { Budget, BudgetCategory, createBudget, createBudgetCategory, calculateRemainingToBudget, getBudgetMonthName, calculateBudgetPeriod } from '@/domain/entities';
+import { Budget, BudgetCategory, CategoryGroup, createBudget, createBudgetCategory, calculateRemainingToBudget, getBudgetMonthName, calculateBudgetPeriod } from '@/domain/entities';
 import { FirestoreBudgetRepository } from '@/data/repositories/FirestoreBudgetRepository';
 import { getDefaultCategories, CATEGORY_GROUP_INFO } from '@/shared/constants/budget-categories';
 import { CurrencyCode, formatCurrency } from '@/shared/utils/currency';
@@ -252,7 +252,7 @@ export default function BudgetScreen() {
   }
 
   // UX ENHANCEMENT FUNCTIONS
-  function toggleGroupCollapse(group: string) {
+  function toggleGroupCollapse(group: CategoryGroup) {
     setCollapsedGroups(prev => {
       const newSet = new Set(prev);
       if (newSet.has(group)) {
@@ -373,7 +373,7 @@ export default function BudgetScreen() {
           <AppText variant="body" color={theme.text.secondary}>
             {isZeroBased
               ? 'Every dollar has a job! 🎉'
-              : `${formatCurrency(Math.abs(remaining) / 100, householdCurrency)} ${remaining > 0 ? 'left to budget' : 'over budget'}`
+              : `${formatCurrency(Math.abs(remaining), householdCurrency)} ${remaining > 0 ? 'left to budget' : 'over budget'}`
             }
           </AppText>
         </Card>
@@ -417,17 +417,30 @@ export default function BudgetScreen() {
           {(() => {
             // Filter and group categories
             const filteredCategories = budget?.categories ? filterCategories(budget.categories) : [];
+            const initialGroupedCategories: Record<CategoryGroup, BudgetCategory[]> = {
+              INCOME: [],
+              GIVING: [],
+              SAVING: [],
+              HOUSING: [],
+              TRANSPORTATION: [],
+              FOOD: [],
+              PERSONAL: [],
+              INSURANCE: [],
+              DEBT: [],
+              LIFESTYLE: [],
+            };
             const groupedCategories = filteredCategories.reduce((acc, cat) => {
               if (!acc[cat.group]) acc[cat.group] = [];
               acc[cat.group].push(cat);
               return acc;
-            }, {} as Record<string, BudgetCategory[]>);
+            }, initialGroupedCategories);
 
             return (
               <>
                 {Object.entries(groupedCategories).map(([groupKey, groupCategories]) => {
-                  const groupInfo = CATEGORY_GROUP_INFO[groupKey];
-                  const isCollapsed = collapsedGroups.has(groupKey);
+                  const typedGroupKey = groupKey as CategoryGroup;
+                  const groupInfo = CATEGORY_GROUP_INFO[typedGroupKey];
+                  const isCollapsed = collapsedGroups.has(typedGroupKey);
                   
                   // Calculate group totals
                   const groupTotal = groupCategories.reduce((sum, cat) => sum + cat.planned_amount, 0);
@@ -436,7 +449,7 @@ export default function BudgetScreen() {
                     <View key={groupKey} style={{ marginBottom: SPACING[4] }}>
                       {/* COLLAPSIBLE GROUP HEADER */}
                       <TouchableOpacity 
-                        onPress={() => toggleGroupCollapse(groupKey)}
+                        onPress={() => toggleGroupCollapse(typedGroupKey)}
                         style={[styles.groupHeader, { backgroundColor: theme.background.secondary, borderBottomColor: theme.border.default }]}
                         activeOpacity={0.7}
                       >
@@ -503,7 +516,7 @@ export default function BudgetScreen() {
                 })}
 
                 {/* NO RESULTS STATE */}
-                {filteredCategories.length === 0 && budget?.categories.length > 0 && (
+                {filteredCategories.length === 0 && (budget?.categories?.length ?? 0) > 0 && (
                   <View style={styles.emptyState}>
                     <AppText variant="display" color={theme.text.tertiary} style={{ marginBottom: SPACING[2] }}>🔍</AppText>
                     <AppText variant="h2" style={{ marginBottom: SPACING[2] }}>

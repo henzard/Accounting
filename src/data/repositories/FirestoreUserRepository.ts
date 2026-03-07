@@ -30,7 +30,10 @@ export class FirestoreUserRepository implements IUserRepository {
     }
   }
 
-  async getCurrentUser(userId: string): Promise<User | null> {
+  async getCurrentUser(userId?: string): Promise<User | null> {
+    if (!userId) {
+      return null;
+    }
     return this.getUserById(userId);
   }
 

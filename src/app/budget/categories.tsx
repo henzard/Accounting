@@ -9,7 +9,6 @@ import {
   ActivityIndicator,
   Alert,
   TouchableOpacity,
-  TextInput,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
@@ -37,6 +36,19 @@ export default function CategoryTrackingScreen() {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
 
   const budgetRepository = new FirestoreBudgetRepository();
+
+  const createEmptyGroups = (): Record<CategoryGroup, BudgetCategory[]> => ({
+    INCOME: [],
+    GIVING: [],
+    SAVING: [],
+    HOUSING: [],
+    TRANSPORTATION: [],
+    FOOD: [],
+    PERSONAL: [],
+    INSURANCE: [],
+    DEBT: [],
+    LIFESTYLE: [],
+  });
 
   const loadHouseholdCurrency = useCallback(async () => {
     if (!user?.default_household_id) return;
@@ -97,8 +109,9 @@ export default function CategoryTrackingScreen() {
   );
 
   // Filter and group categories
-  const getFilteredAndGroupedCategories = () => {
-    if (!budget) return {};
+  const getFilteredAndGroupedCategories = (): Record<CategoryGroup, BudgetCategory[]> => {
+    const grouped = createEmptyGroups();
+    if (!budget) return grouped;
 
     const filtered = budget.categories.filter((cat) => {
       if (!searchQuery) return true;
@@ -110,19 +123,6 @@ export default function CategoryTrackingScreen() {
     });
 
     // Group by CategoryGroup
-    const grouped: Record<CategoryGroup, BudgetCategory[]> = {
-      INCOME: [],
-      GIVING: [],
-      SAVING: [],
-      HOUSING: [],
-      TRANSPORTATION: [],
-      FOOD: [],
-      PERSONAL: [],
-      INSURANCE: [],
-      DEBT: [],
-      LIFESTYLE: [],
-    };
-
     filtered.forEach((cat) => {
       if (grouped[cat.group]) {
         grouped[cat.group].push(cat);
@@ -228,7 +228,7 @@ export default function CategoryTrackingScreen() {
             <AppText variant="bodyEmphasis" style={{ color: theme.text.secondary }}>
               Total Categories
             </AppText>
-            <AppText variant="h3" style={{ color: theme.text.primary }}>
+            <AppText variant="h2" style={{ color: theme.text.primary }}>
               {filteredCount}
             </AppText>
           </View>
@@ -256,7 +256,7 @@ export default function CategoryTrackingScreen() {
                     <AppText variant="h2" style={styles.groupIcon}>{groupInfo.icon}</AppText>
                   )}
                   <View>
-                    <AppText variant="h3" style={{ color: theme.text.primary }}>
+                    <AppText variant="h2" style={{ color: theme.text.primary }}>
                       {groupInfo.name}
                     </AppText>
                     <AppText variant="caption" style={{ color: theme.text.secondary, marginTop: SPACING[1] }}>

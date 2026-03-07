@@ -18,8 +18,11 @@ export class GetCurrentBudgetUseCase {
     }
     
     // Get current month budget
-    const budget = await this.budgetRepository.getCurrentMonthBudget(
-      input.household_id
+    const now = new Date();
+    const budget = await this.budgetRepository.getBudgetByMonth(
+      input.household_id,
+      now.getMonth() + 1,
+      now.getFullYear()
     );
     
     return budget;

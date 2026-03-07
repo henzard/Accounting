@@ -114,8 +114,8 @@ export default function AccountsScreen() {
   }
 
   function renderAccount({ item }: { item: Account }) {
-    const balanceAmount = item.balance / 100;
-    const isNegative = balanceAmount < 0;
+    const balanceAmountInCents = item.balance;
+    const isNegative = balanceAmountInCents < 0;
 
     return (
       <TouchableOpacity
@@ -140,7 +140,7 @@ export default function AccountsScreen() {
                 variant="h2"
                 color={isNegative ? theme.status.error : theme.text.primary}
               >
-                {formatCurrency(Math.abs(balanceAmount), householdCurrency)}
+                {formatCurrency(Math.abs(balanceAmountInCents), householdCurrency)}
               </AppText>
               {item.type === 'CREDIT_CARD' && (
                 <AppText variant="caption" color={theme.text.tertiary} style={{ marginTop: SPACING[1] }}>
@@ -204,7 +204,7 @@ export default function AccountsScreen() {
           </AppText>
           <AppText variant="display" style={{ marginBottom: SPACING[1] }}>
             {formatCurrency(
-              accounts.reduce((sum, acc) => sum + acc.balance / 100, 0),
+              accounts.reduce((sum, acc) => sum + acc.balance, 0),
               householdCurrency
             )}
           </AppText>

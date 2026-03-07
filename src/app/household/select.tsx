@@ -189,7 +189,7 @@ export default function SelectHouseholdScreen() {
               marginBottom: SPACING[8],
             }}
           >
-            Let's create your first household to get started!
+            Let&apos;s create your first household to get started!
           </AppText>
           <PrimaryButton
             title="Create Household"
@@ -288,7 +288,7 @@ export default function SelectHouseholdScreen() {
                   {/* Household Info */}
                   <View style={{ flex: 1 }}>
                     <AppText
-                      variant="h3"
+                      variant="h2"
                       style={{
                         color: theme.text.primary,
                         marginBottom: SPACING[1],

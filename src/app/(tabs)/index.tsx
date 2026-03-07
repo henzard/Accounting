@@ -153,7 +153,7 @@ export default function HomeScreen() {
                 Welcome back, {user?.name?.split(' ')[0] || 'there'}! 👋
               </AppText>
               <AppText variant="body" color={theme.text.secondary}>
-                Here's your financial overview
+                Here&apos;s your financial overview
               </AppText>
             </View>
             <View style={styles.headerRight}>

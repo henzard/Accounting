@@ -78,6 +78,12 @@ export class FirestoreDebtRepository implements IDebtRepository {
     return debts.sort((a, b) => a.snowball_order - b.snowball_order);
   }
 
+  async getFocusDebt(householdId: string): Promise<Debt | null> {
+    const debts = await this.getDebtsInSnowballOrder(householdId);
+    const explicitFocusDebt = debts.find((debt) => debt.is_focus_debt);
+    return explicitFocusDebt ?? debts[0] ?? null;
+  }
+
   async createDebt(debt: Debt): Promise<void> {
     try {
       const docRef = doc(db, this.COLLECTION, debt.id);
@@ -112,7 +118,14 @@ export class FirestoreDebtRepository implements IDebtRepository {
     }
   }
 
-  async markDebtPaidOff(debtId: string, paidOffBy: string): Promise<void> {
+  async updateDebtBalance(debtId: string, newBalance: number): Promise<void> {
+    await this.updateDebt(debtId, {
+      current_balance: newBalance,
+      updated_at: new Date(),
+    });
+  }
+
+  async markDebtPaidOff(debtId: string, paidOffBy?: string): Promise<void> {
     await this.updateDebt(debtId, {
       status: 'paid_off',
       paid_off_at: new Date(),

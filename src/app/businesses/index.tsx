@@ -170,7 +170,7 @@ export default function BusinessesScreen() {
                         />
                       </View>
                       <View style={styles.businessDetails}>
-                        <AppText variant="h3" style={{ marginBottom: SPACING[1] }}>
+                        <AppText variant="h2" style={{ marginBottom: SPACING[1] }}>
                           {business.name}
                         </AppText>
                         <AppText variant="caption" color={theme.text.secondary}>

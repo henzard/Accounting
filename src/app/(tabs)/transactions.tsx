@@ -268,7 +268,7 @@ export default function TransactionsScreen() {
             <View style={{ padding: SPACING[8], alignItems: 'center' }}>
               <AppText variant="display" style={{ marginBottom: SPACING[4] }}>🔍</AppText>
               <AppText variant="body" color={theme.text.secondary} style={{ textAlign: 'center' }}>
-                No transactions match "{searchQuery}"
+                No transactions match &quot;{searchQuery}&quot;
               </AppText>
             </View>
           )}

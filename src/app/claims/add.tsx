@@ -335,12 +335,12 @@ export default function AddClaimScreen() {
                 </AppText>
                 {availableTransactions.length > 0 && (
                   <AppText variant="caption" color={theme.text.tertiary}>
-                    Found {availableTransactions.length} unclaimed expense(s) for other businesses. Make sure the transaction's business_id matches the selected business.
+                    Found {availableTransactions.length} unclaimed expense(s) for other businesses. Make sure the transaction&apos;s business_id matches the selected business.
                   </AppText>
                 )}
                 {availableTransactions.length === 0 && (
                   <AppText variant="caption" color={theme.text.tertiary}>
-                    Mark transactions as business expenses with reimbursement type "REIMBURSABLE" first.
+                    Mark transactions as business expenses with reimbursement type &quot;REIMBURSABLE&quot; first.
                   </AppText>
                 )}
               </Card>
@@ -349,7 +349,7 @@ export default function AddClaimScreen() {
             {selectedBusinessId && filteredTransactions.length > 0 && (
               <>
                 <View style={{ height: SPACING[4] }} />
-                <AppText variant="h4" style={{ marginBottom: SPACING[2] }}>
+                <AppText variant="h2" style={{ marginBottom: SPACING[2] }}>
                   Select Transactions ({selectedTransactionIds.size} selected)
                 </AppText>
                 <AppText variant="caption" color={theme.text.secondary} style={{ marginBottom: SPACING[3] }}>
@@ -402,8 +402,8 @@ export default function AddClaimScreen() {
             {selectedTransactionIds.size > 0 && (
               <Card padding="md" style={{ marginTop: SPACING[4], marginBottom: SPACING[4] }}>
                 <View style={styles.totalRow}>
-                  <AppText variant="h3">Total Claim Amount:</AppText>
-                  <AppText variant="h3" style={{ color: theme.interactive.primary }}>
+                  <AppText variant="h2">Total Claim Amount:</AppText>
+                  <AppText variant="h2" style={{ color: theme.interactive.primary }}>
                     {formatCurrency(totalAmount, householdCurrency)}
                   </AppText>
                 </View>

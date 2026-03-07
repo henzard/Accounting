@@ -10,7 +10,7 @@ import {
   User as FirebaseUser,
 } from 'firebase/auth';
 import { auth, db } from '@/infrastructure/firebase';
-import { doc, setDoc, serverTimestamp, getDocFromServer, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDocFromServer, collection, query, where, getDocs, updateDoc, getDoc } from 'firebase/firestore';
 import { User, createUser } from '@/domain/entities';
 
 interface AuthContextValue {
@@ -90,6 +90,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
               // Reload user data after update
               const updatedUserDoc = await getDocFromServer(doc(db, 'users', firebaseUser.uid));
               const updatedUserData = updatedUserDoc.data();
+              if (!updatedUserData) {
+                throw new Error('Updated user data is missing after sync');
+              }
               
               const appUser = createUser({
                 id: firebaseUser.uid,

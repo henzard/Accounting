@@ -108,6 +108,11 @@ export default function DebtListScreen() {
   };
 
   const handleMarkPaidOff = async (debt: Debt) => {
+    if (!user?.default_household_id) {
+      showAlert('Error', 'No household selected');
+      return;
+    }
+
     const confirmed = await showConfirm(
       'Mark as Paid Off?',
       `Are you sure you've paid off "${debt.name}"? This will celebrate your progress and move to the next debt!`
@@ -116,8 +121,6 @@ export default function DebtListScreen() {
     if (!confirmed) return;
 
     try {
-      // Note: markDebtPaidOff implementation requires paidOffBy, but interface doesn't
-      // Using updateDebt as workaround
       await debtRepository.updateDebt(debt.id, {
         status: 'paid_off',
         paid_off_at: new Date(),
@@ -126,7 +129,7 @@ export default function DebtListScreen() {
         updated_at: new Date(),
       });
       // Recalculate snowball order for remaining debts
-      await debtRepository.recalculateSnowballOrder(user!.default_household_id);
+      await debtRepository.recalculateSnowballOrder(user.default_household_id);
       await loadDebts();
       
       showAlert(
@@ -185,7 +188,7 @@ export default function DebtListScreen() {
             <AppText variant="bodyEmphasis" style={{ color: theme.text.secondary }}>
               Total Debt (Baby Step 2)
             </AppText>
-            <AppText variant="h3" style={{ color: theme.status.error }}>
+            <AppText variant="h2" style={{ color: theme.status.error }}>
               {formatCurrency(totalDebt, householdCurrency)}
             </AppText>
           </View>
@@ -194,7 +197,7 @@ export default function DebtListScreen() {
               <AppText variant="bodyEmphasis" style={{ color: theme.text.secondary }}>
                 Mortgage (Baby Step 6)
               </AppText>
-              <AppText variant="h3" style={{ color: theme.text.primary }}>
+              <AppText variant="h2" style={{ color: theme.text.primary }}>
                 {formatCurrency(totalMortgage, householdCurrency)}
               </AppText>
             </View>
@@ -203,7 +206,7 @@ export default function DebtListScreen() {
             <AppText variant="bodyEmphasis" style={{ color: theme.text.secondary }}>
               Active Debts
             </AppText>
-            <AppText variant="h3" style={{ color: theme.text.primary }}>
+            <AppText variant="h2" style={{ color: theme.text.primary }}>
               {activeDebts.length}
             </AppText>
           </View>
@@ -233,7 +236,7 @@ export default function DebtListScreen() {
                   <View style={styles.debtHeader}>
                     <View style={styles.debtInfo}>
                       <View style={styles.debtTitleRow}>
-                        <AppText variant="h3" style={{ color: theme.text.primary, marginRight: SPACING[2] }}>
+                        <AppText variant="h2" style={{ color: theme.text.primary, marginRight: SPACING[2] }}>
                           {debt.name}
                         </AppText>
                         {debt.is_focus_debt && (
@@ -337,7 +340,7 @@ export default function DebtListScreen() {
                 <Card key={debt.id} style={styles.debtCard}>
                   <View style={styles.debtHeader}>
                     <View style={styles.debtInfo}>
-                      <AppText variant="h3" style={{ color: theme.text.primary }}>
+                      <AppText variant="h2" style={{ color: theme.text.primary }}>
                         {debt.name}
                       </AppText>
                       <AppText variant="caption" style={{ color: theme.text.secondary }}>
@@ -389,7 +392,7 @@ export default function DebtListScreen() {
               <Card key={debt.id} style={[styles.debtCard, { opacity: 0.7 }]}>
                 <View style={styles.debtHeader}>
                   <View style={styles.debtInfo}>
-                    <AppText variant="h3" style={{ color: theme.text.secondary }}>
+                    <AppText variant="h2" style={{ color: theme.text.secondary }}>
                       {debt.name}
                     </AppText>
                     <AppText variant="caption" style={{ color: theme.text.tertiary }}>
