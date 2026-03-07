@@ -1,7 +1,7 @@
 // Accounts List Screen - Homebase Budget
 // Shows all accounts for the current household
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   FlatList,
@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
 import { Card, ScreenHeader, ScreenWrapper, AppText } from '@/presentation/components';
@@ -31,12 +31,7 @@ export default function AccountsScreen() {
 
   const accountRepository = new FirestoreAccountRepository();
 
-  useEffect(() => {
-    loadAccounts();
-    loadHouseholdCurrency();
-  }, [user?.default_household_id]);
-
-  async function loadHouseholdCurrency() {
+  const loadHouseholdCurrency = useCallback(async () => {
     if (!user?.default_household_id) return;
 
     try {
@@ -53,9 +48,9 @@ export default function AccountsScreen() {
     } catch (error) {
       console.error('❌ Error loading household currency:', error);
     }
-  }
+  }, [user?.default_household_id]);
 
-  async function loadAccounts() {
+  const loadAccounts = useCallback(async () => {
     if (!user?.default_household_id) {
       setLoading(false);
       return;
@@ -73,7 +68,14 @@ export default function AccountsScreen() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [accountRepository, user?.default_household_id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadAccounts();
+      loadHouseholdCurrency();
+    }, [loadAccounts, loadHouseholdCurrency])
+  );
 
   function getAccountIcon(type: AccountType): string {
     switch (type) {
