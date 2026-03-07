@@ -2,11 +2,12 @@
 // First-time household setup after signup
 
 import React, { useState } from 'react';
-import { View, ScrollView, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
 import { Input, PrimaryButton, Card, SearchableSelect, ScreenWrapper, AppText } from '@/presentation/components';
+import { showAlert } from '@/shared/utils/alert';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
 import { createHousehold } from '@/domain/entities';
@@ -41,7 +42,7 @@ export default function CreateHouseholdScreen() {
 
   const handleCreateHousehold = async () => {
     if (!user) {
-      Alert.alert('Error', 'You must be logged in to create a household');
+      showAlert('Error', 'You must be logged in to create a household');
       return;
     }
 
@@ -102,7 +103,7 @@ export default function CreateHouseholdScreen() {
 
       console.log('✅ User updated locally');
 
-      Alert.alert(
+      showAlert(
         'Success! 🎉',
         `${household.name} has been created. Let's start your debt-free journey!`,
         [
@@ -114,7 +115,7 @@ export default function CreateHouseholdScreen() {
       );
     } catch (error: any) {
       console.error('❌ Failed to create household:', error);
-      Alert.alert('Error', 'Failed to create household. Please try again.');
+      showAlert('Error', 'Failed to create household. Please try again.');
     } finally {
       setLoading(false);
     }
