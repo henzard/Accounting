@@ -1,7 +1,7 @@
 // Claims Screen - List all reimbursement claims
 // View, filter, and manage expense reimbursement claims
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   ScrollView,
@@ -28,15 +28,6 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
-const STATUS_COLORS: Record<ClaimStatus, string> = {
-  DRAFT: '#9E9E9E',
-  SUBMITTED: '#1976D2',
-  APPROVED: '#2E7D32',
-  PAID: '#1B5E20',
-  PARTIALLY_PAID: '#F9A825',
-  REJECTED: '#C62828',
-};
-
 const STATUS_LABELS: Record<ClaimStatus, string> = {
   DRAFT: 'Draft',
   SUBMITTED: 'Submitted',
@@ -56,7 +47,18 @@ export default function ClaimsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [householdCurrency, setHouseholdCurrency] = useState<CurrencyCode>('USD');
 
-  const claimRepo = new FirestoreReimbursementClaimRepository();
+  const claimRepo = useMemo(() => new FirestoreReimbursementClaimRepository(), []);
+  const statusColors: Record<ClaimStatus, string> = useMemo(
+    () => ({
+      DRAFT: theme.text.tertiary,
+      SUBMITTED: theme.status.info,
+      APPROVED: theme.status.success,
+      PAID: theme.status.success,
+      PARTIALLY_PAID: theme.status.warning,
+      REJECTED: theme.status.error,
+    }),
+    [theme]
+  );
 
   const loadClaims = useCallback(async () => {
     if (!user?.default_household_id) {
@@ -79,7 +81,7 @@ export default function ClaimsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user?.default_household_id]);
+  }, [user?.default_household_id, claimRepo]);
 
   useFocusEffect(
     useCallback(() => {
@@ -152,7 +154,7 @@ export default function ClaimsScreen() {
             </Card>
           ) : (
             claims.map((claim) => {
-              const statusColor = STATUS_COLORS[claim.status];
+              const statusColor = statusColors[claim.status];
               const isPaid = claim.status === 'PAID' || claim.status === 'PARTIALLY_PAID';
 
               return (
@@ -164,7 +166,7 @@ export default function ClaimsScreen() {
                   <Card padding="md" style={styles.claimCard}>
                     <View style={styles.claimHeader}>
                       <View style={styles.claimInfo}>
-                        <AppText variant="h3" style={{ marginBottom: SPACING[1] }}>
+                        <AppText variant="h2" style={{ marginBottom: SPACING[1] }}>
                           {claim.name}
                         </AppText>
                         <AppText variant="caption" color={theme.text.secondary}>

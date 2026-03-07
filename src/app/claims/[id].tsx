@@ -1,7 +1,7 @@
 // Claim Detail Screen - View reimbursement claim details
 // Shows claim information, status, transactions, and amounts
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   ScrollView,
   View,
@@ -28,15 +28,6 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
-const STATUS_COLORS: Record<ClaimStatus, string> = {
-  DRAFT: '#9E9E9E',
-  SUBMITTED: '#1976D2',
-  APPROVED: '#2E7D32',
-  PAID: '#1B5E20',
-  PARTIALLY_PAID: '#F9A825',
-  REJECTED: '#C62828',
-};
-
 const STATUS_LABELS: Record<ClaimStatus, string> = {
   DRAFT: 'Draft',
   SUBMITTED: 'Submitted',
@@ -51,7 +42,7 @@ export default function ClaimDetailScreen() {
   const { user } = useAuth();
   const router = useRouter();
   const params = useLocalSearchParams();
-  const claimId = Array.isArray(params.id) ? params.id[0] : (params.id as string);
+  const claimId = Array.isArray(params.id) ? params.id[0] : params.id;
 
   const [claim, setClaim] = useState<ReimbursementClaim | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -59,8 +50,19 @@ export default function ClaimDetailScreen() {
   const [householdCurrency, setHouseholdCurrency] = useState<CurrencyCode>('USD');
   const [hasLoaded, setHasLoaded] = useState(false);
 
-  const claimRepo = new FirestoreReimbursementClaimRepository();
-  const transactionRepo = new FirestoreTransactionRepository();
+  const claimRepo = useMemo(() => new FirestoreReimbursementClaimRepository(), []);
+  const transactionRepo = useMemo(() => new FirestoreTransactionRepository(), []);
+  const statusColors: Record<ClaimStatus, string> = useMemo(
+    () => ({
+      DRAFT: theme.text.tertiary,
+      SUBMITTED: theme.status.info,
+      APPROVED: theme.status.success,
+      PAID: theme.status.success,
+      PARTIALLY_PAID: theme.status.warning,
+      REJECTED: theme.status.error,
+    }),
+    [theme]
+  );
 
   useEffect(() => {
     if (!user?.default_household_id || !claimId || hasLoaded) return;
@@ -118,7 +120,14 @@ export default function ClaimDetailScreen() {
     };
 
     loadData();
-  }, [claimId, user?.default_household_id, hasLoaded]);
+  }, [
+    claimId,
+    user?.default_household_id,
+    hasLoaded,
+    claimRepo,
+    transactionRepo,
+    router,
+  ]);
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
@@ -152,7 +161,7 @@ export default function ClaimDetailScreen() {
     );
   }
 
-  const statusColor = STATUS_COLORS[claim.status];
+  const statusColor = statusColors[claim.status];
   const isPaid = claim.status === 'PAID' || claim.status === 'PARTIALLY_PAID';
 
   return (
@@ -280,7 +289,7 @@ export default function ClaimDetailScreen() {
 
           {/* Transactions Card */}
           <Card padding="md" style={styles.transactionsCard}>
-            <AppText variant="h3" style={{ marginBottom: SPACING[4] }}>
+            <AppText variant="h2" style={{ marginBottom: SPACING[4] }}>
               Transactions ({transactions.length})
             </AppText>
 
@@ -295,7 +304,7 @@ export default function ClaimDetailScreen() {
                   onPress={() => router.push(`/transactions/${tx.id}`)}
                   activeOpacity={0.7}
                 >
-                  <View style={styles.transactionRow}>
+                  <View style={[styles.transactionRow, { borderBottomColor: theme.border.default }]}>
                     <View style={styles.transactionInfo}>
                       <AppText variant="bodyEmphasis">
                         {tx.payee || 'No payee'}
@@ -371,7 +380,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: SPACING[3],
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E0E0E0',
   },
   transactionInfo: {
     flex: 1,

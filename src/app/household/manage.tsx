@@ -284,7 +284,7 @@ export default function ManageHouseholdsScreen() {
                   <View style={styles.householdHeader}>
                     <View style={styles.householdInfo}>
                       <View style={styles.householdTitleRow}>
-                        <AppText variant="h3" style={{ color: theme.text.primary, marginRight: SPACING[2] }}>
+                        <AppText variant="h2" style={{ color: theme.text.primary, marginRight: SPACING[2] }}>
                           {household.name}
                         </AppText>
                         {isDefault && (

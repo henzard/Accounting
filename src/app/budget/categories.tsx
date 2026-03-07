@@ -228,7 +228,7 @@ export default function CategoryTrackingScreen() {
             <AppText variant="bodyEmphasis" style={{ color: theme.text.secondary }}>
               Total Categories
             </AppText>
-            <AppText variant="h3" style={{ color: theme.text.primary }}>
+            <AppText variant="h2" style={{ color: theme.text.primary }}>
               {filteredCount}
             </AppText>
           </View>
@@ -256,7 +256,7 @@ export default function CategoryTrackingScreen() {
                     <AppText variant="h2" style={styles.groupIcon}>{groupInfo.icon}</AppText>
                   )}
                   <View>
-                    <AppText variant="h3" style={{ color: theme.text.primary }}>
+                    <AppText variant="h2" style={{ color: theme.text.primary }}>
                       {groupInfo.name}
                     </AppText>
                     <AppText variant="caption" style={{ color: theme.text.secondary, marginTop: SPACING[1] }}>
