@@ -1,7 +1,7 @@
 // Dashboard/Home Screen - Homebase Budget
 // Financial overview: Baby Steps, Budget Status, Recent Transactions, Debt Progress
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, View } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { doc, getDoc } from 'firebase/firestore';
@@ -13,11 +13,17 @@ import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
 import { useAuth } from '@/infrastructure/auth';
 import { CurrencyCode, formatCurrency } from '@/shared/utils/currency';
 import { sanitizeBabyStep } from '@/shared/constants/baby-steps';
-import { Budget, calculateRemainingToBudget, isZeroBasedBudget } from '@/domain/entities';
+import {
+  Budget,
+  Transaction,
+  Debt,
+  calculateRemainingToBudget,
+  isZeroBasedBudget,
+  calculateDebtSnowball,
+} from '@/domain/entities';
 import { FirestoreBudgetRepository } from '@/data/repositories/FirestoreBudgetRepository';
 import { FirestoreTransactionRepository } from '@/data/repositories/FirestoreTransactionRepository';
 import { FirestoreDebtRepository } from '@/data/repositories/FirestoreDebtRepository';
-import { Transaction, Debt, calculateDebtSnowball } from '@/domain/entities';
 
 export default function HomeScreen() {
   const { theme } = useTheme();
@@ -32,9 +38,9 @@ export default function HomeScreen() {
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [debts, setDebts] = useState<Debt[]>([]);
 
-  const budgetRepository = new FirestoreBudgetRepository();
-  const transactionRepository = new FirestoreTransactionRepository();
-  const debtRepository = new FirestoreDebtRepository();
+  const budgetRepository = useMemo(() => new FirestoreBudgetRepository(), []);
+  const transactionRepository = useMemo(() => new FirestoreTransactionRepository(), []);
+  const debtRepository = useMemo(() => new FirestoreDebtRepository(), []);
 
   const loadDashboardData = useCallback(async () => {
     if (!user?.default_household_id) {
@@ -153,7 +159,7 @@ export default function HomeScreen() {
                 Welcome back, {user?.name?.split(' ')[0] || 'there'}! 👋
               </AppText>
               <AppText variant="body" color={theme.text.secondary}>
-                Here's your financial overview
+                Here&apos;s your financial overview
               </AppText>
             </View>
             <View style={styles.headerRight}>
@@ -283,7 +289,7 @@ export default function HomeScreen() {
                 <TouchableOpacity
                   key={txn.id}
                   onPress={() => router.push(`/transactions/${txn.id}`)}
-                  style={styles.transactionItem}
+                  style={[styles.transactionItem, { borderBottomColor: theme.border.default }]}
                   activeOpacity={0.7}
                 >
                   <View style={styles.transactionLeft}>
@@ -354,7 +360,7 @@ export default function HomeScreen() {
                   {debts[0] && (
                     <>
                       <View style={[styles.divider, { backgroundColor: theme.border.default }]} />
-                      <View style={styles.focusDebt}>
+                      <View style={[styles.focusDebt, { backgroundColor: theme.background.secondary }]}>
                         <View style={[styles.focusBadge, { backgroundColor: theme.interactive.primary }]}>
                           <AppText variant="overline" color={theme.text.inverse}>
                             FOCUS DEBT
@@ -383,7 +389,13 @@ export default function HomeScreen() {
           <View style={styles.quickActions}>
             <TouchableOpacity
               onPress={() => router.push('/transactions/add')}
-              style={[styles.quickActionButton, { backgroundColor: theme.interactive.primary }]}
+              style={[
+                styles.quickActionButton,
+                {
+                  backgroundColor: theme.interactive.primary,
+                  borderColor: theme.interactive.primary,
+                },
+              ]}
             >
               <AppText variant="button" color={theme.text.inverse}>
                 ➕ Add Transaction
@@ -391,7 +403,7 @@ export default function HomeScreen() {
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => router.push('/budget')}
-              style={[styles.quickActionButton, { backgroundColor: theme.background.secondary, borderColor: theme.border.default, marginRight: 0 }]}
+              style={[styles.quickActionButton, { backgroundColor: theme.background.secondary, borderColor: theme.border.default }]}
             >
               <AppText variant="button" color={theme.text.primary}>
                 📊 View Budget
@@ -418,10 +430,9 @@ const styles = StyleSheet.create({
     padding: SPACING[8],
   },
   header: {
-    paddingTop: SPACING[12] + 20, // Account for safe area
-    paddingHorizontal: SPACING[5], // ScreenWrapper padding
+    paddingTop: SPACING[2],
     paddingBottom: SPACING[5],
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   headerTop: {
     flexDirection: 'row',
@@ -437,8 +448,7 @@ const styles = StyleSheet.create({
     marginTop: SPACING[1],
   },
   section: {
-    padding: SPACING[5], // ScreenWrapper padding
-    paddingBottom: 0,
+    marginTop: SPACING[5],
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -484,8 +494,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingVertical: SPACING[3],
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   transactionLeft: {
     flex: 1,
@@ -503,7 +512,6 @@ const styles = StyleSheet.create({
   focusDebt: {
     marginTop: SPACING[3],
     padding: SPACING[3],
-    backgroundColor: 'rgba(0,0,0,0.02)',
     borderRadius: BORDER_RADIUS.sm,
     alignItems: 'center',
   },
@@ -515,6 +523,7 @@ const styles = StyleSheet.create({
   },
   quickActions: {
     flexDirection: 'row',
+    gap: SPACING[2],
   },
   quickActionButton: {
     flex: 1,
@@ -523,6 +532,5 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.sm,
     alignItems: 'center',
     borderWidth: 1,
-    marginRight: SPACING[1],
   },
 });

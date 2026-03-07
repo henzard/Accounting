@@ -1,7 +1,7 @@
 // Transactions Screen - List all transactions with real-time updates
 // Follows UX Standards: search, date grouping, empty state
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { 
   ScrollView, 
   View, 
@@ -67,7 +67,7 @@ export default function TransactionsScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [householdCurrency, setHouseholdCurrency] = useState<CurrencyCode>('USD');
   
-  const transactionRepo = new FirestoreTransactionRepository();
+  const transactionRepo = useMemo(() => new FirestoreTransactionRepository(), []);
   
   // Load transactions
   const loadTransactions = useCallback(async () => {
@@ -94,7 +94,7 @@ export default function TransactionsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [user?.default_household_id]);
+  }, [user?.default_household_id, transactionRepo]);
   
   // Pull to refresh
   const handleRefresh = async () => {
@@ -185,6 +185,7 @@ export default function TransactionsScreen() {
       />
       
       <ScrollView
+        contentContainerStyle={styles.content}
         refreshControl={
           <RefreshControl 
             refreshing={refreshing} 
@@ -196,26 +197,25 @@ export default function TransactionsScreen() {
       >
         {/* Search Bar */}
         {transactions.length >= 10 && (
-          <View style={{ padding: SPACING[4] }}>
+          <View style={styles.searchContainer}>
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="Search transactions..."
               placeholderTextColor={theme.text.tertiary}
-              style={{
-                backgroundColor: theme.background.secondary,
-                color: theme.text.primary,
-                paddingVertical: SPACING[3],
-                paddingHorizontal: SPACING[4],
-                borderRadius: BORDER_RADIUS.sm,
-                fontSize: 16,
-              }}
+              style={[
+                styles.searchInput,
+                {
+                  backgroundColor: theme.background.secondary,
+                  color: theme.text.primary,
+                },
+              ]}
             />
           </View>
         )}
         
         {/* Grouped Transactions */}
-        <View style={{ padding: SPACING[4] }}>
+        <View>
           {Array.from(groupedTransactions.entries()).map(([group, groupTransactions]) => (
             <View key={group} style={{ marginBottom: SPACING[6] }}>
               {/* Date Group Header */}
@@ -265,10 +265,10 @@ export default function TransactionsScreen() {
           
           {/* No Search Results */}
           {filteredTransactions.length === 0 && searchQuery && (
-            <View style={{ padding: SPACING[8], alignItems: 'center' }}>
+            <View style={styles.emptySearch}>
               <AppText variant="display" style={{ marginBottom: SPACING[4] }}>🔍</AppText>
               <AppText variant="body" color={theme.text.secondary} style={{ textAlign: 'center' }}>
-                No transactions match "{searchQuery}"
+                No transactions match &quot;{searchQuery}&quot;
               </AppText>
             </View>
           )}
@@ -279,11 +279,28 @@ export default function TransactionsScreen() {
 }
 
 const styles = StyleSheet.create({
+  content: {
+    paddingBottom: SPACING[10],
+  },
   addButton: {
     width: 44, // Premium UI: Minimum 44×44px touch target
     height: 44,
     borderRadius: 22,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchContainer: {
+    marginTop: SPACING[4],
+    marginBottom: SPACING[4],
+  },
+  searchInput: {
+    fontSize: 16,
+    paddingVertical: SPACING[3],
+    paddingHorizontal: SPACING[4],
+    borderRadius: BORDER_RADIUS.sm,
+  },
+  emptySearch: {
+    paddingVertical: SPACING[8],
     alignItems: 'center',
   },
 });

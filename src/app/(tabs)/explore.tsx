@@ -2,7 +2,7 @@
 // User settings, preferences, and navigation to other features
 
 import React, { ComponentProps } from 'react';
-import { View, ScrollView, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, ScrollView, TouchableOpacity, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
@@ -212,7 +212,6 @@ export default function MoreScreen() {
       </TouchableOpacity>
 
       {/* Spacer for bottom tab */}
-      <View style={{ height: SPACING[10] }} />
       </ScrollView>
     </ScreenWrapper>
   );
@@ -220,13 +219,14 @@ export default function MoreScreen() {
 
 const styles = StyleSheet.create({
   content: {
-    padding: SPACING[5], // ScreenWrapper already has padding, but this is for content spacing
+    paddingTop: SPACING[2],
+    paddingBottom: SPACING[10],
   },
   header: {
-    paddingTop: SPACING[12] + 20, // Account for safe area
-    paddingHorizontal: SPACING[5], // ScreenWrapper padding
+    paddingTop: SPACING[2],
     paddingBottom: SPACING[5],
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    marginBottom: SPACING[6],
   },
   headerTop: {
     flexDirection: 'row',
@@ -280,6 +280,5 @@ const styles = StyleSheet.create({
     paddingVertical: SPACING[4],
     borderRadius: BORDER_RADIUS.sm,
     alignItems: 'center',
-    marginTop: SPACING[2],
   },
 });

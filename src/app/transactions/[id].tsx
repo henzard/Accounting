@@ -1,17 +1,15 @@
 // Transaction Detail/Edit Screen
 // View and edit individual transaction
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   ScrollView,
   View,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
-  Image,
   Modal,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -95,10 +93,10 @@ export default function TransactionDetailScreen() {
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [householdCurrency, setHouseholdCurrency] = useState<CurrencyCode>('USD');
 
-  const transactionRepo = new FirestoreTransactionRepository();
-  const accountRepo = new FirestoreAccountRepository();
-  const budgetRepo = new FirestoreBudgetRepository();
-  const businessRepo = new FirestoreBusinessRepository();
+  const transactionRepo = useMemo(() => new FirestoreTransactionRepository(), []);
+  const accountRepo = useMemo(() => new FirestoreAccountRepository(), []);
+  const budgetRepo = useMemo(() => new FirestoreBudgetRepository(), []);
+  const businessRepo = useMemo(() => new FirestoreBusinessRepository(), []);
 
   // Load transaction
   useEffect(() => {
@@ -158,7 +156,15 @@ export default function TransactionDetailScreen() {
     };
 
     loadData();
-  }, [transactionId, user?.default_household_id]);
+  }, [
+    transactionId,
+    user?.default_household_id,
+    transactionRepo,
+    accountRepo,
+    budgetRepo,
+    businessRepo,
+    router,
+  ]);
 
   // Transform for SearchableSelect
   const accountOptions: SelectOption[] = accounts.map((account) => ({
@@ -516,7 +522,7 @@ export default function TransactionDetailScreen() {
 
   if (loading) {
     return (
-      <ScreenWrapper>
+      <ScreenWrapper padding={0}>
         <ScreenHeader title="Transaction" showBack />
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color={theme.interactive.primary} />
@@ -527,7 +533,7 @@ export default function TransactionDetailScreen() {
 
   if (!transaction) {
     return (
-      <ScreenWrapper>
+      <ScreenWrapper padding={0}>
         <ScreenHeader title="Transaction" showBack />
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', padding: SPACING[8] }}>
           <AppText variant="body" color={theme.text.secondary}>Transaction not found</AppText>
@@ -543,7 +549,7 @@ export default function TransactionDetailScreen() {
     const business = businesses.find((b) => b.id === transaction.business_id);
 
     return (
-      <ScreenWrapper>
+      <ScreenWrapper padding={0}>
         <ScreenHeader
           title="Transaction"
           showBack
@@ -678,7 +684,7 @@ export default function TransactionDetailScreen() {
 
   // Edit Mode
   return (
-    <ScreenWrapper>
+    <ScreenWrapper padding={0}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -710,7 +716,7 @@ export default function TransactionDetailScreen() {
               >
                 <AppText 
                   variant="button" 
-                  color={type === 'EXPENSE' ? '#FFFFFF' : theme.text.primary}
+                  color={type === 'EXPENSE' ? theme.text.inverse : theme.text.primary}
                   style={{ textAlign: 'center' }}
                 >
                   Expense
@@ -730,7 +736,7 @@ export default function TransactionDetailScreen() {
               >
                 <AppText 
                   variant="button" 
-                  color={type === 'INCOME' ? '#FFFFFF' : theme.text.primary}
+                  color={type === 'INCOME' ? theme.text.inverse : theme.text.primary}
                   style={{ textAlign: 'center' }}
                 >
                   Income
@@ -809,7 +815,7 @@ export default function TransactionDetailScreen() {
                     width: 26,
                     height: 26,
                     borderRadius: 13,
-                    backgroundColor: '#FFFFFF',
+                    backgroundColor: theme.surface.raised,
                     alignSelf: isBusiness ? 'flex-end' : 'flex-start',
                   }}
                 />
@@ -879,7 +885,7 @@ export default function TransactionDetailScreen() {
                           alignItems: 'center',
                         }}
                       >
-                        <IconSymbol name="xmark" size={14} color="#FFFFFF" />
+                        <IconSymbol name="xmark" size={14} color={theme.text.inverse} />
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -915,7 +921,7 @@ export default function TransactionDetailScreen() {
                           alignItems: 'center',
                         }}
                       >
-                        <IconSymbol name="xmark" size={14} color="#FFFFFF" />
+                        <IconSymbol name="xmark" size={14} color={theme.text.inverse} />
                       </TouchableOpacity>
                     </View>
                   ))}
@@ -1077,7 +1083,7 @@ function ReceiptThumbnail({ url, theme }: { url: string; theme: any }) {
               zIndex: 1000,
             }}
           >
-            <IconSymbol name="xmark" size={24} color="#FFFFFF" />
+            <IconSymbol name="xmark" size={24} color={theme.text.inverse} />
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>

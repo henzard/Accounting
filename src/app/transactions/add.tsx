@@ -1,14 +1,12 @@
 // Add Transaction Screen
 // Form to create new income or expense transaction
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   ScrollView,
   View,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
-  StyleSheet,
   KeyboardAvoidingView,
   Platform,
   Image,
@@ -34,7 +32,7 @@ import { FirestoreTransactionRepository } from '@/data/repositories/FirestoreTra
 import { FirestoreAccountRepository } from '@/data/repositories/FirestoreAccountRepository';
 import { FirestoreBudgetRepository } from '@/data/repositories/FirestoreBudgetRepository';
 import { FirestoreBusinessRepository } from '@/data/repositories/FirestoreBusinessRepository';
-import { Transaction, TransactionType, ReimbursementType, createTransaction } from '@/domain/entities/Transaction';
+import { TransactionType, ReimbursementType, createTransaction } from '@/domain/entities/Transaction';
 import { Account } from '@/domain/entities/Account';
 import { Business } from '@/domain/entities/Business';
 import { MasterCategory } from '@/shared/constants/budget-categories';
@@ -57,7 +55,7 @@ export default function AddTransactionScreen() {
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [payee, setPayee] = useState('');
   const [notes, setNotes] = useState('');
-  const [transactionDate, setTransactionDate] = useState(new Date());
+  const [transactionDate] = useState(new Date());
   
   // Business expense state
   const [isBusiness, setIsBusiness] = useState(false);
@@ -76,10 +74,10 @@ export default function AddTransactionScreen() {
   const [saving, setSaving] = useState(false);
   const [householdCurrency, setHouseholdCurrency] = useState<CurrencyCode>('USD');
 
-  const accountRepo = new FirestoreAccountRepository();
-  const transactionRepo = new FirestoreTransactionRepository();
-  const budgetRepo = new FirestoreBudgetRepository();
-  const businessRepo = new FirestoreBusinessRepository();
+  const accountRepo = useMemo(() => new FirestoreAccountRepository(), []);
+  const transactionRepo = useMemo(() => new FirestoreTransactionRepository(), []);
+  const budgetRepo = useMemo(() => new FirestoreBudgetRepository(), []);
+  const businessRepo = useMemo(() => new FirestoreBusinessRepository(), []);
 
   // Load accounts and categories
   useEffect(() => {
@@ -118,13 +116,13 @@ export default function AddTransactionScreen() {
     };
 
     loadData();
-  }, [user?.default_household_id]);
+  }, [user?.default_household_id, accountRepo, budgetRepo, businessRepo]);
 
   // Transform accounts for SearchableSelect
   const accountOptions: SelectOption[] = accounts.map((account) => ({
     label: account.name,
     value: account.id,
-    subtitle: account.account_type,
+    subtitle: account.type,
   }));
 
   // Transform categories for SearchableSelect (filter by type)
@@ -354,7 +352,7 @@ export default function AddTransactionScreen() {
 
   if (loading) {
     return (
-      <ScreenWrapper>
+      <ScreenWrapper padding={0}>
         <ScreenHeader title="Add Transaction" showBack />
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
           <ActivityIndicator size="large" color={theme.interactive.primary} />
@@ -364,7 +362,7 @@ export default function AddTransactionScreen() {
   }
 
   return (
-    <ScreenWrapper>
+    <ScreenWrapper padding={0}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -396,7 +394,7 @@ export default function AddTransactionScreen() {
                 >
                   <AppText
                     variant="button"
-                    color={type === 'EXPENSE' ? '#FFFFFF' : theme.text.primary}
+                    color={type === 'EXPENSE' ? theme.text.inverse : theme.text.primary}
                     style={{ textAlign: 'center' }}
                   >
                     Expense
@@ -420,7 +418,7 @@ export default function AddTransactionScreen() {
                 >
                   <AppText
                     variant="button"
-                    color={type === 'INCOME' ? '#FFFFFF' : theme.text.primary}
+                    color={type === 'INCOME' ? theme.text.inverse : theme.text.primary}
                     style={{ textAlign: 'center' }}
                   >
                     Income
@@ -524,7 +522,7 @@ export default function AddTransactionScreen() {
                       width: 26,
                       height: 26,
                       borderRadius: 13,
-                      backgroundColor: '#FFFFFF',
+                      backgroundColor: theme.surface.raised,
                       transform: [{ translateX: isBusiness ? 20 : 0 }],
                     }}
                   />
@@ -632,7 +630,7 @@ export default function AddTransactionScreen() {
                         alignItems: 'center',
                       }}
                     >
-                      <IconSymbol name="xmark" size={14} color="#FFFFFF" />
+                      <IconSymbol name="xmark" size={14} color={theme.text.inverse} />
                     </TouchableOpacity>
                   </View>
                 ))}
