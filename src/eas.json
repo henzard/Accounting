@@ -14,7 +14,7 @@
     "production": {
       "autoIncrement": true,
       "android": {
-        "image": "ubuntu-24.04"
+        "image": "ubuntu-24.04-jdk-17-ndk-r27b"
       }
     }
   },
