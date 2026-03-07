@@ -17,6 +17,7 @@ import {
 import { Budget, BudgetCategory, createBudget, createBudgetCategory } from '@/domain/entities';
 import { IBudgetRepository } from '@/domain/repositories';
 import { db } from '@/infrastructure/firebase';
+import { getDefaultCategories } from '@/shared/constants/budget-categories';
 
 export class FirestoreBudgetRepository implements IBudgetRepository {
   private readonly COLLECTION = 'budgets';
@@ -281,17 +282,24 @@ export class FirestoreBudgetRepository implements IBudgetRepository {
       );
 
       const querySnapshot = await getDocs(q);
-      
-      const categories = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
+      if (querySnapshot.empty) {
+        const defaults = getDefaultCategories();
+        console.log(`ℹ️ No custom master categories found, using ${defaults.length} defaults`);
+        return defaults;
+      }
+
+      const categories = querySnapshot.docs.map((categoryDoc) => ({
+        id: categoryDoc.id,
+        ...categoryDoc.data(),
       }));
 
       console.log(`✅ Loaded ${categories.length} master categories for household`);
       return categories;
     } catch (error) {
       console.error('Error getting master categories:', error);
-      throw error;
+      const defaults = getDefaultCategories();
+      console.log(`⚠️ Falling back to ${defaults.length} default master categories`);
+      return defaults;
     }
   }
 

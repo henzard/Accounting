@@ -1,7 +1,7 @@
 // Accounts List Screen - Homebase Budget
 // Shows all accounts for the current household
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   FlatList,
@@ -29,7 +29,7 @@ export default function AccountsScreen() {
   const [loading, setLoading] = useState(true);
   const [householdCurrency, setHouseholdCurrency] = useState<CurrencyCode>('USD');
 
-  const accountRepository = new FirestoreAccountRepository();
+  const accountRepository = useMemo(() => new FirestoreAccountRepository(), []);
 
   const loadHouseholdCurrency = useCallback(async () => {
     if (!user?.default_household_id) return;
