@@ -7,13 +7,13 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
+import { showAlert } from '@/shared/utils/alert';
 import { Input, Button, Card, ScreenWrapper, AppText } from '@/presentation/components';
 import { AccountType, createAccount } from '@/domain/entities/Account';
 import { FirestoreAccountRepository } from '@/data/repositories/FirestoreAccountRepository';
@@ -45,17 +45,17 @@ export default function AddAccountScreen() {
   async function handleSave() {
     // Validation
     if (!name.trim()) {
-      Alert.alert('Validation Error', 'Please enter an account name');
+      showAlert('Validation Error', 'Please enter an account name');
       return;
     }
 
     if (!user?.default_household_id) {
-      Alert.alert('Error', 'No household selected');
+      showAlert('Error', 'No household selected');
       return;
     }
 
     if (!user?.id) {
-      Alert.alert('Error', 'User not authenticated');
+      showAlert('Error', 'User not authenticated');
       return;
     }
 
@@ -83,12 +83,12 @@ export default function AddAccountScreen() {
       await accountRepository.createAccount(newAccount);
 
       console.log('✅ Account created:', newAccount.name);
-      Alert.alert('Success', `${newAccount.name} created!`, [
+      showAlert('Success', `${newAccount.name} created!`, [
         { text: 'OK', onPress: () => router.back() },
       ]);
     } catch (error) {
       console.error('❌ Error creating account:', error);
-      Alert.alert('Error', 'Failed to create account. Please try again.');
+      showAlert('Error', 'Failed to create account. Please try again.');
     } finally {
       setSaving(false);
     }
