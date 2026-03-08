@@ -1,7 +1,7 @@
 // Edit Goal Screen - Sinking Funds
 // Edit an existing savings goal and add money to it
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   ScrollView,
@@ -18,12 +18,13 @@ import { Input, Button, Card, ScreenWrapper, AppText, ScreenHeader, DatePicker }
 import { showAlert, showConfirm } from '@/shared/utils/alert';
 import { Goal, calculateGoalProgress, getGoalStatus, calculateDaysRemaining, calculateRemainingAmount } from '@/domain/entities/Goal';
 import { FirestoreGoalRepository } from '@/data/repositories/FirestoreGoalRepository';
+import { FirestoreHouseholdRepository } from '@/data/repositories/FirestoreHouseholdRepository';
+import { UpdateGoalUseCase } from '@/domain/use-cases/UpdateGoalUseCase';
+import { AddToGoalUseCase } from '@/domain/use-cases/AddToGoalUseCase';
 import { formatCurrency, CurrencyCode } from '@/shared/utils/currency';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/infrastructure/firebase';
+import { logger } from '@/shared/utils/logger';
 import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
-
-const GOAL_ICONS = ['🎯', '💰', '🏖️', '🚗', '🏠', '🎄', '🎓', '💍', '🎁', '✈️'];
+import { GOAL_ICONS } from '@/shared/constants/goals';
 
 export default function EditGoalScreen() {
   const { theme } = useTheme();
@@ -41,63 +42,82 @@ export default function EditGoalScreen() {
   const [saving, setSaving] = useState(false);
   const [householdCurrency, setHouseholdCurrency] = useState<CurrencyCode>('USD');
 
-  const goalRepository = new FirestoreGoalRepository();
+  const goalRepository = useMemo(() => new FirestoreGoalRepository(), []);
+  const householdRepository = useMemo(() => new FirestoreHouseholdRepository(), []);
+  const updateGoalUseCase = useMemo(() => new UpdateGoalUseCase(goalRepository), [goalRepository]);
+  const addToGoalUseCase = useMemo(() => new AddToGoalUseCase(goalRepository), [goalRepository]);
 
   useEffect(() => {
-    loadGoal();
-    loadHouseholdCurrency();
-  }, [id]);
+    let isMounted = true;
 
-  const loadHouseholdCurrency = useCallback(async () => {
-    if (!user?.default_household_id) return;
-
-    try {
-      const householdDoc = await getDoc(doc(db, 'households', user.default_household_id));
-      
-      if (householdDoc.exists()) {
-        const currency = householdDoc.data()?.currency as CurrencyCode;
-        if (currency) {
-          setHouseholdCurrency(currency);
-        }
-      }
-    } catch (error) {
-      console.error('❌ Error loading household currency:', error);
-    }
-  }, [user?.default_household_id]);
-
-  const loadGoal = useCallback(async () => {
-    if (!id) {
-      showAlert('Error', 'No goal ID provided');
-      router.back();
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const loadedGoal = await goalRepository.getGoalById(id);
-
-      if (!loadedGoal) {
-        showAlert('Error', 'Goal not found');
+    async function loadGoal() {
+      if (!id) {
+        showAlert('Error', 'No goal ID provided');
         router.back();
         return;
       }
 
-      setGoal(loadedGoal);
-      setName(loadedGoal.name);
-      setTargetAmount((loadedGoal.target_amount / 100).toFixed(2));
-      setSelectedIcon(loadedGoal.icon || '🎯');
-      
-      if (loadedGoal.target_date) {
-        setTargetDate(new Date(loadedGoal.target_date));
+      try {
+        setLoading(true);
+        const loadedGoal = await goalRepository.getGoalById(id);
+
+        if (!isMounted) return;
+
+        if (!loadedGoal) {
+          showAlert('Error', 'Goal not found');
+          router.back();
+          return;
+        }
+
+        setGoal(loadedGoal);
+        setName(loadedGoal.name);
+        setTargetAmount((loadedGoal.target_amount / 100).toFixed(2));
+        setSelectedIcon(loadedGoal.icon || '🎯');
+
+        if (loadedGoal.target_date) {
+          setTargetDate(new Date(loadedGoal.target_date));
+        }
+      } catch (error) {
+        logger.error('Error loading goal', error);
+        if (isMounted) {
+          showAlert('Error', 'Failed to load goal');
+          router.back();
+        }
+      } finally {
+        if (isMounted) setLoading(false);
       }
-    } catch (error) {
-      console.error('❌ Error loading goal:', error);
-      showAlert('Error', 'Failed to load goal');
-      router.back();
-    } finally {
-      setLoading(false);
     }
-  }, [id, goalRepository, router]);
+
+    async function loadHouseholdCurrency() {
+      if (!user?.default_household_id) return;
+
+      try {
+        const household = await householdRepository.getHouseholdById(user.default_household_id);
+        if (isMounted && household?.currency) {
+          setHouseholdCurrency(household.currency as CurrencyCode);
+        }
+      } catch (error) {
+        logger.error('Error loading household currency', error);
+      }
+    }
+
+    loadGoal();
+    loadHouseholdCurrency();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id, user?.default_household_id]);
+
+  const reloadGoal = useCallback(async () => {
+    if (!id) return;
+    try {
+      const refreshed = await goalRepository.getGoalById(id);
+      if (refreshed) setGoal(refreshed);
+    } catch (error) {
+      logger.error('Error reloading goal', error);
+    }
+  }, [id, goalRepository]);
 
   const handleSave = useCallback(async () => {
     if (!name.trim()) {
@@ -115,27 +135,27 @@ export default function EditGoalScreen() {
     try {
       setSaving(true);
 
-      // Parse amount (convert dollars to cents)
       const amountInCents = Math.round(parseFloat(targetAmount) * 100);
 
-      await goalRepository.updateGoal(goal.id, {
+      await updateGoalUseCase.execute({
+        goal_id: goal.id,
         name: name.trim(),
         target_amount: amountInCents,
-        target_date: targetDate || undefined,
+        target_date: targetDate ?? null,
         icon: selectedIcon,
-        updated_at: new Date(),
       });
 
-      console.log('✅ Goal updated:', goal.id);
+      logger.info('Goal updated', { goalId: goal.id });
       showAlert('Success', 'Goal updated!');
-      await loadGoal();
+      await reloadGoal();
     } catch (error) {
-      console.error('❌ Error updating goal:', error);
-      showAlert('Error', 'Failed to update goal. Please try again.');
+      logger.error('Error updating goal', error);
+      const message = error instanceof Error ? error.message : 'Failed to update goal. Please try again.';
+      showAlert('Error', message);
     } finally {
       setSaving(false);
     }
-  }, [name, targetAmount, targetDate, selectedIcon, goal, goalRepository, loadGoal]);
+  }, [name, targetAmount, targetDate, selectedIcon, goal, updateGoalUseCase, reloadGoal]);
 
   const handleAddMoney = useCallback(async () => {
     if (!amountToAdd || parseFloat(amountToAdd) <= 0) {
@@ -148,23 +168,25 @@ export default function EditGoalScreen() {
     try {
       setSaving(true);
 
-      // Parse amount (convert dollars to cents)
       const amountInCents = Math.round(parseFloat(amountToAdd) * 100);
-      const newTotal = goal.current_amount + amountInCents;
 
-      await goalRepository.updateGoalProgress(goal.id, newTotal);
+      await addToGoalUseCase.execute({
+        goal_id: goal.id,
+        amount: amountInCents,
+      });
 
-      console.log('✅ Money added to goal:', goal.id);
+      logger.info('Money added to goal', { goalId: goal.id, amountCents: amountInCents });
       setAmountToAdd('');
       showAlert('Success', `${formatCurrency(amountInCents / 100, householdCurrency)} added to your goal!`);
-      await loadGoal();
+      await reloadGoal();
     } catch (error) {
-      console.error('❌ Error adding money to goal:', error);
-      showAlert('Error', 'Failed to add money. Please try again.');
+      logger.error('Error adding money to goal', error);
+      const message = error instanceof Error ? error.message : 'Failed to add money. Please try again.';
+      showAlert('Error', message);
     } finally {
       setSaving(false);
     }
-  }, [amountToAdd, goal, householdCurrency, goalRepository, loadGoal]);
+  }, [amountToAdd, goal, householdCurrency, addToGoalUseCase, reloadGoal]);
 
   const handleArchive = useCallback(async () => {
     if (!goal) return;
@@ -178,11 +200,11 @@ export default function EditGoalScreen() {
 
     try {
       await goalRepository.archiveGoal(goal.id);
-      console.log('✅ Goal archived:', goal.id);
+      logger.info('Goal archived', { goalId: goal.id });
       showAlert('Success', 'Goal archived');
       router.back();
     } catch (error) {
-      console.error('❌ Error archiving goal:', error);
+      logger.error('Error archiving goal', error);
       showAlert('Error', 'Failed to archive goal');
     }
   }, [goal, goalRepository, router]);
@@ -190,7 +212,6 @@ export default function EditGoalScreen() {
   const getStatusColor = useCallback((status: string): string => {
     switch (status) {
       case 'COMPLETED':
-        return theme.status.success;
       case 'AHEAD':
         return theme.status.success;
       case 'ON_TRACK':
@@ -204,16 +225,11 @@ export default function EditGoalScreen() {
 
   const getStatusLabel = useCallback((status: string): string => {
     switch (status) {
-      case 'COMPLETED':
-        return 'Complete!';
-      case 'AHEAD':
-        return 'Ahead of Schedule';
-      case 'ON_TRACK':
-        return 'On Track';
-      case 'BEHIND':
-        return 'Behind Schedule';
-      default:
-        return 'Active';
+      case 'COMPLETED': return 'Complete!';
+      case 'AHEAD': return 'Ahead of Schedule';
+      case 'ON_TRACK': return 'On Track';
+      case 'BEHIND': return 'Behind Schedule';
+      default: return 'Active';
     }
   }, []);
 

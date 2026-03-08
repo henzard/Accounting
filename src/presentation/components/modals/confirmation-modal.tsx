@@ -106,34 +106,24 @@ export function ConfirmationModal({
       onRequestClose={onCancel}
     >
       <TouchableWithoutFeedback onPress={onCancel}>
-        <View style={styles.modalOverlay}>
+        <View style={[styles.modalOverlay, { backgroundColor: theme.surface.overlay }]}>
           <TouchableWithoutFeedback>
             <View style={[styles.modalCard, { backgroundColor: theme.background.elevated }]}>
-              <AppText 
-                variant="h2" 
-                style={{ 
-                  color: getVariantColor(), 
-                  marginBottom: SPACING[2],
-                  fontSize: 20,
-                  fontWeight: '700',
-                }}
+              <AppText
+                variant="h2"
+                style={[styles.modalTitle, { color: getVariantColor() }]}
               >
                 {getVariantIcon() ? `${getVariantIcon()} ${title}` : title}
               </AppText>
-              <AppText 
-                variant="body" 
-                style={{ 
-                  color: theme.text.secondary, 
-                  marginBottom: SPACING[6],
-                  fontSize: 16,
-                  lineHeight: 22,
-                }}
+              <AppText
+                variant="body"
+                style={[styles.modalMessage, { color: theme.text.secondary }]}
               >
                 {message}
               </AppText>
               <View style={styles.modalButtons}>
                 {showCancel && (
-                  <View style={{ flex: 1 }}>
+                  <View style={styles.modalButton}>
                     <OutlineButton
                       title={cancelText}
                       onPress={onCancel}
@@ -142,7 +132,7 @@ export function ConfirmationModal({
                     />
                   </View>
                 )}
-                <View style={{ flex: 1 }}>
+                <View style={styles.modalButton}>
                   <PrimaryButton
                     title={confirmText}
                     onPress={onConfirm}
@@ -163,7 +153,6 @@ export function ConfirmationModal({
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: SPACING[6],
@@ -174,16 +163,22 @@ const styles = StyleSheet.create({
     borderRadius: BORDER_RADIUS.lg,
     padding: SPACING[6],
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
+    shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.3,
     shadowRadius: 16,
     elevation: 12,
   },
+  modalTitle: {
+    marginBottom: SPACING[2],
+  },
+  modalMessage: {
+    marginBottom: SPACING[6],
+  },
   modalButtons: {
     flexDirection: 'row',
     gap: SPACING[3],
+  },
+  modalButton: {
+    flex: 1,
   },
 });

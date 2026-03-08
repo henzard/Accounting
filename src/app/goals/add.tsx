@@ -1,7 +1,7 @@
 // Add Goal Screen - Sinking Funds
 // Create a new savings goal
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   ScrollView,
@@ -14,13 +14,12 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
 import { Input, Button, Card, ScreenWrapper, AppText, ScreenHeader, DatePicker } from '@/presentation/components';
-import { showAlert, showConfirm } from '@/shared/utils/alert';
-import { createGoal } from '@/domain/entities/Goal';
+import { showAlert } from '@/shared/utils/alert';
 import { FirestoreGoalRepository } from '@/data/repositories/FirestoreGoalRepository';
-import { v4 as uuidv4 } from 'uuid';
+import { CreateGoalUseCase } from '@/domain/use-cases/CreateGoalUseCase';
+import { logger } from '@/shared/utils/logger';
 import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
-
-const GOAL_ICONS = ['🎯', '💰', '🏖️', '🚗', '🏠', '🎄', '🎓', '💍', '🎁', '✈️'];
+import { GOAL_ICONS } from '@/shared/constants/goals';
 
 export default function AddGoalScreen() {
   const { theme } = useTheme();
@@ -33,10 +32,10 @@ export default function AddGoalScreen() {
   const [selectedIcon, setSelectedIcon] = useState('🎯');
   const [saving, setSaving] = useState(false);
 
-  const goalRepository = new FirestoreGoalRepository();
+  const goalRepository = useMemo(() => new FirestoreGoalRepository(), []);
+  const createGoalUseCase = useMemo(() => new CreateGoalUseCase(goalRepository), [goalRepository]);
 
   const handleSave = useCallback(async () => {
-    // Validation
     if (!name.trim()) {
       showAlert('Validation Error', 'Please enter a goal name');
       return;
@@ -55,40 +54,28 @@ export default function AddGoalScreen() {
     try {
       setSaving(true);
 
-      // Parse amount (convert dollars to cents)
       const amountInCents = Math.round(parseFloat(targetAmount) * 100);
 
-      // Validate target date if provided
-      if (targetDate && targetDate < new Date()) {
-        showAlert('Validation Error', 'Target date must be in the future');
-        setSaving(false);
-        return;
-      }
-
-      // Create goal
-      const newGoal = createGoal({
-        id: uuidv4(),
+      // CreateGoalUseCase validates name, amount > 0, household_id, and future target_date
+      await createGoalUseCase.execute({
         household_id: user.default_household_id,
         name: name.trim(),
         target_amount: amountInCents,
-        current_amount: 0,
         target_date: targetDate,
         icon: selectedIcon,
       });
 
-      // Save to Firestore
-      await goalRepository.createGoal(newGoal);
-
-      console.log('✅ Goal created:', newGoal.name);
-      showAlert('Success', `${newGoal.name} created!`);
+      logger.info('Goal created', { name: name.trim() });
+      showAlert('Success', `${name.trim()} created!`);
       router.back();
     } catch (error) {
-      console.error('❌ Error creating goal:', error);
-      showAlert('Error', 'Failed to create goal. Please try again.');
+      logger.error('Error creating goal', error);
+      const message = error instanceof Error ? error.message : 'Failed to create goal. Please try again.';
+      showAlert('Error', message);
     } finally {
       setSaving(false);
     }
-  }, [name, targetAmount, targetDate, selectedIcon, user?.default_household_id, goalRepository, router]);
+  }, [name, targetAmount, targetDate, selectedIcon, user?.default_household_id, createGoalUseCase, router]);
 
   return (
     <KeyboardAvoidingView

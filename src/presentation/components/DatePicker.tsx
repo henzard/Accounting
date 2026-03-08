@@ -86,12 +86,9 @@ export function DatePicker({
   return (
     <View style={styles.container}>
       {/* Label */}
-      <AppText 
-        variant="inputLabel" 
-        style={{ 
-          color: theme.text.primary, 
-          marginBottom: SPACING[2],
-        }}
+      <AppText
+        variant="inputLabel"
+        style={[styles.label, { color: theme.text.primary }]}
       >
         {label}
       </AppText>
@@ -110,9 +107,7 @@ export function DatePicker({
       >
         <AppText
           variant="body"
-          style={{
-            color: value ? theme.text.primary : theme.text.tertiary,
-          }}
+          style={{ color: value ? theme.text.primary : theme.text.tertiary }}
         >
           {value ? formatDate(value) : 'Select date...'}
         </AppText>
@@ -134,10 +129,7 @@ export function DatePicker({
       {(helperText || error) && (
         <AppText
           variant="helper"
-          style={{
-            color: error ? theme.status.error : theme.text.secondary,
-            marginTop: SPACING[1],
-          }}
+          style={[styles.helperText, { color: error ? theme.status.error : theme.text.secondary }]}
         >
           {error || helperText}
         </AppText>
@@ -152,7 +144,7 @@ export function DatePicker({
           onChange={handleChange}
           minimumDate={minimumDate}
           maximumDate={maximumDate}
-          testID={`${testID}-picker`}
+          testID={testID ? `${testID}-picker` : undefined}
         />
       )}
     </View>
@@ -162,6 +154,9 @@ export function DatePicker({
 const styles = StyleSheet.create({
   container: {
     marginBottom: SPACING[4],
+  },
+  label: {
+    marginBottom: SPACING[2],
   },
   dateButton: {
     flexDirection: 'row',
@@ -174,5 +169,8 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     padding: SPACING[2],
+  },
+  helperText: {
+    marginTop: SPACING[1],
   },
 });

@@ -129,5 +129,6 @@ xcuserdata/
 *.xcscmblueprint
 
 
-# Ralph config (may contain API key)
+# Ralph automation artifacts
+.ralph/
 .cursor/ralph-config.json

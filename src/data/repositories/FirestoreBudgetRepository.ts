@@ -7,15 +7,16 @@ import {
   getDoc,
   getDocs,
   setDoc,
+  addDoc,
   updateDoc,
   deleteDoc,
   query,
   where,
-  orderBy,
   Timestamp,
 } from 'firebase/firestore';
 import { Budget, BudgetCategory, createBudget, createBudgetCategory } from '@/domain/entities';
 import { IBudgetRepository } from '@/domain/repositories';
+import { MasterCategory } from '@/shared/constants/budget-categories';
 import { db } from '@/infrastructure/firebase';
 
 export class FirestoreBudgetRepository implements IBudgetRepository {
@@ -273,7 +274,7 @@ export class FirestoreBudgetRepository implements IBudgetRepository {
   // CATEGORY MANAGEMENT
   // ============================================
 
-  async getMasterCategoriesByHousehold(householdId: string): Promise<any[]> {
+  async getMasterCategoriesByHousehold(householdId: string): Promise<MasterCategory[]> {
     try {
       const q = query(
         collection(db, 'master_categories'),
@@ -281,16 +282,66 @@ export class FirestoreBudgetRepository implements IBudgetRepository {
       );
 
       const querySnapshot = await getDocs(q);
-      
-      const categories = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
 
-      console.log(`✅ Loaded ${categories.length} master categories for household`);
-      return categories;
+      return querySnapshot.docs.map(snap => ({
+        id: snap.id,
+        ...snap.data() as Omit<MasterCategory, 'id'>,
+      }));
     } catch (error) {
       console.error('Error getting master categories:', error);
+      throw error;
+    }
+  }
+
+  async createMasterCategory(category: Omit<MasterCategory, 'id'>): Promise<MasterCategory> {
+    try {
+      const docRef = await addDoc(collection(db, 'master_categories'), category);
+      return { id: docRef.id, ...category };
+    } catch (error) {
+      console.error('Error creating master category:', error);
+      throw error;
+    }
+  }
+
+  async updateMasterCategory(categoryId: string, updates: Partial<Omit<MasterCategory, 'id'>>): Promise<void> {
+    try {
+      await updateDoc(doc(db, 'master_categories', categoryId), updates);
+    } catch (error) {
+      console.error('Error updating master category:', error);
+      throw error;
+    }
+  }
+
+  async deleteMasterCategory(categoryId: string): Promise<void> {
+    try {
+      await deleteDoc(doc(db, 'master_categories', categoryId));
+    } catch (error) {
+      console.error('Error deleting master category:', error);
+      throw error;
+    }
+  }
+
+  async deleteMasterCategoriesByHousehold(householdId: string): Promise<void> {
+    try {
+      const q = query(
+        collection(db, 'master_categories'),
+        where('household_id', '==', householdId)
+      );
+      const snapshot = await getDocs(q);
+      await Promise.all(snapshot.docs.map(snap => deleteDoc(snap.ref)));
+    } catch (error) {
+      console.error('Error deleting master categories:', error);
+      throw error;
+    }
+  }
+
+  async bulkCreateMasterCategories(categories: Omit<MasterCategory, 'id'>[]): Promise<void> {
+    try {
+      await Promise.all(
+        categories.map(cat => addDoc(collection(db, 'master_categories'), cat))
+      );
+    } catch (error) {
+      console.error('Error bulk creating master categories:', error);
       throw error;
     }
   }
