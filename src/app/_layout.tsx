@@ -48,6 +48,12 @@ export default function RootLayout() {
             <Stack.Screen name="claims/index" options={{ headerShown: false }} />
             <Stack.Screen name="claims/add" options={{ headerShown: false }} />
             <Stack.Screen name="claims/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="goals/index" options={{ headerShown: false }} />
+            <Stack.Screen name="goals/add" options={{ headerShown: false }} />
+            <Stack.Screen name="goals/edit" options={{ headerShown: false }} />
+            <Stack.Screen name="reconcile/index" options={{ headerShown: false }} />
+            <Stack.Screen name="reconcile/start" options={{ headerShown: false }} />
+            <Stack.Screen name="reconcile/[id]" options={{ headerShown: false }} />
           </Stack>
           <StatusBar style="auto" />
         </NavigationThemeProvider>

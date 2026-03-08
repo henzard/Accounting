@@ -1,0 +1,333 @@
+---
+globs:
+  - "src/presentation/components/form/**/*"
+  - "src/presentation/screens/**/*"
+alwaysApply: false
+description: "Advanced form patterns - multi-select, composition examples, best practices, performance, and accessibility"
+---
+
+# Advanced Form Patterns
+
+**Part of UI Component Patterns** (Split 2 of 2)
+
+**See also**:
+- @49-form-selection-components.mdc - Searchable dropdowns, quick add, autocomplete
+- @29-form-management.mdc - Form validation and state management
+- @19-accessibility-rules.mdc - Complete accessibility guidelines
+
+---
+
+## Multi-Select Pattern
+
+### Multi-Select with Search & Quick Add
+```typescript
+interface MultiSelectProps {
+  items: SelectItem[];
+  value: string[];  // Array of selected values
+  onChange: (values: string[]) => void;
+  onQuickAdd?: () => void;
+  label?: string;
+  max?: number;  // Maximum selections allowed
+}
+
+export const MultiSelect: React.FC<MultiSelectProps> = ({
+  items,
+  value,
+  onChange,
+  onQuickAdd,
+  label,
+  max,
+}) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+
+  const filteredItems = useMemo(() => {
+    if (!searchQuery) return items;
+    return items.filter(item =>
+      item.label.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [items, searchQuery]);
+
+  const toggleItem = (itemValue: string) => {
+    const isSelected = value.includes(itemValue);
+    
+    if (isSelected) {
+      onChange(value.filter(v => v !== itemValue));
+    } else {
+      if (max && value.length >= max) {
+        Alert.alert('Limit Reached', `You can only select up to ${max} items`);
+        return;
+      }
+      onChange([...value, itemValue]);
+    }
+  };
+
+  const selectedItems = items.filter(item => value.includes(item.value));
+
+  return (
+    <View style={styles.container}>
+      {label && <Text style={styles.label}>{label}</Text>}
+      
+      {/* Selected Pills */}
+      <View style={styles.selectedContainer}>
+        {selectedItems.map(item => (
+          <View key={item.value} style={styles.pill}>
+            <Text style={styles.pillText}>{item.label}</Text>
+            <TouchableOpacity onPress={() => toggleItem(item.value)}>
+              <CloseIcon size={16} />
+            </TouchableOpacity>
+          </View>
+        ))}
+        
+        <TouchableOpacity
+          style={styles.addButton}
+          onPress={() => setIsOpen(true)}
+        >
+          <PlusIcon />
+          <Text>Add</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Selection Modal */}
+      <Modal visible={isOpen} transparent>
+        <View style={styles.modalContent}>
+          {/* Search */}
+          <TextInput
+            placeholder="Search..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+
+          {/* Quick Add */}
+          {onQuickAdd && (
+            <Button title="Add New" onPress={onQuickAdd} />
+          )}
+
+          {/* Items with Checkboxes */}
+          <FlatList
+            data={filteredItems}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.checkboxItem}
+                onPress={() => toggleItem(item.value)}
+              >
+                <Checkbox checked={value.includes(item.value)} />
+                <Text>{item.label}</Text>
+              </TouchableOpacity>
+            )}
+          />
+
+          <Button title="Done" onPress={() => setIsOpen(false)} />
+        </View>
+      </Modal>
+    </View>
+  );
+};
+```
+
+---
+
+## Component Composition Example
+
+### Complete Form with Searchable Selects
+```typescript
+// src/presentation/screens/transaction-form.screen.tsx
+export const TransactionFormScreen: React.FC = () => {
+  const { control, handleSubmit } = useForm<TransactionFormData>();
+
+  return (
+    <ScrollView>
+      {/* Category - Searchable with Quick Add */}
+      <Controller
+        control={control}
+        name="category"
+        render={({ field }) => (
+          <SearchableSelect
+            label="Category"
+            items={categoryList}
+            value={field.value}
+            onValueChange={field.onChange}
+            onQuickAdd={handleQuickAddCategory}
+            quickAddLabel="Add New Category"
+          />
+        )}
+      />
+
+      {/* Tags - Multi-select with Quick Add */}
+      <Controller
+        control={control}
+        name="tags"
+        render={({ field }) => (
+          <MultiSelect
+            label="Tags"
+            items={tagsList}
+            value={field.value}
+            onChange={field.onChange}
+            onQuickAdd={handleQuickAddTag}
+            max={5}
+          />
+        )}
+      />
+
+      {/* Account - Grouped with Quick Add */}
+      <Controller
+        control={control}
+        name="account"
+        render={({ field }) => (
+          <GroupedSelect
+            label="Account"
+            items={accountsList}
+            value={field.value}
+            onValueChange={field.onChange}
+            onQuickAdd={handleQuickAddAccount}
+          />
+        )}
+      />
+
+      <Button title="Save" onPress={handleSubmit(onSubmit)} />
+    </ScrollView>
+  );
+};
+```
+
+---
+
+## Best Practices
+
+### DO
+- ✅ Always include search for dropdowns with 5+ items
+- ✅ Provide quick add for user-generated data
+- ✅ Auto-select newly added items
+- ✅ Show loading state during search
+- ✅ Highlight matching text in search results
+- ✅ Allow keyboard navigation (web)
+- ✅ Debounce search input (300ms)
+- ✅ Show "No results" with quick add option
+
+### DON'T
+- ❌ Make users scroll through long lists
+- ❌ Forget to provide feedback after quick add
+- ❌ Allow quick add for system-controlled data
+- ❌ Make search case-sensitive
+- ❌ Ignore loading states
+- ❌ Forget accessibility labels
+
+---
+
+## Performance Optimization
+
+### Virtual Lists for Large Datasets
+```typescript
+import { FlashList } from '@shopify/flash-list';
+
+// Use FlashList for better performance
+<FlashList
+  data={filteredItems}
+  renderItem={renderItem}
+  estimatedItemSize={50}
+  keyExtractor={(item) => item.value}
+/>
+```
+
+### Memoize Filtered Results
+```typescript
+const filteredItems = useMemo(() => {
+  return items.filter(item =>
+    item.label.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+}, [items, searchQuery]);
+```
+
+### Debounce Search Input
+```typescript
+const debouncedSearch = useDebouncedCallback(
+  (query: string) => {
+    setSearchQuery(query);
+  },
+  300
+);
+```
+
+---
+
+## Accessibility
+
+### Screen Reader Support
+```typescript
+<TouchableOpacity
+  accessibilityRole="button"
+  accessibilityLabel={`Select ${label}, current value ${selectedItem?.label || 'none'}`}
+  accessibilityHint="Opens a searchable list"
+>
+  {/* ... */}
+</TouchableOpacity>
+
+<TextInput
+  accessibilityLabel="Search items"
+  accessibilityHint="Type to filter the list"
+  placeholder="Search..."
+/>
+```
+
+### Keyboard Navigation
+```typescript
+// Web: Support arrow keys, Enter, Escape
+useEffect(() => {
+  const handleKeyDown = (e: KeyboardEvent) => {
+    switch (e.key) {
+      case 'ArrowDown':
+        focusNextItem();
+        break;
+      case 'ArrowUp':
+        focusPreviousItem();
+        break;
+      case 'Enter':
+        selectFocusedItem();
+        break;
+      case 'Escape':
+        closeDropdown();
+        break;
+    }
+  };
+
+  if (isOpen) {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }
+}, [isOpen]);
+```
+
+---
+
+## Quick Reference
+
+### Multi-Select Features
+- **Pills**: Show selected items as removable chips
+- **Max limit**: Optional maximum selections
+- **Checkboxes**: Show selection state
+- **Quick Add**: Inline creation flow
+
+### Performance Tips
+- **FlashList**: Use for 100+ items
+- **Memoization**: Cache filtered results
+- **Debouncing**: 300ms for search input
+- **Virtual scrolling**: For large datasets
+
+### Accessibility Requirements
+- **accessibilityRole**: Define element type
+- **accessibilityLabel**: Describe element
+- **accessibilityHint**: Explain action
+- **Keyboard nav**: Arrow keys, Enter, Escape
+
+### Best Practices
+- **Search**: Always include for 5+ items
+- **Loading**: Show spinner during search
+- **Empty state**: Offer quick add option
+- **Feedback**: Toast after successful add
+- **Auto-select**: Select newly added items
+
+---
+
+**Last Updated**: 2026-02-06  
+**Status**: Active Standard  
+**Part of**: UI Component Patterns (Split 2 of 2)

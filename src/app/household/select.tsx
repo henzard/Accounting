@@ -2,7 +2,7 @@
 // Choose which household to use (for users with multiple households)
 
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
@@ -10,6 +10,7 @@ import { Card, PrimaryButton, OutlineButton, ScreenWrapper, AppText } from '@/pr
 import { collection, query, where, getDocs, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
 import { Household, createHousehold } from '@/domain/entities';
+import { showAlert } from '@/shared/utils/alert';
 import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
 
 export default function SelectHouseholdScreen() {
@@ -76,7 +77,7 @@ export default function SelectHouseholdScreen() {
       console.log(`✅ Loaded ${loadedHouseholds.length} households`);
     } catch (error) {
       console.error('❌ Failed to load households:', error);
-      Alert.alert('Error', 'Failed to load households');
+      showAlert('Error', 'Failed to load households');
     } finally {
       setLoading(false);
     }
@@ -86,7 +87,7 @@ export default function SelectHouseholdScreen() {
     const idToUse = householdId || selectedHouseholdId;
     if (!idToUse || !user) {
       if (!householdId) {
-        Alert.alert('Error', 'Please select a household');
+        showAlert('Error', 'Please select a household');
       }
       return;
     }
@@ -125,7 +126,7 @@ export default function SelectHouseholdScreen() {
       router.replace('/(tabs)');
     } catch (error) {
       console.error('❌ Failed to set default household:', error);
-      Alert.alert('Error', 'Failed to select household');
+      showAlert('Error', 'Failed to select household');
     } finally {
       setSaving(false);
     }

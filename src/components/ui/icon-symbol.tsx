@@ -31,6 +31,10 @@ const MAPPING = {
   'plus.circle.fill': 'add-circle',
   'pencil': 'edit',
   'trash': 'delete',
+  'target': 'track-changes',
+  'checkmark.circle.fill': 'check-circle',
+  'briefcase.fill': 'work',
+  'doc.text.fill': 'description',
 } as IconMapping;
 
 /**

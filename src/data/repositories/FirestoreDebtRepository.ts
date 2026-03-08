@@ -43,24 +43,27 @@ export class FirestoreDebtRepository implements IDebtRepository {
   ): Promise<Debt[]> {
 
     try {
-      let q = query(
+      // Query only by household_id to avoid composite index requirement
+      // Filter by status and sort in memory
+      const q = query(
         collection(db, this.COLLECTION),
-        where('household_id', '==', householdId),
-        orderBy('snowball_order', 'asc')
+        where('household_id', '==', householdId)
       );
-
-      if (status) {
-        q = query(
-          collection(db, this.COLLECTION),
-          where('household_id', '==', householdId),
-          where('status', '==', status),
-          orderBy('snowball_order', 'asc')
-        );
-      }
 
       const querySnapshot = await getDocs(q);
       
-      return querySnapshot.docs.map(doc => this.firestoreToDebt(doc.data()));
+      // Convert to Debt objects
+      let debts = querySnapshot.docs.map(doc => this.firestoreToDebt(doc.data()));
+      
+      // Filter by status if provided
+      if (status) {
+        debts = debts.filter(debt => debt.status === status);
+      }
+      
+      // Sort by snowball_order
+      debts.sort((a, b) => a.snowball_order - b.snowball_order);
+      
+      return debts;
     } catch (error) {
       console.error('Error getting debts:', error);
       throw error;

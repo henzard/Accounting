@@ -1,0 +1,439 @@
+---
+globs:
+  - "src/data/repositories/**/*"
+  - "src/presentation/viewmodels/**/*"
+alwaysApply: false
+description: "Firebase repository patterns, real-time listeners, queries, pagination, and conflict resolution"
+---
+
+# Firebase Repository & Query Patterns
+
+**Part of Firebase/Firestore Standards** (Split 2 of 3)
+
+**See also**:
+- @46-firebase-setup.mdc - Setup, offline, UUIDs, data structures
+- @47-firebase-security.mdc - Security, testing, performance, migration
+- @10-dependency-injection.mdc - Repository interface patterns
+
+---
+
+## Repository Pattern with Firestore
+
+### Repository Implementation
+
+```typescript
+// src/data/repositories/user-repository.firestore.ts
+import {
+  collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc,
+  query, where, orderBy, limit, Timestamp,
+} from 'firebase/firestore';
+import { IUserRepository } from '@/domain/repositories/i-user-repository';
+import { User } from '@/domain/entities/user';
+import { db } from '@/infrastructure/firebase/config';
+
+export class FirestoreUserRepository implements IUserRepository {
+  private readonly collectionName = 'users';
+
+  async findById(id: string): Promise<User | null> {
+    const docRef = doc(db, this.collectionName, id);
+    const docSnap = await getDoc(docRef);
+    
+    if (!docSnap.exists()) {
+      return null;
+    }
+    
+    return this.mapToEntity(docSnap.id, docSnap.data());
+  }
+
+  async save(user: User): Promise<void> {
+    const docRef = doc(db, this.collectionName, user.id);
+    const data = this.mapToDocument(user);
+    
+    await setDoc(docRef, data, { merge: true });
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    const q = query(
+      collection(db, this.collectionName),
+      where('email', '==', email),
+      limit(1)
+    );
+    
+    const querySnapshot = await getDocs(q);
+    
+    if (querySnapshot.empty) {
+      return null;
+    }
+    
+    const doc = querySnapshot.docs[0];
+    return this.mapToEntity(doc.id, doc.data());
+  }
+
+  private mapToEntity(id: string, data: any): User {
+    return new User({
+      id,
+      email: data.email,
+      name: data.name,
+      createdAt: data.created_at?.toDate() || new Date(),
+      updatedAt: data.updated_at?.toDate() || new Date(),
+    });
+  }
+
+  private mapToDocument(user: User): any {
+    return {
+      email: user.email,
+      name: user.name,
+      created_at: Timestamp.fromDate(user.createdAt),
+      updated_at: Timestamp.fromDate(user.updatedAt),
+    };
+  }
+}
+```
+
+---
+
+## Realtime Listeners
+
+### Basic Listener
+
+```typescript
+// src/presentation/viewmodels/user-list.viewmodel.ts
+import { onSnapshot, collection, query, where } from 'firebase/firestore';
+
+export class UserListViewModel {
+  private unsubscribe?: () => void;
+
+  startListening(householdId: string) {
+    const q = query(
+      collection(db, 'users'),
+      where('household_ids', 'array-contains', householdId)
+    );
+
+    this.unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const users = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        
+        // Update UI
+        this.updateUsers(users);
+      },
+      (error) => {
+        console.error('Listener error:', error);
+        this.handleError(error);
+      }
+    );
+  }
+
+  stopListening() {
+    if (this.unsubscribe) {
+      this.unsubscribe();
+    }
+  }
+}
+```
+
+### Detecting Pending Writes
+
+```typescript
+// Show "syncing..." indicator
+import { onSnapshot } from 'firebase/firestore';
+
+onSnapshot(docRef, (doc) => {
+  const hasPendingWrites = doc.metadata.hasPendingWrites;
+  
+  if (hasPendingWrites) {
+    console.log('Document has local changes not yet synced');
+    // Show "Syncing..." indicator
+  } else {
+    console.log('Document is in sync with server');
+    // Hide "Syncing..." indicator
+  }
+});
+```
+
+---
+
+## Batch Writes & Transactions
+
+### Batch Writes
+
+```typescript
+// Use for multiple independent writes
+import { writeBatch, doc } from 'firebase/firestore';
+
+async function createUserWithProfile(user: User, profile: Profile): Promise<void> {
+  const batch = writeBatch(db);
+
+  // Add user
+  const userRef = doc(db, 'users', user.id);
+  batch.set(userRef, { ...user, created_at: Timestamp.now() });
+
+  // Add profile
+  const profileRef = doc(db, 'profiles', profile.id);
+  batch.set(profileRef, { ...profile, user_id: user.id });
+
+  // Commit all or nothing
+  await batch.commit();
+}
+```
+
+### Transactions
+
+```typescript
+// Use when you need to read before write
+import { runTransaction, doc } from 'firebase/firestore';
+
+async function transferMoney(
+  fromAccountId: string,
+  toAccountId: string,
+  amount: number
+): Promise<void> {
+  await runTransaction(db, async (transaction) => {
+    // Read both accounts
+    const fromRef = doc(db, 'accounts', fromAccountId);
+    const toRef = doc(db, 'accounts', toAccountId);
+    
+    const fromDoc = await transaction.get(fromRef);
+    const toDoc = await transaction.get(toRef);
+    
+    if (!fromDoc.exists() || !toDoc.exists()) {
+      throw new Error('Account not found');
+    }
+    
+    const fromBalance = fromDoc.data().balance;
+    
+    if (fromBalance < amount) {
+      throw new Error('Insufficient funds');
+    }
+    
+    // Write updates
+    transaction.update(fromRef, { balance: fromBalance - amount });
+    transaction.update(toRef, { balance: toDoc.data().balance + amount });
+  });
+}
+```
+
+---
+
+## Query Patterns
+
+### Basic Queries
+
+```typescript
+// Simple filter
+const q = query(
+  collection(db, 'transactions'),
+  where('user_id', '==', userId),
+  where('status', '==', 'completed')
+);
+
+// Ordering
+const q = query(
+  collection(db, 'transactions'),
+  orderBy('date', 'desc'),
+  limit(10)
+);
+
+// Range queries
+const q = query(
+  collection(db, 'transactions'),
+  where('amount', '>=', 100),
+  where('amount', '<=', 500)
+);
+```
+
+### Composite Queries
+
+```typescript
+// Requires composite index
+const q = query(
+  collection(db, 'transactions'),
+  where('user_id', '==', userId),
+  where('status', '==', 'completed'),
+  orderBy('date', 'desc')
+);
+
+// Firestore will prompt you to create index
+// Follow the link in console error
+```
+
+### Array Queries
+
+```typescript
+// Check if array contains value
+const q = query(
+  collection(db, 'users'),
+  where('household_ids', 'array-contains', householdId)
+);
+
+// Check if any value in array matches any in list
+const q = query(
+  collection(db, 'users'),
+  where('roles', 'array-contains-any', ['admin', 'editor'])
+);
+```
+
+---
+
+## Pagination
+
+### Cursor-Based Pagination
+
+```typescript
+// src/data/repositories/transaction-repository.firestore.ts
+import { query, orderBy, limit, startAfter, getDocs } from 'firebase/firestore';
+
+export class TransactionRepository {
+  async getTransactions(
+    pageSize: number = 20,
+    lastDoc?: any
+  ): Promise<{ items: Transaction[]; lastDoc: any }> {
+    let q = query(
+      collection(db, 'transactions'),
+      orderBy('date', 'desc'),
+      limit(pageSize)
+    );
+    
+    if (lastDoc) {
+      q = query(q, startAfter(lastDoc));
+    }
+    
+    const snapshot = await getDocs(q);
+    
+    // Check if we have any results
+    if (snapshot.docs.length === 0) {
+      return { items: [], lastDoc: null };
+    }
+    
+    const items = snapshot.docs.map(doc => this.mapToEntity(doc));
+    const lastVisible = snapshot.docs[snapshot.docs.length - 1];
+    
+    return { items, lastDoc: lastVisible };
+  }
+}
+```
+
+---
+
+## Conflict Resolution
+
+### Understanding "Last Write Wins"
+
+```typescript
+/*
+ * Firestore Conflict Resolution:
+ * 
+ * Device A (offline): Updates transaction amount to $100
+ * Device B (offline): Updates same transaction amount to $150
+ * Both go online:
+ *   → Whichever write reaches server LAST wins
+ *   → The other update is lost
+ * 
+ * Solutions:
+ * 1. Append-only pattern (preferred for accounting)
+ * 2. Version fields with manual conflict detection
+ * 3. Use subcollections for history
+ */
+```
+
+### Append-Only Pattern
+
+```typescript
+// ✅ GOOD: Append-only for financial data
+interface Transaction {
+  id: string;
+  original_amount: number;
+  corrections: CorrectionEntry[];
+  effective_amount: number; // Computed
+}
+
+// Never edit in place, add corrections
+async function correctTransaction(txId: string, newAmount: number) {
+  const correction = {
+    id: uuid(),
+    amount: newAmount,
+    corrected_at: Timestamp.now(),
+    corrected_by: currentUserId,
+  };
+  
+  await updateDoc(doc(db, 'transactions', txId), {
+    corrections: arrayUnion(correction),
+  });
+}
+```
+
+### Version-Based Detection
+
+```typescript
+// Add version field to detect conflicts
+interface VersionedDocument {
+  id: string;
+  data: any;
+  version: number;
+  updated_at: Timestamp;
+}
+
+async function updateWithVersionCheck(docId: string, newData: any, expectedVersion: number) {
+  await runTransaction(db, async (transaction) => {
+    const docRef = doc(db, 'documents', docId);
+    const docSnap = await transaction.get(docRef);
+    
+    const currentVersion = docSnap.data()?.version || 0;
+    
+    if (currentVersion !== expectedVersion) {
+      throw new Error('Version conflict - document was modified');
+    }
+    
+    transaction.update(docRef, {
+      ...newData,
+      version: currentVersion + 1,
+      updated_at: Timestamp.now(),
+    });
+  });
+}
+```
+
+---
+
+## Quick Reference
+
+### Repository Pattern
+- **Implement interfaces**: From domain layer
+- **Map entities**: Document ↔ Entity conversion
+- **Handle timestamps**: Firestore Timestamp ↔ Date
+
+### Realtime Listeners
+- **Start listening**: `onSnapshot(query, callback)`
+- **Stop listening**: Call returned unsubscribe function
+- **Detect sync**: Check `doc.metadata.hasPendingWrites`
+
+### Batch vs Transaction
+- **Batch**: Multiple independent writes (all or nothing)
+- **Transaction**: Read-then-write logic (atomic)
+- **Max operations**: 500 per batch/transaction
+
+### Query Patterns
+- **Simple filters**: `where('field', '==', value)`
+- **Range queries**: `where('field', '>=', min), where('field', '<=', max)`
+- **Array queries**: `array-contains`, `array-contains-any`
+- **Composite indexes**: Required for multi-field queries
+
+### Pagination
+- **Cursor-based**: Use `startAfter(lastDoc)`
+- **Page size**: Reasonable default (20-50)
+- **Store cursor**: Keep last document for next page
+
+### Conflict Resolution
+- **Default**: Last write wins
+- **Append-only**: Preferred for financial data
+- **Version fields**: Manual conflict detection
+- **Transactions**: For critical updates
+
+---
+
+**Last Updated**: 2026-02-06  
+**Status**: Active Standard  
+**Part of**: Firebase/Firestore Standards (Split 2 of 3)

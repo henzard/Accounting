@@ -1,3 +1,11 @@
+---
+globs:
+  - "src/app/**/*.tsx"
+  - "src/presentation/**/*.tsx"
+alwaysApply: false
+description: "Web platform alert compatibility - use showAlert/showConfirm utilities instead of Alert.alert"
+---
+
 # Web Alert Compatibility
 
 ## ⚠️ CRITICAL: Alert.alert Does NOT Work on Web

@@ -140,6 +140,24 @@ export default function MoreScreen() {
           <View style={[styles.divider, { backgroundColor: theme.border.default }]} />
           
           <MenuItem
+            icon="target"
+            label="Sinking Funds"
+            subtitle="Save for irregular expenses"
+            onPress={() => router.push('/goals')}
+          />
+          
+          <View style={[styles.divider, { backgroundColor: theme.border.default }]} />
+          
+          <MenuItem
+            icon="checkmark.circle.fill"
+            label="Reconcile Accounts"
+            subtitle="Match your accounts with bank statements"
+            onPress={() => router.push('/reconcile')}
+          />
+          
+          <View style={[styles.divider, { backgroundColor: theme.border.default }]} />
+          
+          <MenuItem
             icon="briefcase.fill"
             label="Businesses"
             subtitle="Manage businesses and employers"

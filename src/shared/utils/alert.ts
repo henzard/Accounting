@@ -61,21 +61,28 @@ export function showConfirm(
       const confirmed = window.confirm(`${title}\n\n${message}`);
       resolve(confirmed);
     } else {
-      Alert.alert(
-        title,
-        message,
-        [
+      // On Android, wait for next frame to ensure Activity context is ready
+      requestAnimationFrame(() => {
+        Alert.alert(
+          title,
+          message,
+          [
+            {
+              text: 'Cancel',
+              style: 'cancel',
+              onPress: () => resolve(false),
+            },
+            {
+              text: 'Confirm',
+              onPress: () => resolve(true),
+            },
+          ],
           {
-            text: 'Cancel',
-            style: 'cancel',
-            onPress: () => resolve(false),
-          },
-          {
-            text: 'Confirm',
-            onPress: () => resolve(true),
-          },
-        ]
-      );
+            cancelable: true,
+            onDismiss: () => resolve(false),
+          }
+        );
+      });
     }
   });
 }

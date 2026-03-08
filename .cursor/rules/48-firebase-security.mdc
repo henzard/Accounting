@@ -1,0 +1,405 @@
+---
+globs:
+  - "src/infrastructure/firebase/**/*"
+  - "firestore.rules"
+  - "**/*.test.ts"
+alwaysApply: false
+description: "Firebase security rules, best practices, testing, performance tips, and migration guidance"
+---
+
+# Firebase Security & Best Practices
+
+**Part of Firebase/Firestore Standards** (Split 3 of 3)
+
+**See also**:
+- @46-firebase-setup.mdc - Setup, offline, UUIDs, data structures
+- @47-firebase-repository.mdc - Repository patterns, queries, real-time
+- @06-security-best-practices.mdc - General security standards
+
+---
+
+## Security Rules (Patterns)
+
+### Basic Structure
+
+```javascript
+// firestore.rules (generic patterns)
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+    
+    // Household data
+    match /households/{householdId} {
+      // Check membership
+      function isMember() {
+        return request.auth.uid in resource.data.member_ids;
+      }
+      
+      allow read: if isMember();
+      allow write: if isMember();
+      
+      // Subcollections inherit parent rules
+      match /{document=**} {
+        allow read, write: if isMember();
+      }
+    }
+  }
+}
+```
+
+### Document-Specific Rules
+
+```javascript
+// Your project-specific rules go in docs/security/firestore-rules.md
+// This is just the pattern - customize for your app
+```
+
+---
+
+## Best Practices
+
+### 1. Document Size Limits
+
+```typescript
+// ❌ BAD: Large arrays in document
+interface TransactionBad {
+  id: string;
+  allocations: Allocation[]; // Could grow unbounded
+}
+
+// ✅ GOOD: Use subcollection
+transactions/{txId}/allocations/{allocationId}
+```
+
+**Rule**: Keep documents under 1MB. Use subcollections for unbounded data.
+
+---
+
+### 2. Denormalization for Performance
+
+```typescript
+// ✅ Denormalize frequently accessed data
+interface Transaction {
+  id: string;
+  user_id: string;
+  user_name: string; // Denormalized for display
+  user_email: string; // Denormalized for display
+  amount: number;
+}
+
+// Keep source of truth
+users/{userId}
+```
+
+**Rule**: Duplicate data that's read frequently, maintain single source of truth.
+
+---
+
+### 3. Timestamps
+
+```typescript
+// ✅ GOOD: Use server timestamps
+import { serverTimestamp } from 'firebase/firestore';
+
+await setDoc(doc(db, 'users', userId), {
+  name: 'John',
+  created_at: serverTimestamp(), // Set by server
+});
+
+// ❌ BAD: Client timestamps (can be wrong)
+await setDoc(doc(db, 'users', userId), {
+  name: 'John',
+  created_at: new Date(), // Client time might be wrong
+});
+```
+
+**Rule**: Always use `serverTimestamp()` for created/updated timestamps.
+
+---
+
+### 4. Error Handling
+
+```typescript
+// src/infrastructure/firebase/error-handler.ts
+import { FirebaseError } from 'firebase/app';
+
+export function handleFirebaseError(error: unknown): Error {
+  if (error instanceof FirebaseError) {
+    switch (error.code) {
+      case 'permission-denied':
+        return new Error('You do not have permission to access this data');
+      case 'not-found':
+        return new Error('Document not found');
+      case 'unavailable':
+        return new Error('Service temporarily unavailable. Please try again.');
+      default:
+        return new Error(`Firebase error: ${error.message}`);
+    }
+  }
+  
+  return error instanceof Error ? error : new Error('Unknown error');
+}
+```
+
+**Rule**: Convert Firebase errors to user-friendly messages.
+
+---
+
+### 5. Cleanup on Unmount
+
+```typescript
+// src/presentation/hooks/use-firestore-query.ts
+import { useEffect, useState } from 'react';
+import { onSnapshot } from 'firebase/firestore';
+
+export function useFirestoreQuery<T>(queryRef: Query) {
+  const [data, setData] = useState<T[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      queryRef,
+      (snapshot) => {
+        const items = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+        } as T));
+        setData(items);
+        setLoading(false);
+      },
+      (err) => {
+        setError(err);
+        setLoading(false);
+      }
+    );
+
+    // Cleanup listener on unmount
+    return () => unsubscribe();
+  }, [queryRef]);
+
+  return { data, loading, error };
+}
+```
+
+**Rule**: Always unsubscribe from listeners on component unmount.
+
+---
+
+## Testing Firestore Code
+
+### Using Firebase Emulator
+
+```bash
+# Install Firebase CLI
+npm install -g firebase-tools
+
+# Initialize emulators
+firebase init emulators
+
+# Start emulators
+firebase emulators:start
+```
+
+### Test Configuration
+
+```typescript
+// src/infrastructure/firebase/config.test.ts
+import { connectFirestoreEmulator } from 'firebase/firestore';
+
+if (process.env.NODE_ENV === 'test') {
+  connectFirestoreEmulator(db, 'localhost', 8080);
+}
+```
+
+### Example Test
+
+```typescript
+// src/data/repositories/user-repository.test.ts
+describe('FirestoreUserRepository', () => {
+  let repository: FirestoreUserRepository;
+
+  beforeEach(async () => {
+    // Clear emulator data
+    await clearFirestoreData({ projectId: 'test-project' });
+    repository = new FirestoreUserRepository();
+  });
+
+  it('should save and retrieve user', async () => {
+    const user = new User({
+      id: uuid(),
+      email: 'test@example.com',
+      name: 'Test User',
+    });
+
+    await repository.save(user);
+    const retrieved = await repository.findById(user.id);
+
+    expect(retrieved).not.toBeNull();
+    expect(retrieved?.email).toBe(user.email);
+  });
+});
+```
+
+---
+
+## Migration from SQLite
+
+If migrating from SQLite to Firestore:
+
+### Data Migration Script
+
+```typescript
+// scripts/migrate-to-firestore.ts
+import { readFromSQLite } from './sqlite-export';
+import { writeBatch } from 'firebase/firestore';
+
+async function migrateData() {
+  const sqliteData = await readFromSQLite();
+  const batch = writeBatch(db);
+  
+  // Batch write in chunks of 500 (Firestore limit)
+  let count = 0;
+  
+  for (const user of sqliteData.users) {
+    const docRef = doc(db, 'users', user.id);
+    batch.set(docRef, user);
+    
+    count++;
+    if (count % 500 === 0) {
+      await batch.commit();
+      console.log(`Migrated ${count} users`);
+    }
+  }
+  
+  await batch.commit();
+  console.log('Migration complete');
+}
+```
+
+---
+
+## Performance Tips
+
+### 1. Use Indexes
+
+```typescript
+// Firebase Console → Firestore → Indexes
+// Create composite indexes for common queries
+
+// When you see index error in console:
+// "The query requires an index. You can create it here: [link]"
+// Click the link to auto-create the index
+```
+
+### 2. Limit Query Results
+
+```typescript
+// ✅ GOOD: Paginate large datasets
+const q = query(collection(db, 'items'), limit(20));
+
+// ❌ BAD: Load everything
+const q = query(collection(db, 'items')); // Could be thousands
+```
+
+### 3. Cache Strategy
+
+```typescript
+// Get from cache first, then server
+import { getDocFromCache, getDocFromServer } from 'firebase/firestore';
+
+async function getCachedDocument(docRef: DocumentReference) {
+  try {
+    const doc = await getDocFromCache(docRef);
+    return doc;
+  } catch (e) {
+    // Not in cache, fetch from server
+    return await getDocFromServer(docRef);
+  }
+}
+```
+
+---
+
+## Common Mistakes to Avoid
+
+| ❌ Don't | ✅ Do |
+|----------|-------|
+| Use auto-generated IDs for offline writes | Use UUIDs (client-generated) |
+| Store large arrays in documents | Use subcollections |
+| Query without indexes | Create composite indexes |
+| Forget to unsubscribe listeners | Always cleanup in unmount |
+| Trust client timestamps | Use serverTimestamp() |
+| Store sensitive data unencrypted | Use security rules + client encryption |
+
+---
+
+## Summary
+
+### Firestore = Offline-First + Real-Time
+
+- **Offline persistence** works out of the box
+- **UUID-based IDs** enable offline writes
+- **Realtime listeners** keep all devices in sync
+- **Batch writes** for multi-document operations
+- **Security rules** protect data server-side
+
+### When Combined with Clean Architecture
+
+- **Domain layer**: Business logic (pure)
+- **Data layer**: Firestore repositories
+- **Presentation**: React hooks with listeners
+
+This creates a powerful offline-first, real-time, syncing app! 🚀
+
+---
+
+## Quick Reference
+
+### Security
+- **Rules file**: `firestore.rules`
+- **Helper functions**: isAuthenticated(), isOwner()
+- **Test security**: Use Firebase Emulator
+
+### Best Practices
+- **Document size**: Keep under 1MB
+- **Denormalization**: Duplicate frequently read data
+- **Timestamps**: Use serverTimestamp()
+- **Error handling**: Convert to user-friendly messages
+- **Cleanup**: Unsubscribe listeners on unmount
+
+### Testing
+- **Emulator**: Local testing environment
+- **Config**: Connect to localhost:8080
+- **Clear data**: Between tests
+
+### Performance
+- **Indexes**: Create for composite queries
+- **Pagination**: Use limit() and startAfter()
+- **Cache**: Try cache first, fallback to server
+
+### Migration
+- **Batch writes**: 500 operations max
+- **Scripts**: Automate SQLite → Firestore
+- **Testing**: Verify in emulator first
+
+---
+
+**Last Updated**: 2026-02-06  
+**Status**: Active Standard  
+**Part of**: Firebase/Firestore Standards (Split 3 of 3)

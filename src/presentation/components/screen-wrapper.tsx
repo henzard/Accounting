@@ -83,11 +83,12 @@ export const ScreenWrapper: React.FC<ScreenWrapperProps> = ({
         style={[
           containerStyle,
           {
-            paddingTop: insets.top,
+            // Don't add paddingTop here - ScreenHeader handles it
             paddingBottom: insets.bottom,
           },
           style,
         ]}
+        edges={['bottom', 'left', 'right']} // Only handle bottom/left/right, let ScreenHeader handle top
       >
         <View style={{ flex: 1 }}>
           {children}

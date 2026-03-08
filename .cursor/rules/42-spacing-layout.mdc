@@ -1,0 +1,234 @@
+---
+globs:
+  - "src/app/**/*.tsx"
+  - "src/presentation/**/*.tsx"
+  - "src/shared/constants/spacing.ts"
+  - "src/shared/constants/typography.ts"
+alwaysApply: false
+description: "Premium UI foundations - 8pt grid spacing system and typography standards"
+---
+
+# Premium UI Foundations
+
+## Golden Rule: Luxury = Restraint
+
+**Premium UIs feel expensive because they use space, typography, and color with discipline. Every pixel matters.**
+
+**See also**:
+- @37-premium-ui-visual-design.mdc - Colors, surfaces, borders
+- @37-premium-ui-components.mdc - Buttons, inputs, motion
+- @37-premium-ui-implementation.mdc - Accessibility, tokens, checklists
+
+---
+
+## 1. Layout and Spacing Rules
+
+### 1.1 8pt Grid System (MANDATORY)
+
+**Rule**: Use an 8pt grid everywhere. No exceptions.
+
+**Reference**: @src/shared/constants/spacing.ts
+
+**Allowed spacing tokens ONLY**:
+```typescript
+export const SPACING = {
+  0: 0,
+  1: 4,   // 0.5 × 8
+  2: 8,   // 1 × 8
+  3: 12,  // 1.5 × 8
+  4: 16,  // 2 × 8
+  5: 20,  // 2.5 × 8
+  6: 24,  // 3 × 8
+  8: 32,  // 4 × 8
+  10: 40, // 5 × 8
+  12: 48, // 6 × 8
+} as const;
+```
+
+**❌ FORBIDDEN**: Random spacing values (14, 18, 22, 26, 28, 30, 34, 36, 38, 42, 44, 46, etc.)
+
+**✅ GOOD**:
+```typescript
+padding: SPACING[4],        // 16px
+marginBottom: SPACING[6],    // 24px
+gap: SPACING[2],            // 8px
+```
+
+**❌ BAD**:
+```typescript
+padding: 14,                // Not in 8pt grid!
+marginBottom: 18,           // Not in 8pt grid!
+gap: 22,                    // Not in 8pt grid!
+```
+
+---
+
+### 1.2 Screen and Card Padding
+
+**Screen Padding**:
+- **Compact**: `SPACING[4]` (16px) - for dense information screens
+- **Premium feel**: `SPACING[5]` (20px) - default for most screens
+
+**Card Padding**:
+- **Minimum**: `SPACING[3]` (12px) - never less
+- **Standard**: `SPACING[4]` (16px) - default
+- **Premium**: `SPACING[5]` (20px) - for important cards
+
+---
+
+### 1.3 Vertical Rhythm (Premium Air)
+
+**Rule**: Prefer fewer, larger gaps. Premium UIs use air.
+
+**Spacing Guidelines**:
+- **Between major sections**: `SPACING[8]` (32px) to `SPACING[10]` (40px)
+- **Between related items**: `SPACING[3]` (12px) to `SPACING[4]` (16px)
+- **Between label and value**: `SPACING[1]` (4px) to `SPACING[2]` (8px)
+
+---
+
+### 1.4 Alignment is Non-Negotiable
+
+**Rule**: All text baselines align. Icons align to text centerline system-wide.
+
+**Text Baseline Alignment**:
+```typescript
+<View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
+  <Text style={TEXT_STYLES.h1}>Title</Text>
+  <Text style={TEXT_STYLES.caption}>Subtitle</Text>
+</View>
+```
+
+**Icon Alignment**:
+```typescript
+<View style={{ flexDirection: 'row', alignItems: 'center' }}>
+  <Icon size={20} />
+  <Text style={TEXT_STYLES.body}>Label</Text>
+</View>
+```
+
+---
+
+## 2. Typography Rules (Premium Readability)
+
+### 2.1 Limit Type Styles (Max 8)
+
+**Rule**: Use a small, disciplined set of type styles. Maximum 8 styles.
+
+**Reference**: @src/shared/constants/typography.ts
+
+**Recommended Premium Set**:
+```typescript
+export const TEXT_STYLES = {
+  display: {
+    fontSize: 30,
+    fontWeight: FONT_WEIGHTS.semibold,
+    lineHeight: 37.5,
+  },
+  h1: {
+    fontSize: 24,
+    fontWeight: FONT_WEIGHTS.semibold,
+    lineHeight: 30,
+  },
+  h2: {
+    fontSize: 20,
+    fontWeight: FONT_WEIGHTS.semibold,
+    lineHeight: 25,
+  },
+  body: {
+    fontSize: 16,
+    fontWeight: FONT_WEIGHTS.regular,
+    lineHeight: 22.4,
+  },
+  bodyEmphasis: {
+    fontSize: 16,
+    fontWeight: FONT_WEIGHTS.medium,
+    lineHeight: 22.4,
+  },
+  caption: {
+    fontSize: 13,
+    fontWeight: FONT_WEIGHTS.regular,
+    lineHeight: 18.2,
+  },
+  overline: {
+    fontSize: 12,
+    fontWeight: FONT_WEIGHTS.medium,
+    lineHeight: 16.8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+} as const;
+```
+
+**❌ FORBIDDEN**: Creating new text styles without removing an old one. Max 8 total.
+
+---
+
+### 2.2 Body Text: Smaller Size + More Line Height
+
+**Rule**: Prefer slightly smaller body text (15-16px) with generous line height (1.35-1.5×).
+
+**Premium Body Text**:
+```typescript
+body: {
+  fontSize: 16,           // Not 18px
+  lineHeight: 22.4,      // 1.4× - generous spacing
+  fontWeight: FONT_WEIGHTS.regular,
+}
+```
+
+**Why**: This reads "considered" rather than "default." The extra line height creates breathing room.
+
+---
+
+### 2.3 Use Weight Sparingly (Luxury = Restraint)
+
+**Rule**: Default is Regular. Use Medium for emphasis. Semibold for headlines only.
+
+**Weight Hierarchy**:
+- **Default**: `FONT_WEIGHTS.regular` (400)
+- **Emphasis**: `FONT_WEIGHTS.medium` (500)
+- **Headlines**: `FONT_WEIGHTS.semibold` (600)
+- **Avoid**: `FONT_WEIGHTS.bold` (700) - too heavy for premium feel
+
+**❌ FORBIDDEN**: Bold-heavy UIs. If everything is bold, nothing is emphasized.
+
+---
+
+### 2.4 Truncation Rules
+
+**Rule**: Titles max 1-2 lines, then ellipsis. Avoid dense paragraphs.
+
+```typescript
+<Text
+  style={TEXT_STYLES.h1}
+  numberOfLines={2}
+  ellipsizeMode="tail"
+>
+  {title}
+</Text>
+```
+
+---
+
+## Quick Reference
+
+### Spacing (8pt Grid)
+- **Tight**: SPACING[1]-[2] (4-8px)
+- **Standard**: SPACING[3]-[4] (12-16px)
+- **Generous**: SPACING[5]-[6] (20-24px)
+- **Sections**: SPACING[8]-[10] (32-40px)
+
+### Typography (Max 8 Styles)
+- **Display** (30px, semibold) - Hero text
+- **H1** (24px, semibold) - Page titles
+- **H2** (20px, semibold) - Section headers
+- **Body** (16px, regular) - Default text
+- **Caption** (13px, regular) - Helper text
+- **Overline** (12px, medium, uppercase) - Labels
+
+---
+
+**Last Updated**: 2026-02-06  
+**Status**: Active Standard  
+**Part of**: Premium UI Standards (Split 1 of 4)

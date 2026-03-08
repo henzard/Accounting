@@ -7,7 +7,6 @@ import {
   ScrollView,
   StyleSheet,
   ActivityIndicator,
-  Alert,
   TouchableOpacity,
   TextInput,
 } from 'react-native';
@@ -19,6 +18,7 @@ import { Budget, BudgetCategory, CategoryGroup } from '@/domain/entities';
 import { CATEGORY_GROUP_INFO } from '@/shared/constants/budget-categories';
 import { FirestoreBudgetRepository } from '@/data/repositories/FirestoreBudgetRepository';
 import { CurrencyCode, formatCurrency } from '@/shared/utils/currency';
+import { showAlert } from '@/shared/utils/alert';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
 import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
@@ -75,15 +75,12 @@ export default function CategoryTrackingScreen() {
       if (existingBudget) {
         setBudget(existingBudget);
       } else {
-        Alert.alert(
-          'No Budget Found',
-          'Please create a budget for this month first.',
-          [{ text: 'OK', onPress: () => router.back() }]
-        );
+        router.back();
+        showAlert('No Budget Found', 'Please create a budget for this month first.');
       }
     } catch (error) {
       console.error('Error loading budget:', error);
-      Alert.alert('Error', 'Failed to load budget');
+      showAlert('Error', 'Failed to load budget');
     } finally {
       setLoading(false);
     }

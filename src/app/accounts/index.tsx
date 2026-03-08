@@ -8,7 +8,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/infrastructure/theme';
@@ -18,6 +17,7 @@ import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
 import { Account, AccountType } from '@/domain/entities/Account';
 import { FirestoreAccountRepository } from '@/data/repositories/FirestoreAccountRepository';
 import { formatCurrency, CurrencyCode } from '@/shared/utils/currency';
+import { showAlert } from '@/shared/utils/alert';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
 
@@ -69,7 +69,7 @@ export default function AccountsScreen() {
       setAccounts(loadedAccounts);
     } catch (error) {
       console.error('❌ Error loading accounts:', error);
-      Alert.alert('Error', 'Failed to load accounts. Please try again.');
+      showAlert('Error', 'Failed to load accounts. Please try again.');
     } finally {
       setLoading(false);
     }

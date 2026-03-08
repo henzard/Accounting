@@ -1,0 +1,308 @@
+---
+globs:
+  - "src/app/**/*.tsx"
+  - "src/presentation/**/*.tsx"
+  - "src/shared/constants/colors.ts"
+  - "src/shared/constants/radius.ts"
+alwaysApply: false
+description: "Premium UI visual design - color distribution, surfaces, borders, and iconography"
+---
+
+# Premium UI Visual Design
+
+**Part of Premium UI Standards** (Split 2 of 4)
+
+**See also**:
+- @42-spacing-layout.mdc - Spacing and typography foundations
+- @43-components-motion.mdc - Buttons, inputs, motion
+- @44-implementation-tokens.mdc - Accessibility, tokens, checklists
+
+**Reference**: `docs/color-theme.md` for complete color palette and design guidance
+
+---
+
+## 1. Color Rules (Keep It Expensive)
+
+### 1.1 Neutrals Dominate; Color is a Signal
+
+**Rule**: Neutrals = 85-95% of UI. Primary blue = 3-10%. Gold accent = 1-3%.
+
+**Color Distribution**:
+- **Neutrals** (backgrounds, text, borders): 85-95%
+- **Primary blue** (links, primary actions, key highlights): 3-10%
+- **Gold accent** (tiny highlights only): 1-3%
+
+**❌ FORBIDDEN**: If gold appears more than "a few touches per screen," it stops feeling premium.
+
+**Brand Colors**:
+```typescript
+// Primary Brand Color
+primary: {
+  main: '#0B3C78',      // Royal Blue
+  hover: '#072A55',     // Midnight Blue (hover/active)
+  dark: '#1E5FA8',      // Royal Blue (brighter for dark theme)
+  darkHover: '#2C76C9', // Luminous Blue (dark theme hover)
+},
+
+// Luxury Accent (use sparingly - 1-3% max)
+accent: {
+  light: '#C9A24D',     // Antique Gold (light theme)
+  dark: '#D4AF37',      // Warm Gold (dark theme)
+  background: '#F3E9D2', // Champagne Tint (light theme only)
+},
+```
+
+**Design Guidance**:
+- **Gold should never be dominant** — 1-3% usage max
+- **Prefer thin lines, subtle shadows, and negative space**
+- **Avoid gradients in light mode** — flat tones feel more premium
+- **No pure black** — always navy-tinted (even in dark mode)
+- **Gold works best on dark mode** — icons, focus rings, key numbers
+- **Avoid glow effects** — rely on contrast and spacing instead
+
+---
+
+### 1.2 Never Use Pure Black or Pure White
+
+**Rule**: Light theme uses off-white backgrounds and deep navy text. Dark theme uses near-black navy and soft ivory text.
+
+**Light Theme** ("Polished Luxury"):
+```typescript
+background: {
+  primary: '#F6F7F4',    // Soft Ivory (not #FFFFFF)
+  secondary: '#ECEFF1',  // Cool Platinum (cards, sections)
+  elevated: '#FFFFFF',    // Elevated surfaces
+},
+border: {
+  default: '#D1D5D8',    // Brushed Steel (dividers, borders)
+},
+text: {
+  primary: '#0F1E2D',    // Deep Navy (not #000000)
+  secondary: '#4A5D73',  // Slate Blue-Gray
+  tertiary: '#8A95A3',   // Cool Gray (muted/helper text)
+},
+interactive: {
+  primary: '#0B3C78',    // Royal Blue
+  primaryHover: '#072A55', // Midnight Blue
+},
+accent: {
+  gold: '#C9A24D',       // Antique Gold (icons, highlights)
+  goldBackground: '#F3E9D2', // Champagne Tint
+},
+```
+
+**Dark Theme** ("Midnight Precision"):
+```typescript
+background: {
+  primary: '#0A1420',    // Near-Black Navy (not #000000)
+  secondary: '#121E2B',  // Deep Steel Blue (cards)
+  elevated: '#182636',   // Charcoal Navy (modals)
+},
+border: {
+  default: '#223447',    // Blue-Gray Steel (dividers, hairline accents)
+},
+text: {
+  primary: '#E6E8E5',    // Soft Ivory (not #FFFFFF)
+  secondary: '#A8B1BC',  // Muted Steel
+  tertiary: '#6F7A85',   // Cool Gray (disabled/subtle)
+},
+interactive: {
+  primary: '#1E5FA8',    // Royal Blue (brighter for contrast)
+  primaryHover: '#2C76C9', // Luminous Blue
+},
+accent: {
+  gold: '#D4AF37',       // Warm Gold (icons, focus rings, key numbers)
+},
+```
+
+---
+
+### 1.3 One Accent Per Component
+
+**Rule**: A button is either Primary (blue), Neutral (surface), or Destructive (rare, controlled). Never mix blue + gold in the same control.
+
+**✅ GOOD**:
+```typescript
+<Button variant="primary" />   // Blue
+<Button variant="secondary" /> // Neutral surface
+<Button variant="destructive" /> // Red (rare)
+```
+
+**❌ BAD**:
+```typescript
+<Button style={{
+  backgroundColor: theme.interactive.primary, // Blue
+  borderColor: theme.accent.gold,             // Gold - NO!
+}} />
+```
+
+---
+
+## 2. Surfaces, Cards, and Borders
+
+### 2.1 Prefer Borders Over Shadows (Especially on iOS)
+
+**Rule**: Luxury UIs are quiet. Use hairline borders. Subtle elevation only for modals/floating elements.
+
+**Design Guidance**:
+- **Prefer thin lines** — use `StyleSheet.hairlineWidth` or `1px` borders
+- **Subtle shadows** — only for modals and floating elements
+- **Negative space** — use whitespace instead of heavy visual elements
+- **Avoid gradients in light mode** — flat tones feel more premium
+- **Avoid glow effects** — rely on contrast and spacing instead
+
+**Border Implementation**:
+```typescript
+// ✅ GOOD: Hairline border (thin line)
+<View style={{
+  borderWidth: StyleSheet.hairlineWidth,
+  borderColor: theme.border.default,
+  borderRadius: BORDER_RADIUS.lg,
+}}>
+
+// ✅ GOOD: Subtle shadow only for modals (not cards)
+<Modal style={{
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.1,  // Subtle, not heavy
+  shadowRadius: 8,
+  elevation: 4, // Android
+}}>
+
+// ❌ BAD: Heavy shadows everywhere
+<View style={{
+  shadowOpacity: 0.3,  // Too heavy
+}}>
+
+// ❌ BAD: Gradients in light mode
+<View style={{
+  background: 'linear-gradient(...)', // No gradients!
+}}>
+```
+
+---
+
+### 2.2 Border Radius: Consistent and Moderate
+
+**Rule**: Pick one radius scale and stick to it.
+
+**Recommended Radius Scale**:
+```typescript
+export const BORDER_RADIUS = {
+  none: 0,
+  sm: 10,   // Small controls (10-12 range)
+  md: 14,   // Cards (14-16 range)
+  lg: 18,   // Sheets/Modals (18-24 range)
+} as const;
+```
+
+**Usage**:
+- **Small controls** (buttons, inputs): `BORDER_RADIUS.sm` (10-12)
+- **Cards**: `BORDER_RADIUS.md` (14-16)
+- **Sheets/Modals**: `BORDER_RADIUS.lg` (18-24)
+
+**❌ FORBIDDEN**: 
+- Tiny radii (looks "default")
+- Excessive rounding (looks playful)
+- Inconsistent radius values
+
+---
+
+### 2.3 Card Structure Rule
+
+**Rule**: A card must have clear structure: header (title + optional action), content area, optional footer.
+
+**Card Template**:
+```typescript
+<View style={styles.card}>
+  {/* Header */}
+  <View style={styles.cardHeader}>
+    <Text style={TEXT_STYLES.h2}>{title}</Text>
+    {action && (
+      <TouchableOpacity onPress={action.onPress}>
+        <Text>{action.label}</Text>
+      </TouchableOpacity>
+    )}
+  </View>
+  
+  {/* Content */}
+  <View style={styles.cardContent}>
+    {children}
+  </View>
+  
+  {/* Optional Footer */}
+  {footer && (
+    <View style={styles.cardFooter}>
+      {footer}
+    </View>
+  )}
+</View>
+```
+
+**❌ FORBIDDEN**: "Floating random content" without structure.
+
+---
+
+## 3. Iconography and Imagery Rules
+
+### 3.1 One Icon Library, One Style
+
+**Rule**: Either all outline or all filled. Consistent stroke width.
+
+**Implementation**:
+```typescript
+// Choose one icon set and stick to it
+import { Icon } from '@expo/vector-icons/Ionicons';
+
+// All icons use same style
+<Icon name="home-outline" size={20} />      // Outline style
+<Icon name="settings-outline" size={20} />  // Outline style
+<Icon name="user-outline" size={20} />      // Outline style
+
+// ❌ BAD: Mixed styles
+<Icon name="home" size={20} />              // Filled
+<Icon name="settings-outline" size={20} />  // Outline - inconsistent!
+```
+
+---
+
+### 3.2 Photography is Rare and Intentional
+
+**Rule**: Luxury UI uses fewer images. If images exist, use consistent aspect ratios and rounded corners.
+
+**Guidelines**:
+- Use images sparingly
+- Consistent aspect ratios (e.g., 16:9, 1:1, 4:3)
+- Rounded corners match card radius
+- No mixed "stock photo + illustration" styles
+
+---
+
+## Quick Reference
+
+### Color Distribution
+- **Neutrals**: 85-95% (backgrounds, text, borders)
+- **Primary blue**: 3-10% (links, primary actions)
+- **Gold accent**: 1-3% (tiny highlights only)
+
+### Border/Shadow Guidelines
+- **Default**: Hairline borders (`StyleSheet.hairlineWidth`)
+- **Shadows**: Only for modals/floating elements (subtle)
+- **Gradients**: Avoid in light mode
+- **Glow effects**: Never use
+
+### Border Radius
+- **Small controls**: 10-12px
+- **Cards**: 14-16px
+- **Sheets/Modals**: 18-24px
+
+### Iconography
+- **Style**: Pick one (all outline OR all filled)
+- **Library**: Consistent icon set (e.g., Ionicons)
+- **Size**: Standard sizes (16, 20, 24px)
+
+---
+
+**Last Updated**: 2026-02-06  
+**Status**: Active Standard  
+**Part of**: Premium UI Standards (Split 2 of 4)

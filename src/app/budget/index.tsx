@@ -8,7 +8,6 @@ import {
   ScrollView,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -16,10 +15,11 @@ import { useTheme } from '@/infrastructure/theme';
 import { useAuth } from '@/infrastructure/auth';
 import { ScreenHeader, Card, AmountInput, PrimaryButton, ScreenWrapper, AppText } from '@/presentation/components';
 import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
-import { Budget, BudgetCategory, createBudget, createBudgetCategory, calculateRemainingToBudget, getBudgetMonthName, calculateBudgetPeriod } from '@/domain/entities';
+import { Budget, BudgetCategory, createBudget, createBudgetCategory, calculateRemainingToBudget, calculateTotalPlannedExpenses, getBudgetMonthName, calculateBudgetPeriod } from '@/domain/entities';
 import { FirestoreBudgetRepository } from '@/data/repositories/FirestoreBudgetRepository';
 import { getDefaultCategories, CATEGORY_GROUP_INFO } from '@/shared/constants/budget-categories';
 import { CurrencyCode, formatCurrency } from '@/shared/utils/currency';
+import { showAlert } from '@/shared/utils/alert';
 import { doc, getDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
 
@@ -87,7 +87,7 @@ export default function BudgetScreen() {
       }
     } catch (error) {
       console.error('Error loading budget:', error);
-      Alert.alert('Error', 'Failed to load budget');
+      showAlert('Error', 'Failed to load budget');
     } finally {
       setLoading(false);
     }
@@ -205,10 +205,10 @@ export default function BudgetScreen() {
       // Update local state with saved budget
       setBudget(updatedBudget);
 
-      Alert.alert('Success! 🎉', 'Budget saved successfully');
+      showAlert('Success! 🎉', 'Budget saved successfully');
     } catch (error) {
       console.error('Error saving budget:', error);
-      Alert.alert('Error', 'Failed to save budget');
+      showAlert('Error', 'Failed to save budget');
     } finally {
       setSaving(false);
     }
@@ -280,8 +280,10 @@ export default function BudgetScreen() {
     return 'empty';
   }
 
-  // Calculate remaining to budget using domain helper (correctly excludes INCOME categories)
-  const remaining = budget ? calculateRemainingToBudget(budget) : 0;
+  // Calculate remaining to budget in real-time (use current income input, not saved budget.planned_income)
+  const remaining = budget 
+    ? plannedIncomeInCents - calculateTotalPlannedExpenses(budget)
+    : 0;
   const isZeroBased = remaining === 0;
 
   if (loading) {
@@ -373,7 +375,7 @@ export default function BudgetScreen() {
           <AppText variant="body" color={theme.text.secondary}>
             {isZeroBased
               ? 'Every dollar has a job! 🎉'
-              : `${formatCurrency(Math.abs(remaining) / 100, householdCurrency)} ${remaining > 0 ? 'left to budget' : 'over budget'}`
+              : `${formatCurrency(Math.abs(remaining), householdCurrency)} ${remaining > 0 ? 'left to budget' : 'over budget'}`
             }
           </AppText>
         </Card>

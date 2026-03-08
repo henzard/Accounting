@@ -6,7 +6,6 @@ import {
   View,
   ScrollView,
   TouchableOpacity,
-  Alert,
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
@@ -17,6 +16,7 @@ import { BABY_STEPS, sanitizeBabyStep, isValidBabyStep } from '@/shared/constant
 import { PrimaryButton, OutlineButton, Card, ScreenHeader, ScreenWrapper, AppText } from '@/presentation/components';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/infrastructure/firebase';
+import { showAlert } from '@/shared/utils/alert';
 import { SPACING, BORDER_RADIUS } from '@/shared/constants/spacing';
 
 export default function BabyStepsSelectScreen() {
@@ -64,7 +64,7 @@ export default function BabyStepsSelectScreen() {
 
   const handleSave = async () => {
     if (!user?.default_household_id) {
-      Alert.alert('Error', 'No household selected');
+      showAlert('Error', 'No household selected');
       return;
     }
 
@@ -76,7 +76,7 @@ export default function BabyStepsSelectScreen() {
     // Validate selectedStep is within valid range (1-7)
     if (!isValidBabyStep(selectedStep)) {
       console.error(`❌ Invalid baby step: ${selectedStep}`);
-      Alert.alert('Error', 'Please select a valid Baby Step (1-7)');
+      showAlert('Error', 'Please select a valid Baby Step (1-7)');
       return;
     }
 
@@ -97,14 +97,11 @@ export default function BabyStepsSelectScreen() {
       // Safe array access - validated above with isValidBabyStep
       const stepInfo = BABY_STEPS[selectedStep - 1];
       
-      Alert.alert(
-        'Baby Step Updated! 🎉',
-        `You're now on Baby Step ${selectedStep}: ${stepInfo.shortTitle}`,
-        [{ text: 'OK', onPress: () => router.back() }]
-      );
+      router.back();
+      showAlert('Baby Step Updated! 🎉', `You're now on Baby Step ${selectedStep}: ${stepInfo.shortTitle}`);
     } catch (error) {
       console.error('Error saving baby step:', error);
-      Alert.alert('Error', 'Failed to save baby step');
+      showAlert('Error', 'Failed to save baby step');
     } finally {
       setSaving(false);
     }

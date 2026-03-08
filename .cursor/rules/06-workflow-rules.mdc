@@ -29,25 +29,83 @@ alwaysApply: true
    cd android
    ./gradlew assembleDebug
    ```
-3. **Bump version** (if significant change)
+3. **Bump version** (if significant change - see Version Management below)
 4. **Git commit** with meaningful message
-5. **Update todo.md** - Mark task complete
+5. **Create and push tag** (if version changed)
+6. **Push commits** (and tags)
+7. **Update todo.md** - Mark task complete
 
 ## Version Management
+
+### Golden Rule: Version Everything
+
+**Every significant change gets a version bump, commit, tag, and push.**
 
 ### Semantic Versioning
 ```
 MAJOR.MINOR.PATCH
-  │     │     └── Bug fixes, small changes
-  │     └──────── New features, backwards compatible
-  └────────────── Breaking changes
+  │     │     └── Bug fixes, small changes (1.0.0 → 1.0.1)
+  │     └──────── New features, backwards compatible (1.0.0 → 1.1.0)
+  └────────────── Breaking changes (1.0.0 → 2.0.0)
 ```
+
+### When to Bump Version
+
+| Change Type | Version Bump | Example |
+|------------|--------------|---------|
+| **Bug fix** | PATCH | Fix dashboard loading error |
+| **New feature** | MINOR | Add receipt photo management |
+| **Breaking change** | MAJOR | Change API, remove feature |
+| **Documentation only** | No bump | Update README, fix typos |
+| **Refactoring (no behavior change)** | PATCH | Code cleanup, rename variables |
 
 ### Version Locations
 Update these files when bumping version:
-- `package.json` - `version` field
-- `android/app/build.gradle` - `versionCode` and `versionName`
-- `ios/[AppName]/Info.plist` - `CFBundleShortVersionString` and `CFBundleVersion`
+- `src/package.json` - `version` field
+- `src/app.json` - `expo.version` field
+- `src/android/app/build.gradle` - `versionCode` and `versionName` (if exists)
+- `src/ios/[AppName]/Info.plist` - `CFBundleShortVersionString` and `CFBundleVersion` (if exists)
+
+### Version Bump Workflow
+
+**Using npm version (Recommended)**:
+```powershell
+cd src
+
+# Patch version (1.0.0 → 1.0.1) - for bug fixes
+npm version patch -m "chore: bump version to %s"
+
+# Minor version (1.0.0 → 1.1.0) - for new features
+npm version minor -m "chore: bump version to %s"
+
+# Major version (1.0.0 → 2.0.0) - for breaking changes
+npm version major -m "chore: bump version to %s"
+
+# Push commits and tags
+git push
+git push --tags
+```
+
+**Note**: `npm version` automatically:
+- Updates `package.json`
+- Creates a git commit
+- Creates a git tag
+- Does NOT push (you must push manually)
+
+**Manual versioning**:
+```powershell
+# 1. Update version in src/package.json and src/app.json manually
+# 2. Stage changes
+git add -A
+
+# 3. Commit
+git commit -m "chore: bump version to 1.1.0"
+
+# 4. Create and push tag
+git tag v1.1.0
+git push
+git push --tags
+```
 
 ## Git Commit Guidelines
 

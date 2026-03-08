@@ -33,6 +33,13 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
   /**
    * Get a single transaction by ID
    */
+  async getTransactionById(transactionId: string): Promise<Transaction | null> {
+    return this.getTransaction(transactionId);
+  }
+
+  /**
+   * Get a single transaction by ID
+   */
   async getTransaction(transactionId: string): Promise<Transaction | null> {
     
     try {
@@ -53,6 +60,64 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
   }
 
   /**
+   * Get transactions with filters
+   * Works offline - returns cached data if no connection
+   */
+  async getTransactions(filters: {
+    household_id: string;
+    account_id?: string;
+    type?: string;
+    start_date?: Date;
+    end_date?: Date;
+    is_business?: boolean;
+    limit?: number;
+  }): Promise<Transaction[]> {
+    try {
+      const constraints = [
+        where('household_id', '==', filters.household_id),
+      ];
+
+      if (filters.account_id) {
+        constraints.push(where('account_id', '==', filters.account_id));
+      }
+
+      if (filters.type) {
+        constraints.push(where('type', '==', filters.type));
+      }
+
+      if (filters.is_business !== undefined) {
+        constraints.push(where('is_business', '==', filters.is_business));
+      }
+
+      if (filters.limit) {
+        constraints.push(limit(filters.limit));
+      }
+
+      const q = query(collection(db, this.COLLECTION), ...constraints);
+
+      const querySnapshot = await getDocs(q);
+      
+      let transactions = querySnapshot.docs.map(doc => 
+        this.firestoreToTransaction(doc.data())
+      );
+
+      // Filter by date range in memory (to avoid composite index)
+      if (filters.start_date) {
+        transactions = transactions.filter(t => t.date >= filters.start_date!);
+      }
+      if (filters.end_date) {
+        transactions = transactions.filter(t => t.date <= filters.end_date!);
+      }
+
+      // Sort in-memory by date (desc)
+      return transactions.sort((a, b) => b.date.getTime() - a.date.getTime());
+    } catch (error) {
+      console.error('Error getting transactions:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get transactions for a household
    * Works offline - returns cached data if no connection
    */
@@ -60,14 +125,50 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
     householdId: string,
     limitCount: number = 100
   ): Promise<Transaction[]> {
+    return this.getTransactions({
+      household_id: householdId,
+      limit: limitCount,
+    });
+  }
 
+  /**
+   * Get recent transactions for a household
+   */
+  async getRecentTransactions(householdId: string, limitCount: number): Promise<Transaction[]> {
+    return this.getTransactions({
+      household_id: householdId,
+      limit: limitCount,
+    });
+  }
+
+  /**
+   * Get transactions for a budget period (month/year)
+   */
+  async getTransactionsByBudgetPeriod(
+    householdId: string,
+    month: number,
+    year: number
+  ): Promise<Transaction[]> {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59);
+
+    return this.getTransactions({
+      household_id: householdId,
+      start_date: startDate,
+      end_date: endDate,
+    });
+  }
+
+  /**
+   * Get unclaimed business expenses for a household
+   */
+  async getUnclaimedBusinessExpenses(householdId: string): Promise<Transaction[]> {
     try {
-      // Note: Removed orderBy to avoid composite index requirement
-      // Sorting in-memory instead
       const q = query(
         collection(db, this.COLLECTION),
         where('household_id', '==', householdId),
-        limit(limitCount)
+        where('is_business', '==', true),
+        where('reimbursement_claim_id', '==', null)
       );
 
       const querySnapshot = await getDocs(q);
@@ -76,10 +177,10 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
         this.firestoreToTransaction(doc.data())
       );
 
-      // Sort in-memory by date (desc)
+      // Sort by date (desc)
       return transactions.sort((a, b) => b.date.getTime() - a.date.getTime());
     } catch (error) {
-      console.error('Error getting transactions:', error);
+      console.error('Error getting unclaimed business expenses:', error);
       throw error;
     }
   }
@@ -108,15 +209,39 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
    * Update an existing transaction
    * Works offline - queues for sync when online
    */
-  async updateTransaction(transaction: Transaction): Promise<void> {
-
+  async updateTransaction(transactionId: string, updates: Partial<Transaction>): Promise<void> {
     try {
-      const docRef = doc(db, this.COLLECTION, transaction.id);
-      const firestoreData = this.transactionToFirestore(transaction);
-
-      await updateDoc(docRef, firestoreData);
+      const docRef = doc(db, this.COLLECTION, transactionId);
       
-      console.log(`✅ Transaction ${transaction.id} updated (will sync when online)`);
+      // Convert partial updates to Firestore format
+      const firestoreUpdates: any = {
+        updated_at: Timestamp.now(),
+      };
+
+      // Convert specific fields that need Timestamp conversion
+      if (updates.date) {
+        firestoreUpdates.date = Timestamp.fromDate(updates.date);
+      }
+      if (updates.cleared_date) {
+        firestoreUpdates.cleared_date = Timestamp.fromDate(updates.cleared_date);
+      }
+      if (updates.reconciled_at) {
+        firestoreUpdates.reconciled_at = Timestamp.fromDate(updates.reconciled_at);
+      }
+      if (updates.captured_at) {
+        firestoreUpdates.captured_at = Timestamp.fromDate(updates.captured_at);
+      }
+
+      // Copy other fields directly
+      Object.keys(updates).forEach(key => {
+        if (!['date', 'cleared_date', 'reconciled_at', 'captured_at', 'updated_at', 'created_at'].includes(key)) {
+          firestoreUpdates[key] = (updates as any)[key];
+        }
+      });
+
+      await updateDoc(docRef, firestoreUpdates);
+      
+      console.log(`✅ Transaction ${transactionId} updated (will sync when online)`);
     } catch (error) {
       console.error('Error updating transaction:', error);
       throw error;
@@ -169,6 +294,97 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
     });
   }
 
+  /**
+   * Mark transaction as cleared
+   */
+  async markTransactionCleared(transactionId: string, clearedDate?: Date): Promise<void> {
+    try {
+      const docRef = doc(db, this.COLLECTION, transactionId);
+      
+      await updateDoc(docRef, {
+        status: 'cleared',
+        cleared_date: clearedDate ? Timestamp.fromDate(clearedDate) : Timestamp.now(),
+        updated_at: Timestamp.now(),
+      });
+      
+      console.log(`✅ Transaction ${transactionId} marked as cleared`);
+    } catch (error) {
+      console.error('Error marking transaction as cleared:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Mark transaction as pending (uncleared)
+   */
+  async markTransactionPending(transactionId: string): Promise<void> {
+    try {
+      const docRef = doc(db, this.COLLECTION, transactionId);
+      
+      await updateDoc(docRef, {
+        status: 'pending',
+        cleared_date: null,
+        updated_at: Timestamp.now(),
+      });
+      
+      console.log(`✅ Transaction ${transactionId} marked as pending`);
+    } catch (error) {
+      console.error('Error marking transaction as pending:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get uncleared transactions for an account
+   */
+  async getUnclearedTransactions(accountId: string): Promise<Transaction[]> {
+    try {
+      const q = query(
+        collection(db, this.COLLECTION),
+        where('account_id', '==', accountId),
+        where('status', '==', 'pending')
+      );
+
+      const querySnapshot = await getDocs(q);
+      
+      const transactions = querySnapshot.docs.map(doc => 
+        this.firestoreToTransaction(doc.data())
+      );
+
+      // Sort by date (oldest first for reconciliation)
+      return transactions.sort((a, b) => a.date.getTime() - b.date.getTime());
+    } catch (error) {
+      console.error('Error getting uncleared transactions:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get cleared transactions for an account
+   */
+  async getClearedTransactions(accountId: string): Promise<Transaction[]> {
+    try {
+      // Query for both 'cleared' and 'reconciled' status
+      const q = query(
+        collection(db, this.COLLECTION),
+        where('account_id', '==', accountId),
+        where('status', 'in', ['cleared', 'reconciled'])
+      );
+
+      const querySnapshot = await getDocs(q);
+      
+      const transactions = querySnapshot.docs.map(doc => 
+        this.firestoreToTransaction(doc.data())
+      );
+
+      // Sort by date (desc)
+      return transactions.sort((a, b) => b.date.getTime() - a.date.getTime());
+    } catch (error) {
+      console.error('Error getting cleared transactions:', error);
+      throw error;
+    }
+  }
+
   // ============================================
   // HELPER METHODS: Firestore ↔ Domain Entity
   // ============================================
@@ -192,6 +408,9 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
       notes: data.notes,
       reference: data.reference,
       status: data.status,
+      cleared_date: data.cleared_date 
+        ? (data.cleared_date instanceof Timestamp ? data.cleared_date.toDate() : new Date(data.cleared_date))
+        : undefined,
       reconciled_at: data.reconciled_at 
         ? (data.reconciled_at instanceof Timestamp ? data.reconciled_at.toDate() : new Date(data.reconciled_at))
         : undefined,
@@ -232,6 +451,9 @@ export class FirestoreTransactionRepository implements ITransactionRepository {
       notes: transaction.notes || null,
       reference: transaction.reference || null,
       status: transaction.status,
+      cleared_date: transaction.cleared_date 
+        ? Timestamp.fromDate(transaction.cleared_date) 
+        : null,
       reconciled_at: transaction.reconciled_at 
         ? Timestamp.fromDate(transaction.reconciled_at) 
         : null,

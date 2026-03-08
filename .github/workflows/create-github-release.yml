@@ -1,0 +1,167 @@
+name: Create GitHub Release from EAS Build
+
+# This workflow creates a GitHub release after an EAS Workflow build completes
+# It triggers when a version tag is pushed and waits for the EAS build to complete
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v1.0.0
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required to create releases
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for tags
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          expo-version: latest
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Get commit SHA from tag
+        id: get_commit
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          COMMIT_SHA=$(git rev-list -n 1 $TAG_NAME)
+          echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "commit=$COMMIT_SHA" >> $GITHUB_OUTPUT
+          echo "Tag: $TAG_NAME"
+          echo "Commit SHA: $COMMIT_SHA"
+
+      - name: Find latest completed EAS build
+        working-directory: ./src
+        id: find-build
+        run: |
+          TAG_NAME="${{ steps.get_commit.outputs.tag }}"
+          COMMIT_SHA="${{ steps.get_commit.outputs.commit }}"
+          echo "🔍 Looking for EAS build for tag: $TAG_NAME"
+          echo "   Commit: $COMMIT_SHA"
+          
+          # Wait for EAS build to start (EAS Workflows triggers on same tag push)
+          echo "⏳ Waiting 2 minutes for EAS build to start..."
+          sleep 120
+          
+          MAX_ATTEMPTS=100  # 25 minutes max (builds usually take 15-20 min)
+          ATTEMPT=0
+          BUILD_ID=""
+          
+          while [ $ATTEMPT -lt $MAX_ATTEMPTS ]; do
+            echo ""
+            echo "📋 Checking for builds... (attempt $((ATTEMPT + 1))/$MAX_ATTEMPTS)"
+            
+            # Get latest builds
+            BUILD_LIST=$(eas build:list --platform android --limit 10 --json 2>/dev/null || echo "[]")
+            
+            # Debug: Show all builds and their statuses
+            echo "   Available builds:"
+            echo "$BUILD_LIST" | jq -r '.[] | "      - \(.id): \(.status) (commit: \(.gitCommitHash // "unknown"))"' 2>/dev/null || echo "      (could not parse build list)"
+            
+            # Get the most recent finished build (EAS Workflows builds sequentially)
+            BUILD_ID=$(echo "$BUILD_LIST" | jq -r '.[] | select(.status == "finished") | .id' 2>/dev/null | head -1)
+            
+            if [ -n "$BUILD_ID" ] && [ "$BUILD_ID" != "null" ]; then
+              BUILD_STATUS=$(echo "$BUILD_LIST" | jq -r ".[] | select(.id == \"$BUILD_ID\") | .status" 2>/dev/null)
+              BUILD_COMMIT=$(echo "$BUILD_LIST" | jq -r ".[] | select(.id == \"$BUILD_ID\") | .gitCommitHash" 2>/dev/null)
+              BUILD_CREATED=$(echo "$BUILD_LIST" | jq -r ".[] | select(.id == \"$BUILD_ID\") | .createdAt" 2>/dev/null)
+              
+              echo ""
+              echo "✅ Found completed build: $BUILD_ID"
+              echo "   Status: $BUILD_STATUS"
+              echo "   Commit: $BUILD_COMMIT"
+              echo "   Created: $BUILD_CREATED"
+              echo "build_id=$BUILD_ID" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            
+            # Check for in-progress builds
+            IN_PROGRESS=$(echo "$BUILD_LIST" | jq -r '.[] | select(.status == "in-progress" or .status == "new" or .status == "in-queue") | .id' 2>/dev/null | head -1)
+            if [ -n "$IN_PROGRESS" ] && [ "$IN_PROGRESS" != "null" ]; then
+              IN_PROGRESS_STATUS=$(echo "$BUILD_LIST" | jq -r ".[] | select(.id == \"$IN_PROGRESS\") | .status" 2>/dev/null)
+              echo "   ⏳ Build in progress: $IN_PROGRESS (status: $IN_PROGRESS_STATUS)"
+            else
+              echo "   ⚠️  No in-progress builds found"
+            fi
+            
+            ATTEMPT=$((ATTEMPT + 1))
+            sleep 15
+          done
+          
+          echo ""
+          echo "❌ Timeout: Could not find completed build after 25 minutes"
+          echo "   Last build list:"
+          echo "$BUILD_LIST" | jq '.' 2>/dev/null || echo "   (could not get build list)"
+          exit 1
+
+      - name: Download Android build
+        working-directory: ./src
+        run: |
+          BUILD_ID="${{ steps.find-build.outputs.build_id }}"
+          if [ -z "$BUILD_ID" ]; then
+            echo "❌ No build ID found"
+            exit 1
+          fi
+          echo "📥 Downloading build $BUILD_ID..."
+          eas build:download --id $BUILD_ID --platform android --output ./android-build.apk
+          echo "✅ Build downloaded successfully"
+          
+          # Verify file exists and show size
+          if [ -f "./android-build.apk" ]; then
+            FILE_SIZE=$(du -h ./android-build.apk | cut -f1)
+            echo "📦 APK file size: $FILE_SIZE"
+          else
+            echo "❌ APK file not found after download"
+            exit 1
+          fi
+
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          TAG_NAME="${{ steps.get_commit.outputs.tag }}"
+          # Remove 'v' prefix if present (v1.2.6 -> 1.2.6)
+          VERSION=${TAG_NAME#v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "Release version: $VERSION"
+          echo "Release tag: $TAG_NAME"
+
+      - name: Verify release notes exist
+        run: |
+          if [ ! -f "docs/release-notes.md" ]; then
+            echo "⚠️ Warning: docs/release-notes.md not found, using default release notes"
+            echo "## Release ${{ steps.get_version.outputs.version }}" > docs/release-notes.md
+            echo "" >> docs/release-notes.md
+            echo "See [release notes](https://github.com/${{ github.repository }}/blob/main/docs/release-notes.md) for details." >> docs/release-notes.md
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.get_version.outputs.tag }}
+          name: Release ${{ steps.get_version.outputs.version }}
+          body_path: docs/release-notes.md
+          files: |
+            src/android-build.apk
+          draft: false
+          prerelease: false
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

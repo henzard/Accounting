@@ -1,0 +1,27 @@
+# Dev Server Control Rules
+
+## CRITICAL: Server Management
+
+### Do NOT Start Servers Automatically
+- **NEVER** start `npx expo start` or any dev server unless the user explicitly asks
+- The user maintains control of their own dev server
+- Only ONE dev server should run at a time (the user's)
+
+### When Fixes Are Made
+- After making code changes, **ask the user** if they want to rebuild/restart their server
+- Do NOT automatically start a new server
+- Let the user control when and how the server restarts
+
+### Build Commands
+- Only run build/start commands when explicitly requested by the user
+- If a rebuild is needed, suggest it but let the user decide
+
+### Port Management
+- Do NOT kill processes on ports unless explicitly asked
+- Do NOT check port availability automatically
+- Let the user manage their own ports
+
+## Why This Rule Exists
+- Multiple servers cause confusion and port conflicts
+- The user needs control over their development environment
+- Automatic server starts interrupt the user's workflow
